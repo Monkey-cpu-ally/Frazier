@@ -6,67 +6,71 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
-
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
 app = FastAPI()
-
-# Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
-
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
+# Models
+class ScoreEntry(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
+    score: int = 0
+    coins: int = 0
+    level: int = 0
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class ScoreCreate(BaseModel):
+    score: int = 0
+    coins: int = 0
+    level: int = 0
 
-# Add your routes to the router instead of directly to app
+class LeaderboardEntry(BaseModel):
+    score: int
+    coins: int
+    level: int
+    timestamp: str
+
+# Routes
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Hyper Axel API"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
+@api_router.post("/scores", response_model=ScoreEntry)
+async def save_score(data: ScoreCreate):
+    entry = ScoreEntry(**data.model_dump())
+    doc = entry.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
+    await db.scores.insert_one(doc)
+    return entry
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
+@api_router.get("/scores/top", response_model=List[LeaderboardEntry])
+async def get_top_scores():
+    cursor = db.scores.find({}, {"_id": 0}).sort("score", -1).limit(10)
+    scores = await cursor.to_list(10)
+    result = []
+    for s in scores:
+        result.append(LeaderboardEntry(
+            score=s.get('score', 0),
+            coins=s.get('coins', 0),
+            level=s.get('level', 0),
+            timestamp=s.get('timestamp', ''),
+        ))
+    return result
 
-# Include the router in the main app
+@api_router.get("/health")
+async def health():
+    return {"status": "ok", "game": "Hyper Axel"}
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -77,7 +81,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'

@@ -1,0 +1,457 @@
+import { W, H, C } from './constants';
+import { Input } from './input';
+import { Camera } from './camera';
+import { Player } from './player';
+import { GameState, PowerManager, FlightLog } from './systems';
+import { createEnemy } from './enemies';
+import { createPickup, Breakable } from './pickups';
+import { getLevels } from './levels';
+import { HUD } from './hud';
+
+export class Engine {
+  constructor(canvas, onStateChange) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    canvas.width = W;
+    canvas.height = H;
+    this.onStateChange = onStateChange || (() => {});
+
+    this.input = new Input();
+    this.camera = new Camera(W, H);
+    this.gameState = new GameState();
+    this.powerManager = new PowerManager();
+    this.flightLog = new FlightLog();
+    this.hud = new HUD();
+
+    this.player = null;
+    this.enemies = [];
+    this.pickups = [];
+    this.breakables = [];
+    this.platforms = [];
+    this.particles = [];
+    this.levels = getLevels();
+    this.currentLevelIndex = 0;
+    this.currentLevel = null;
+    this.deathY = 800;
+    this.levelTimer = 0;
+
+    this.state = 'playing';
+    this.transitionTimer = 0;
+    this.transitionType = 'in';
+    this.hitStopTimer = 0;
+    this.gameOverTimer = 0;
+
+    this.lastTime = 0;
+    this.running = false;
+  }
+
+  start() {
+    this.gameState.reset();
+    this.powerManager.reset();
+    this.flightLog.entries = [];
+    this.loadLevel(0);
+    this.running = true;
+    this.lastTime = performance.now();
+    this.flightLog.add('System boot. Scanning sector...', 'system');
+    this._loop();
+  }
+
+  restart() {
+    this.gameState.reset();
+    this.powerManager.reset();
+    this.flightLog.entries = [];
+    this.particles = [];
+    this.gameOverTimer = 0;
+    this.state = 'playing';
+    this.loadLevel(0);
+    this.flightLog.add('Rebooting systems...', 'system');
+    this.onStateChange('playing');
+  }
+
+  stop() { this.running = false; this.input.destroy(); }
+
+  loadLevel(index) {
+    if (index >= this.levels.length) {
+      this.state = 'victory';
+      this.onStateChange('victory');
+      return;
+    }
+    const lv = this.levels[index];
+    this.currentLevelIndex = index;
+    this.currentLevel = lv;
+    this.deathY = lv.deathY || 800;
+    this.levelTimer = 0;
+
+    this.player = new Player(lv.playerSpawn.x, lv.playerSpawn.y);
+    this.enemies = (lv.enemies || []).map(e => createEnemy(e));
+    this.pickups = (lv.pickups || []).map(p => createPickup(p));
+    this.breakables = (lv.breakables || []).map(b =>
+      new Breakable(b.x, b.y, b.w, b.h, b.btype, b.smashOnly)
+    );
+
+    // Build platform list (static + breakable)
+    this.platforms = [...(lv.platforms || [])];
+
+    this.camera.setLimits(lv.camera.limitLeft, lv.camera.limitTop, lv.camera.limitRight, lv.camera.limitBottom);
+    this.camera.x = lv.camera.startX - W / 2;
+    this.camera.y = lv.camera.startY - H / 2;
+
+    this.state = 'transition';
+    this.transitionTimer = 0.8;
+    this.transitionType = 'in';
+    this.flightLog.add(`Entering: ${lv.name}`, 'nav');
+  }
+
+  _loop = () => {
+    if (!this.running) return;
+    const now = performance.now();
+    let dt = (now - this.lastTime) / 1000;
+    this.lastTime = now;
+    if (dt > 0.05) dt = 0.05;
+
+    if (this.hitStopTimer > 0) {
+      this.hitStopTimer -= dt;
+      this.input.update();
+      this._render();
+      requestAnimationFrame(this._loop);
+      return;
+    }
+
+    this.input.update();
+
+    if (this.state === 'playing') {
+      this._update(dt);
+    } else if (this.state === 'transition') {
+      this.transitionTimer -= dt;
+      if (this.transitionTimer <= 0) {
+        this.state = 'playing';
+      }
+    } else if (this.state === 'gameover') {
+      this.gameOverTimer += dt;
+      if (this.input.jump && this.gameOverTimer > 1) {
+        this.restart();
+      }
+    } else if (this.state === 'victory') {
+      if (this.input.jump) this.restart();
+    }
+
+    this._render();
+    requestAnimationFrame(this._loop);
+  }
+
+  _update(dt) {
+    this.levelTimer += dt;
+    this.gameState.update(dt);
+    this.powerManager.update(dt);
+
+    // Rebuild full platform list including non-broken breakables
+    this._allPlatforms = [
+      ...this.platforms,
+      ...this.breakables.filter(b => !b.broken).map(b => b.platform).filter(Boolean),
+    ];
+    // Temporarily swap so player/enemy collision uses full list
+    const basePlatforms = this.platforms;
+    this.platforms = this._allPlatforms;
+
+    this.player.update(dt, this);
+    this.enemies.forEach(e => e.update(dt, this));
+
+    // Restore base platforms
+    this.platforms = basePlatforms;
+    this.pickups.forEach(p => p.update(dt));
+    this.breakables.forEach(b => b.update(dt));
+    this.particles.forEach(p => p.update(dt));
+    this.particles = this.particles.filter(p => p.life > 0);
+
+    this.camera.follow(this.player.x, this.player.y - 40, dt);
+    this.camera.updateShake(dt);
+
+    this._checkCollisions();
+
+    // Player death
+    if (!this.player.alive) {
+      this.state = 'gameover';
+      this.gameOverTimer = 0;
+      this.onStateChange('gameover');
+    }
+
+    // Level exit
+    if (this.currentLevel && this.player.x >= this.currentLevel.exitX) {
+      const allDead = this.enemies.every(e => !e.alive);
+      if (!this.currentLevel.isBoss || allDead) {
+        this.loadLevel(this.currentLevelIndex + 1);
+      }
+    }
+  }
+
+  _checkCollisions() {
+    const pl = this.player;
+    if (!pl.alive) return;
+
+    // Player vs enemies (contact damage)
+    this.enemies.forEach(e => {
+      if (!e.alive) return;
+      const hb = e.getHitbox();
+      if (this._aabb(pl.left, pl.top, pl.w, pl.h, hb.x, hb.y, hb.w, hb.h)) {
+        pl.takeDamage(e.dmg, e.cx, this);
+      }
+    });
+
+    // Player attack vs enemies
+    if (pl.atkTimer > 0) {
+      const ab = pl.getAtkBox();
+      const dmgMul = this.powerManager.isGoldenGloves ? 2 : (this.powerManager.isSuperMode ? 1.5 : 1);
+      this.enemies.forEach(e => {
+        if (!e.alive || e.hurtTimer > 0) return;
+        const hb = e.getHitbox();
+        if (this._aabb(ab.x, ab.y, ab.w, ab.h, hb.x, hb.y, hb.w, hb.h)) {
+          e.takeDamage(Math.ceil(dmgMul), pl.x, this);
+        }
+      });
+
+      // Player attack vs breakables
+      this.breakables.forEach(b => {
+        if (b.broken) return;
+        if (this._aabb(ab.x, ab.y, ab.w, ab.h, b.x, b.y, b.w, b.h)) {
+          b.hit(1, pl.smashing, this);
+        }
+      });
+
+      // Burning buffalo vs breakables
+      if (this.powerManager.isBurningBuffalo) {
+        this.breakables.forEach(b => {
+          if (b.broken) return;
+          const px = pl.cx, py = pl.cy;
+          if (px > b.x - 20 && px < b.x + b.w + 20 && py > b.y - 10 && py < b.y + b.h + 10) {
+            b.hit(3, true, this);
+          }
+        });
+      }
+    }
+
+    // Player vs pickups
+    this.pickups.forEach(p => {
+      if (p.collected) return;
+      const hb = p.hitbox;
+      if (this._aabb(pl.left, pl.top, pl.w, pl.h, hb.x, hb.y, hb.w, hb.h)) {
+        p.collect(this);
+      }
+    });
+  }
+
+  _aabb(x1, y1, w1, h1, x2, y2, w2, h2) {
+    return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
+  }
+
+  addParticles(x, y, count, color) {
+    for (let i = 0; i < count; i++) {
+      this.particles.push(new Particle(x, y, color));
+    }
+  }
+
+  _render() {
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, W, H);
+
+    // Background
+    if (this.currentLevel) {
+      this._renderBg(ctx);
+    }
+
+    ctx.save();
+    this.camera.apply(ctx);
+
+    // Platforms
+    this._renderPlatforms(ctx);
+
+    // Breakables
+    this.breakables.forEach(b => b.render(ctx));
+
+    // Secret area visual hints
+    if (this.currentLevel && this.currentLevelIndex === 2) {
+      ctx.fillStyle = 'rgba(51,79,97,0.35)';
+      ctx.fillRect(-70, 336, 320, 220);
+    }
+
+    // Pickups
+    this.pickups.forEach(p => p.render(ctx));
+
+    // Enemies
+    this.enemies.forEach(e => e.render(ctx));
+
+    // Player
+    if (this.player) this.player.render(ctx);
+
+    // Particles
+    this.particles.forEach(p => p.render(ctx));
+
+    // Exit marker
+    if (this.currentLevel) {
+      const ex = this.currentLevel.exitX;
+      const canExit = !this.currentLevel.isBoss || this.enemies.every(e => !e.alive);
+      ctx.fillStyle = canExit ? 'rgba(255,215,10,0.7)' : 'rgba(235,115,84,0.6)';
+      ctx.fillRect(ex, 120, 20, 168);
+      if (canExit) {
+        ctx.fillStyle = C.yellow;
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('EXIT', ex + 10, 112);
+      }
+    }
+
+    ctx.restore();
+
+    // HUD
+    this.hud.render(ctx, this);
+
+    // Transition overlay
+    if (this.state === 'transition') {
+      const prog = this.transitionTimer / 0.8;
+      const barH = H * prog;
+      ctx.fillStyle = C.black;
+      ctx.fillRect(0, 0, W, barH / 2);
+      ctx.fillRect(0, H - barH / 2, W, barH / 2);
+      // Level name
+      if (prog > 0.3) {
+        ctx.globalAlpha = Math.min(1, (prog - 0.3) * 3);
+        ctx.fillStyle = C.white;
+        ctx.font = 'bold 36px "Anton", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.currentLevel?.name || '', W / 2, H / 2 + 5);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // Game over overlay
+    if (this.state === 'gameover') {
+      ctx.fillStyle = 'rgba(0,0,0,0.75)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = C.red;
+      ctx.font = 'bold 72px "Anton", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('GAME OVER', W / 2, H / 2 - 20);
+      ctx.fillStyle = C.white;
+      ctx.font = '20px "Nunito", sans-serif';
+      ctx.fillText(`Score: ${this.gameState.score}`, W / 2, H / 2 + 30);
+      if (this.gameOverTimer > 1) {
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = '16px "Nunito", sans-serif';
+        ctx.fillText('Press SPACE to restart', W / 2, H / 2 + 70);
+      }
+    }
+
+    // Victory overlay
+    if (this.state === 'victory') {
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = C.yellow;
+      ctx.font = 'bold 56px "Anton", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('DEMO COMPLETE', W / 2, H / 2 - 30);
+      ctx.fillStyle = C.white;
+      ctx.font = '22px "Nunito", sans-serif';
+      ctx.fillText(`Final Score: ${this.gameState.score}`, W / 2, H / 2 + 20);
+      ctx.fillText(`Coins: ${this.gameState.coins}`, W / 2, H / 2 + 50);
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = '16px "Nunito", sans-serif';
+      ctx.fillText('Press SPACE to play again', W / 2, H / 2 + 90);
+    }
+  }
+
+  _renderBg(ctx) {
+    const bgs = this.currentLevel.backgrounds || [];
+    bgs.forEach(bg => {
+      if (bg.type === 'sky') {
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, bg.color1);
+        grad.addColorStop(1, bg.color2);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+      }
+      if (bg.type === 'hills' && bg.points) {
+        ctx.save();
+        this.camera.apply(ctx);
+        // Parallax (half speed)
+        ctx.save();
+        ctx.translate(this.camera.x * 0.4, this.camera.y * 0.2);
+        ctx.fillStyle = bg.color;
+        ctx.beginPath();
+        bg.points.forEach((p, i) => {
+          if (i === 0) ctx.moveTo(p[0], p[1]);
+          else ctx.lineTo(p[0], p[1]);
+        });
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        ctx.restore();
+      }
+    });
+  }
+
+  _renderPlatforms(ctx) {
+    // All platforms including breakable-provided ones
+    const allPlatforms = [
+      ...this.platforms,
+    ];
+    allPlatforms.forEach(p => {
+      ctx.fillStyle = p.color || C.ground;
+      ctx.fillRect(p.x, p.y, p.w, p.h);
+      // Extend ground downward to fill screen
+      if (p.h >= 40) {
+        ctx.fillStyle = p.color || C.ground;
+        ctx.fillRect(p.x, p.y + p.h, p.w, 400);
+      }
+      // Top edge highlight
+      if (p.topColor) {
+        ctx.fillStyle = p.topColor;
+        ctx.fillRect(p.x, p.y, p.w, 4);
+      } else if (p.h <= 24) {
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.fillRect(p.x, p.y, p.w, 2);
+      }
+      // Ground grass tufts for main ground
+      if (p.h >= 40) {
+        ctx.fillStyle = '#4A6B48';
+        const seed = Math.abs(p.x) % 1000;
+        for (let i = 0; i < p.w / 35; i++) {
+          const gx = p.x + ((seed + i * 37) % p.w);
+          const gh = 3 + (i % 3) * 1.5;
+          ctx.fillRect(gx, p.y - gh, 3, gh);
+          ctx.fillRect(gx + 6, p.y - gh + 1, 2, gh - 1);
+        }
+      }
+    });
+  }
+}
+
+class Particle {
+  constructor(x, y, color) {
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random() - 0.5) * 200;
+    this.vy = (Math.random() - 0.8) * 200;
+    this.life = 0.3 + Math.random() * 0.3;
+    this.maxLife = this.life;
+    this.size = 2 + Math.random() * 4;
+    this.color = color;
+  }
+
+  update(dt) {
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    this.vy += 400 * dt;
+    this.life -= dt;
+  }
+
+  render(ctx) {
+    const alpha = this.life / this.maxLife;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = this.color;
+    ctx.fillRect(
+      Math.round(this.x - this.size / 2),
+      Math.round(this.y - this.size / 2),
+      this.size, this.size
+    );
+    ctx.globalAlpha = 1;
+  }
+}
