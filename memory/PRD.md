@@ -1,75 +1,112 @@
 # Hyper Axel: Wrenchbound - PRD
 
 ## Original Problem Statement
-Build a browser-playable 2D action platformer called "Hyper Axel" based on the Godot game "Axel: Wrenchbound". The game features Axel, a black/brown girl mechanic with a red cap and wrench weapon, navigating overgrown urban-mechanical ruins with SMW2/Metal Slug-inspired design language.
+Build a browser-playable 2D action platformer called "Hyper Axel" based on the Godot game "Axel: Wrenchbound". The game features Axel, a black/brown girl mechanic with a red cap and wrench weapon, navigating overgrown urban-mechanical ruins. 80% soft/rounded (SMW2 influence), 20% impact punctuation (Metal Slug influence). Bold art style inspired by fighting game aesthetics (Cerebrawl reference).
 
 ## Architecture
-- **Frontend**: React 19 + HTML5 Canvas game engine (custom)
-- **Backend**: FastAPI + MongoDB (score persistence)
-- **Rendering**: Canvas 2D with pixel-art style shapes (no sprites)
-- **Game Engine**: Custom JS engine with game loop, physics, collision detection, camera, input
-
-## Core Requirements (Static)
-1. Playable 2D platformer with responsive movement
-2. 3-hit ground combo, air swat, downward smash combat
-3. Sticker-based health (3 stickers, chipping system)
-4. Scrap meter (charges from combat + pickups)
-5. 6 timed powers (15s each, one-at-a-time)
-6. 4 enemy families: Root Crawler, Gear Bug, Flicker, Heavy
-7. Pickups: coins, scrap, food, power orbs
-8. Breakable walls/floors
-9. HUD with health, coins, scrap meter, power icon+timer, score
-10. Title screen, controls overlay, game over/victory screens
-11. 5 levels with progression
+- **Frontend**: React 19 + HTML5 Canvas 2D game engine (custom)
+- **Backend**: FastAPI + MongoDB (score persistence/leaderboard)
+- **Audio**: Web Audio API synthesized retro SFX (no audio files needed)
+- **Art**: AI-generated hero art + canvas-rendered pixel characters with bold outlines
 
 ## What's Implemented (Jan 2026)
-- Full game engine (60fps canvas rendering, physics, AABB collision)
-- Player character Axel with movement (WASD/arrows), jumping (coyote time + jump buffer), 3-hit combo, air attack, downward smash
-- All 4 enemy types with patrol/chase AI, hit reactions, death particles
-- All pickup types (coin, scrap, food, power orbs)
-- Breakable walls and floors (smash-only floors, Burning Buffalo passthrough)
-- 6 power system (Burning Buffalo, Shadow Tag, Golden Gloves, Super Mode, Specter Mode, Fighter Plane)
-- Sticker health + scrap meter
-- Full HUD overlay
-- 5 levels: Overgrown Outskirts, Rust Climb, Hidden Depths, Buffalo Gate, Siege Core
-- Title screen with AI-generated character art and background
+
+### Core Game Engine
+- Custom 60fps game loop with delta time, hit stop, camera shake
+- AABB collision detection for platforms, enemies, pickups, breakables
+- Parallax scrolling with multi-layer backgrounds
+- Ambient particle system (dust motes, floating leaves)
+
+### Player (Axel)
+- Responsive movement with acceleration/friction, air control
+- Coyote time (0.1s) + jump buffering (0.1s)
+- 3-hit ground wrench combo with increasing power
+- Air swat attack
+- Downward smash (S+X in air) for breaking floors
+- Sticker-based health (3 stickers, chip damage system)
+- Invincibility frames with blink effect
+- Knockback on damage
+- Bold dark outlines and detailed pixel rendering
+
+### Combat & Powers
+- 6 timed powers (15s each, one-at-a-time): Burning Buffalo, Shadow Tag, Golden Gloves, Super Mode, Specter Mode, Fighter Plane
+- Shadow Tag leaves afterimage trail
+- Golden Gloves = double damage
+- Super Mode = speed + jump boost
+- Specter Mode = phase through enemies
+- Burning Buffalo = charge through breakable walls
+
+### Enemies
+- Root Crawler (Dinosaur Family) - green, patrol AI, 2HP
+- Gear Bug (Machine Family) - teal with rotating gear, fast patrol, 2HP
+- Flicker Enemy (Element Family) - purple with glow, floats, 3HP
+- Heavy Enemy (Machine Family) - steel-blue with green weak point, 5HP
+- All enemies: patrol/chase AI, hit reactions, death particles, scrap drops
+
+### Boss Fight
+- Rootbound Siege Tank boss with full phase system
+- Attack patterns: charge (bounces off walls), slam (creates debris projectiles)
+- Telegraph/warning indicators before attacks
+- Vulnerable phase after wall impact or 3 slams (glowing weak point)
+- Recovery phase, speed increase at low HP
+- HP bar, roar, death explosion sequence
+- Fox Spirit NPC appears after boss defeat with path-following guide
+
+### Levels (5)
+1. Overgrown Outskirts - intro platforming + coins
+2. Rust Climb - vertical platforms + mixed enemies
+3. Hidden Depths - breakable floor puzzle, secret underground area
+4. Buffalo Gate - power pickup + breakable wall reward
+5. Siege Core - boss arena with all enemy types + Golden Gloves power
+
+### Visual Design
+- AI-generated graffiti-style "HYPER AXEL" logo (Cerebrawl-inspired)
+- AI-generated bold character art of Axel with wrench
+- Overgrown urban ruins background (parallax, painted style)
+- Canvas-rendered characters with thick dark outlines
+- Ambient dust/leaf particle system
+- Hit flash, damage particles, death effects, camera shake
+
+### Audio (Web Audio API)
+- Jump, land, wrench swing, wrench hit, combo finish
+- Smash, player hurt/death
+- Enemy hit/death
+- Coin/scrap/food/power pickups
+- Breakable wall destruction
+- Boss: roar, hit, vulnerable, death
+- Fox Spirit appearance
+- Level complete fanfare
+- UI click/start sounds
+
+### HUD & UI
+- Sticker heart health display with chip damage
+- Coin counter, scrap meter, score
+- Power icon with circular timer
+- Level name indicator
+- Pickup text popups
+- Flight Log (TAB key) - full panel with category-colored entries
+- Title screen with graffiti logo + character art
 - Controls overlay with keyboard mappings
-- Game over / Victory screens with score
-- Backend API for score saving + leaderboard
-- Level transition animations
-- Flight log system
-- Parallax scrolling backgrounds
-- Camera shake, hit stop, damage particles
+- Game over / Victory screens
 
-## User Personas
-- Indie game developers prototyping platformer mechanics
-- Fans of retro 2D action platformers (SMW2, Metal Slug)
-- Game design students studying combat systems
+### Backend
+- FastAPI score persistence
+- POST /api/scores - save score
+- GET /api/scores/top - leaderboard (top 10)
+- GET /api/health - status check
 
-## Prioritized Backlog
-### P0 (Done)
-- Core gameplay loop, all 5 levels, full combat system
+## Backlog
+### P1
+- Replace AI-generated images with proper transparent PNGs
+- Mobile/touch controls
+- More levels (6-10)
+- Additional enemy variants per family
+- Animated sprite sheets for Axel
 
-### P1 (Next)
-- Boss fight (Rootbound Siege Tank) with attack/vulnerable/recover phases
-- Fox Spirit post-boss guide event
-- Hidden alcove reveal
-- Animated sprite sheets (replace polygon rendering)
-- Sound effects and music
-
-### P2 (Future)
-- Dedicated Flight Log panel with scroll and category filters
-- More enemy variants per family
-- Power-specific animations and visual effects
-- Mobile/touch controls support
-- Authored pixel art icon sprites for HUD
-- Save/load game progress to backend
+### P2
 - Leaderboard display page
 - Level select screen
-
-## Next Tasks
-1. Implement boss fight mechanics (Rootbound Siege Tank)
-2. Add Fox Spirit guide NPC after boss defeat
-3. Add sound effects (wrench swings, enemy hits, coin pickups)
-4. Replace polygon-rendered characters with pixel sprite sheets
-5. Add more enemy variety per level
+- Save/load progress
+- Background music (procedural)
+- Cutscene system
+- Achievement system
