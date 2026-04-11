@@ -1,0 +1,101 @@
+{
+  "theme": "dark",
+  "archetype": "Archetype 6 (Vibrant Play) combined with Archetype 1 (Organic & Earthy)",
+  "typography": {
+    "heading_font": "Fredoka",
+    "impact_font": "Anton",
+    "body_font": "Nunito",
+    "strategy": "Use Fredoka for soft/chibi UI elements (health, scrap). Use Anton for high-impact Metal Slug moments (Title, GAME OVER, LEVEL START). Use Nunito for readable controls/menus.",
+    "h1": "text-5xl sm:text-6xl tracking-tight font-black",
+    "h2": "text-3xl sm:text-4xl tracking-tight font-bold",
+    "h3": "text-xl sm:text-2xl font-bold",
+    "body": "text-base leading-relaxed font-medium"
+  },
+  "colors": {
+    "background_base": "#0A100D",
+    "background_surface": "#131D18",
+    "primary_accent": "#FF3B30",
+    "secondary_accent": "#FFD60A",
+    "energy_accent": "#00C7BE",
+    "text_primary": "#F8FAFC",
+    "text_secondary": "#94A3B8",
+    "border_color": "#2D3748",
+    "sticker_outline": "#FFFFFF"
+  },
+  "layout_spacing": {
+    "philosophy": "Centralized focal point. The 1280x720 game canvas is the hero. Generous external padding, tight HUD internal padding.",
+    "canvas_container": "max-w-[1280px] w-full aspect-video mx-auto relative overflow-hidden rounded-2xl ring-4 ring-white/10 shadow-[0_0_60px_rgba(0,0,0,0.7)] bg-black",
+    "hud_padding": "p-6",
+    "element_gap": "gap-4"
+  },
+  "ui_components": {
+    "HUD_Overlay": {
+      "strategy": "Absolute positioning over the canvas (`absolute inset-0 pointer-events-none`). Use `flex justify-between items-start p-6`. Elements must have `pointer-events-auto` if interactive.",
+      "sticker_health": "Row of heart icons (use Phosphor Heart with fill). Use `text-primary_accent bg-white rounded-full border-4 border-sticker_outline shadow-[0_4px_10px_rgba(0,0,0,0.4)]`. Animate missing health by dropping opacity to 30% and grayscale.",
+      "scrap_meter": "Chunky progress bar. `h-8 w-48 rounded-full bg-black/60 border-4 border-sticker_outline p-1 backdrop-blur-md flex items-center`. Inner bar `bg-secondary_accent rounded-full h-full w-3/4`.",
+      "power_timer": "Circular badge `w-16 h-16 rounded-full border-4 border-sticker_outline bg-energy_accent flex items-center justify-center font-impact text-2xl text-white shadow-[0_4px_10px_rgba(0,0,0,0.4)]`.",
+      "coins": "Yellow coin icon next to a chunky number (e.g. `x 42`) with text-shadow for readability."
+    },
+    "Title_Screen": {
+      "strategy": "Overlay covering the canvas. Use the `game_world_bg` with a `bg-black/40` overlay. Character art positioned on the right, massive typography on the left.",
+      "title_text": "Hyper Axel. Use `font-impact text-[8rem] leading-none text-white drop-shadow-[0_8px_0_#FF3B30]` (Metal Slug influence).",
+      "start_button": "Tactile bouncy button. `bg-primary_accent text-white font-heading text-3xl px-12 py-4 rounded-xl border-b-[8px] border-red-900 active:border-b-0 active:translate-y-2 transition-all shadow-xl hover:brightness-110`."
+    },
+    "Game_Over_Screen": {
+      "strategy": "Harsh, impact punctuation. `bg-black/90` backdrop blur over the canvas. Massive `font-impact` red text 'GAME OVER' centered.",
+      "animation": "animate-pulse and slight shake keyframes."
+    },
+    "Level_Transition": {
+      "strategy": "Sweeping screen wipe. Thick black bars closing in from top and bottom, or sliding in from the right."
+    },
+    "Controls_Help_Overlay": {
+      "strategy": "Shadcn Dialog highly customized. `bg-background_surface border-2 border-border_color rounded-3xl p-8`. Looks like a rusty metal clipboard or a dark tech panel.",
+      "keys": "KBD elements `px-3 py-1 bg-black rounded-md border-b-4 border-gray-700 text-white font-mono shadow-inner text-lg`."
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "Use sparingly on HUD backing elements if needed (`backdrop-blur-md bg-black/30 rounded-full`).",
+    "shadows": "Hard drop shadows for stickers (`drop-shadow-[0_4px_0_rgba(0,0,0,0.5)]`), diffuse ambient shadows for the canvas glow.",
+    "borders": "Thick white borders on HUD items to simulate die-cut physical stickers.",
+    "motion": "Bouncy hover states for buttons. Scale-in animations for HUD stickers on load. Shake animations on taking damage."
+  },
+  "media": {
+    "game_world_bg": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/9bd20862f1893c7ac3624820fc882408e152c31c47e6fe43d6f18eb820a686c3.png",
+      "description": "Background image for the Title Screen or Wrapper background.",
+      "category": "hero_bg"
+    },
+    "axel_character": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/739987f44c7ae08eafaf68a4effd345c5e814095905ad65b4f46c869c6316fa7.png",
+      "description": "Transparent PNG of Axel to be placed on the Title Screen layout.",
+      "category": "character_art"
+    },
+    "hud_stickers": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/441899ffd1605e686eb7a916dce53161361bde0c917593e08c0010ed5b290860.png",
+      "description": "Collection of stickers. Can be used as decorative elements or cropped for actual HUD usage if needed.",
+      "category": "ui_assets"
+    }
+  },
+  "icons": {
+    "library": "@phosphor-icons/react",
+    "weight": "fill",
+    "installation": "yarn add @phosphor-icons/react"
+  },
+  "accessibility": {
+    "contrast": "Ensure white sticker text and icons have dark drop shadows to meet contrast over dynamic game canvas backgrounds.",
+    "motion": "Respect prefers-reduced-motion for the bouncing and pulse animations.",
+    "testing": "All buttons (Start, Restart, Controls) MUST have data-testid attributes like 'start-game-button'."
+  },
+  "instructions_to_main_agent": [
+    "Build the application as a React SPA that simulates the game web wrapper. Use standard .js/.jsx extensions.",
+    "The root should have a full-screen background using 'game_world_bg' with a heavy dark blur overlay (`bg-black/60 backdrop-blur-xl`).",
+    "Center a main 16:9 container (`max-w-[1280px] aspect-video`) that acts as the 'Game Screen'.",
+    "Inside this container, implement state-based views: 'title', 'playing', 'level_transition', 'game_over'.",
+    "When 'playing', show a placeholder for the game itself (e.g. a dark animated background or the 'game_world_bg' slightly darkened) and render the HUD_Overlay on top.",
+    "The HUD must include Sticker Health (3 hearts), a Scrap Meter (progress bar), Coins counter, and a Power Timer (circular badge) positioned around the edges.",
+    "Implement the Start Game button with the thick 'clay/tactile' border-bottom style.",
+    "Use Phosphor icons heavily in the UI (Heart, Nut, Timer, Wrench, Coin) if standard SVG isn't used. Use the 'fill' weight for a chunky look.",
+    "For the Title Screen, use 'game_world_bg' as the container background and position 'axel_character' absolutely on the right side.",
+    "Add a 'Controls' button on the title screen that opens a customized Shadcn Dialog showing the keyboard mappings (WASD/Arrows to move, Space to jump, X to swing wrench)."
+  ]
+}
