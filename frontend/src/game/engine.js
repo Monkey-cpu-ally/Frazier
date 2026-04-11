@@ -25,12 +25,19 @@ export class Engine {
     this.flightLog = new FlightLog();
     this.hud = new HUD();
 
+    // Preload background image
+    this.bgImage = new Image();
+    this.bgImage.src = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/e352993c8b6ad491a1f19da7bb7f3a7aa5ade71deb48994a814b5024daf01114.png';
+    this.bgImageLoaded = false;
+    this.bgImage.onload = () => { this.bgImageLoaded = true; };
+
     this.player = null;
     this.enemies = [];
     this.pickups = [];
     this.breakables = [];
     this.platforms = [];
     this.particles = [];
+    this.ambientParticles = this._initAmbient();
     this.boss = null;
     this.foxSpirit = null;
     this.sfx = sfx;
@@ -186,6 +193,7 @@ export class Engine {
     this.breakables.forEach(b => b.update(dt));
     this.particles.forEach(p => p.update(dt));
     this.particles = this.particles.filter(p => p.life > 0);
+    this._updateAmbient(dt);
 
     // Boss update
     if (this.boss) {
@@ -347,6 +355,9 @@ export class Engine {
     ctx.save();
     this.camera.apply(ctx);
 
+    // Ambient particles (behind gameplay)
+    this._renderAmbient(ctx);
+
     // Platforms
     this._renderPlatforms(ctx);
 
@@ -466,13 +477,27 @@ export class Engine {
         grad.addColorStop(1, bg.color2);
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
+
+        // Parallax background image (overgrown ruins)
+        if (this.bgImageLoaded) {
+          ctx.save();
+          const parallax = 0.15;
+          const imgW = W * 1.4;
+          const imgH = H;
+          const offsetX = -this.camera.x * parallax;
+          const offsetY = -this.camera.y * parallax * 0.5 + 20;
+          ctx.globalAlpha = 0.35;
+          ctx.drawImage(this.bgImage, offsetX - 100, offsetY, imgW, imgH);
+          ctx.globalAlpha = 1;
+          ctx.restore();
+        }
       }
       if (bg.type === 'hills' && bg.points) {
         ctx.save();
         this.camera.apply(ctx);
-        // Parallax (half speed)
         ctx.save();
         ctx.translate(this.camera.x * 0.4, this.camera.y * 0.2);
+        ctx.globalAlpha = 0.45;
         ctx.fillStyle = bg.color;
         ctx.beginPath();
         bg.points.forEach((p, i) => {
@@ -481,6 +506,7 @@ export class Engine {
         });
         ctx.closePath();
         ctx.fill();
+        ctx.globalAlpha = 1;
         ctx.restore();
         ctx.restore();
       }
@@ -600,6 +626,60 @@ export class Engine {
     ctx.font = '12px "Nunito", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('Press TAB to close', W / 2, py + ph - 16);
+  }
+
+  _initAmbient() {
+    const arr = [];
+    for (let i = 0; i < 30; i++) {
+      arr.push({
+        x: Math.random() * 3000 - 1000,
+        y: Math.random() * 600 - 200,
+        vx: (Math.random() - 0.5) * 15,
+        vy: -5 + Math.random() * 12,
+        size: 1 + Math.random() * 3,
+        alpha: 0.1 + Math.random() * 0.25,
+        type: Math.random() < 0.7 ? 'dust' : 'leaf',
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: 1 + Math.random() * 2,
+      });
+    }
+    return arr;
+  }
+
+  _updateAmbient(dt) {
+    this.ambientParticles.forEach(p => {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.wobble += p.wobbleSpeed * dt;
+      p.x += Math.sin(p.wobble) * 0.5;
+      // Wrap around camera view
+      if (p.y > this.camera.y + H + 20) {
+        p.y = this.camera.y - 20;
+        p.x = this.camera.x + Math.random() * W;
+      }
+      if (p.x < this.camera.x - 100) p.x = this.camera.x + W + 50;
+      if (p.x > this.camera.x + W + 100) p.x = this.camera.x - 50;
+    });
+  }
+
+  _renderAmbient(ctx) {
+    this.ambientParticles.forEach(p => {
+      ctx.globalAlpha = p.alpha;
+      if (p.type === 'dust') {
+        ctx.fillStyle = '#D8C8A8';
+        ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+      } else {
+        // Leaf
+        ctx.fillStyle = '#5A8A50';
+        ctx.save();
+        ctx.translate(Math.round(p.x), Math.round(p.y));
+        ctx.rotate(p.wobble);
+        ctx.fillRect(-2, -1, 4, 2);
+        ctx.fillRect(-1, -2, 2, 4);
+        ctx.restore();
+      }
+    });
+    ctx.globalAlpha = 1;
   }
 }
 

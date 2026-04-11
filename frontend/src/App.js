@@ -2,8 +2,9 @@ import React, { useState, useCallback } from 'react';
 import '@/App.css';
 import GameCanvas from '@/components/GameCanvas';
 
-const BG_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/9bd20862f1893c7ac3624820fc882408e152c31c47e6fe43d6f18eb820a686c3.png';
-const CHAR_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/ccc10ae8614cd9d388b09db4d8b5b75f7e2e25f19a8cedfb88c9229fced9a361.png';
+const BG_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/e352993c8b6ad491a1f19da7bb7f3a7aa5ade71deb48994a814b5024daf01114.png';
+const CHAR_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/44bc1e3cd42180341b2e998432d04a4b0dfaa3171cfba215476457f024066b7c.png';
+const LOGO_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/b9f1e61660d975d35abd57e13d38465e838517983dcb816893171db757fb203e.png';
 
 import { sfx } from '@/game/sfx';
 
@@ -31,24 +32,29 @@ function App() {
               <div className="title-overlay" />
               <div className="title-content">
                 <div className="title-left">
-                  <h1 className="title-text" data-testid="game-title">
-                    HYPER<br />AXEL
-                  </h1>
+                  <img
+                    src={LOGO_URL}
+                    alt="HYPER AXEL"
+                    className="title-logo"
+                    data-testid="game-title-logo"
+                  />
                   <p className="title-sub">Wrenchbound</p>
-                  <button
-                    className="start-btn"
-                    data-testid="start-game-button"
-                    onClick={() => { sfx.uiStart(); startGame(); }}
-                  >
-                    START GAME
-                  </button>
-                  <button
-                    className="controls-btn"
-                    data-testid="controls-button"
-                    onClick={() => setShowControls(true)}
-                  >
-                    CONTROLS
-                  </button>
+                  <div className="title-buttons">
+                    <button
+                      className="start-btn"
+                      data-testid="start-game-button"
+                      onClick={() => { sfx.uiStart(); startGame(); }}
+                    >
+                      START GAME
+                    </button>
+                    <button
+                      className="controls-btn"
+                      data-testid="controls-button"
+                      onClick={() => setShowControls(true)}
+                    >
+                      CONTROLS
+                    </button>
+                  </div>
                 </div>
                 <div className="title-right">
                   <img

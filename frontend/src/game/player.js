@@ -283,6 +283,33 @@ export class Player {
 
   _drawBody(ctx, ox, oy, face) {
     const x = ox, y = oy;
+    const OL = 2; // outline thickness
+
+    // === OUTLINE PASS (draw everything slightly larger in dark color) ===
+    ctx.fillStyle = '#0A0A0A';
+    // Boot outlines
+    ctx.fillRect(x - 8 - OL, y - 6 - OL, 6 + OL*2, 6 + OL*2);
+    ctx.fillRect(x + 2 - OL, y - 6 - OL, 6 + OL*2, 6 + OL*2);
+    // Leg outlines
+    ctx.fillRect(x - 7 - OL, y - 16 - OL, 5 + OL*2, 10 + OL*2);
+    ctx.fillRect(x + 2 - OL, y - 16 - OL, 5 + OL*2, 10 + OL*2);
+    // Body outline
+    ctx.fillRect(x - 10 - OL, y - 34 - OL, 20 + OL*2, 18 + OL*2);
+    // Arm outlines
+    ctx.fillRect(x - 14 - OL, y - 32 - OL, 5 + OL*2, 15 + OL*2);
+    ctx.fillRect(x + 9 - OL, y - 32 - OL, 5 + OL*2, 15 + OL*2);
+    // Head outline
+    ctx.fillRect(x - 9 - OL, y - 48 - OL, 18 + OL*2, 14 + OL*2);
+    // Cap outline
+    ctx.fillRect(x - 11 - OL, y - 54 - OL, 22 + OL*2, 8 + OL*2);
+    ctx.fillRect(x - 13 - OL, y - 48 - OL, 26 + OL*2, 3 + OL*2);
+    // Hair puff outlines
+    ctx.beginPath();
+    ctx.arc(x - 10, y - 44, 6 + OL, 0, Math.PI * 2);
+    ctx.arc(x + 10, y - 44, 6 + OL, 0, Math.PI * 2);
+    ctx.fill();
+
+    // === COLOR PASS ===
     // Boots
     ctx.fillStyle = C.boot;
     ctx.fillRect(x - 8, y - 6, 6, 6);
@@ -294,11 +321,19 @@ export class Player {
     // Body
     ctx.fillStyle = C.outfit;
     ctx.fillRect(x - 10, y - 34, 20, 18);
+    // Outfit details - collar
     ctx.fillStyle = C.outfitDk;
     ctx.fillRect(x - 10, y - 34, 20, 3);
+    // Pocket detail
+    ctx.fillStyle = C.outfitDk;
+    ctx.fillRect(x - 6, y - 26, 5, 4);
+    ctx.fillRect(x + 2, y - 26, 5, 4);
     // Belt
     ctx.fillStyle = C.belt;
     ctx.fillRect(x - 10, y - 18, 20, 3);
+    // Belt buckle
+    ctx.fillStyle = C.yellow;
+    ctx.fillRect(x - 2, y - 18, 4, 3);
     // Arms
     ctx.fillStyle = C.skin;
     ctx.fillRect(x - 14, y - 32, 5, 10);
@@ -321,20 +356,30 @@ export class Player {
     ctx.fillRect(x - 11, y - 54, 22, 8);
     ctx.fillStyle = C.capDk;
     ctx.fillRect(x - 13, y - 48, 26, 3);
+    // Cap wear mark
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillRect(x - 4, y - 53, 8, 2);
     // Brim
     ctx.fillStyle = C.capDk;
     ctx.fillRect(x + (face === 1 ? 2 : -14), y - 46, 12, 3);
-    // Eyes
+    // Eyes (bigger, more expressive)
     ctx.fillStyle = C.eyeW;
-    ctx.fillRect(x - 5, y - 44, 5, 5);
-    ctx.fillRect(x + 2, y - 44, 5, 5);
+    ctx.fillRect(x - 6, y - 45, 6, 6);
+    ctx.fillRect(x + 1, y - 45, 6, 6);
     ctx.fillStyle = C.eye;
     const ep = face === 1 ? 2 : 0;
-    ctx.fillRect(x - 5 + ep, y - 43, 3, 3);
-    ctx.fillRect(x + 2 + ep, y - 43, 3, 3);
+    ctx.fillRect(x - 5 + ep, y - 44, 3, 4);
+    ctx.fillRect(x + 2 + ep, y - 44, 3, 4);
+    // Eye shine
+    ctx.fillStyle = C.eyeW;
+    ctx.fillRect(x - 5 + ep, y - 44, 1, 1);
+    ctx.fillRect(x + 2 + ep, y - 44, 1, 1);
     // Nose bandage
     ctx.fillStyle = C.noseBand;
     ctx.fillRect(x - 3, y - 39, 6, 3);
+    // Mouth (small confident line)
+    ctx.fillStyle = C.skinDk;
+    ctx.fillRect(x - 1 + face, y - 36, 3, 1);
   }
 
   _drawWrench(ctx, face) {
