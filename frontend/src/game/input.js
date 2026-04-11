@@ -3,7 +3,7 @@ export class Input {
     this.keys = {};
     this.prev = {};
     this._onDown = (e) => {
-      if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+      if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab'].includes(e.code)) e.preventDefault();
       this.keys[e.code] = true;
     };
     this._onUp = (e) => { this.keys[e.code] = false; };

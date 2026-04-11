@@ -1,4 +1,5 @@
 import { C } from './constants';
+import { sfx } from './sfx';
 
 class PickupBase {
   constructor(x, y, type) {
@@ -32,6 +33,7 @@ export class CoinPickup extends PickupBase {
   collect(engine) {
     super.collect(engine);
     engine.gameState.addCoin();
+    sfx.coinPickup();
   }
 
   _draw(ctx, x, y) {
@@ -57,6 +59,7 @@ export class ScrapPickup extends PickupBase {
   collect(engine) {
     super.collect(engine);
     engine.gameState.addScrap();
+    sfx.scrapPickup();
   }
 
   _draw(ctx, x, y) {
@@ -77,6 +80,7 @@ export class FoodPickup extends PickupBase {
   collect(engine) {
     super.collect(engine);
     engine.gameState.addFood();
+    sfx.foodPickup();
   }
 
   _draw(ctx, x, y) {
@@ -105,6 +109,7 @@ export class PowerPickup extends PickupBase {
     engine.powerManager.activate(this.powerId);
     engine.gameState.showPickup(`Power: ${this.powerId.replace('_', ' ').toUpperCase()}`);
     engine.flightLog.add(`Activated ${this.powerId.replace('_', ' ')}`, 'power');
+    sfx.powerPickup();
   }
 
   _draw(ctx, x, y) {
@@ -176,6 +181,7 @@ export class Breakable {
       engine.addParticles(this.x + this.w / 2, this.y + this.h / 2, 12,
         this.btype === 'wall' ? C.brkWall : C.brkFloor);
       engine.flightLog.add(`Broke through ${this.btype}`, 'explore');
+      sfx.breakWall();
       return true;
     }
     return false;

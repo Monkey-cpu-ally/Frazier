@@ -185,7 +185,16 @@ export function getLevels() {
       ],
       breakables: [],
       isBoss: true,
-      message: 'Defeat all enemies to proceed!',
+      boss: {
+        x: 340, y: 286,
+        triggerX: -200,
+        arenaLeft: -250,
+        arenaRight: 850,
+      },
+      foxSpirit: {
+        x: 560, y: 240,
+      },
+      message: 'Rootbound Siege Tank ahead! Grab Golden Gloves!',
     },
   ];
 }

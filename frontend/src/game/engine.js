@@ -7,6 +7,8 @@ import { createEnemy } from './enemies';
 import { createPickup, Breakable } from './pickups';
 import { getLevels } from './levels';
 import { HUD } from './hud';
+import { Boss, FoxSpirit } from './boss';
+import { sfx } from './sfx';
 
 export class Engine {
   constructor(canvas, onStateChange) {
@@ -29,11 +31,16 @@ export class Engine {
     this.breakables = [];
     this.platforms = [];
     this.particles = [];
+    this.boss = null;
+    this.foxSpirit = null;
+    this.sfx = sfx;
+    this.showFlightLog = false;
     this.levels = getLevels();
     this.currentLevelIndex = 0;
     this.currentLevel = null;
     this.deathY = 800;
     this.levelTimer = 0;
+    this.bossActivated = false;
 
     this.state = 'playing';
     this.transitionTimer = 0;
@@ -74,6 +81,7 @@ export class Engine {
     if (index >= this.levels.length) {
       this.state = 'victory';
       this.onStateChange('victory');
+      sfx.levelComplete();
       return;
     }
     const lv = this.levels[index];
@@ -81,6 +89,7 @@ export class Engine {
     this.currentLevel = lv;
     this.deathY = lv.deathY || 800;
     this.levelTimer = 0;
+    this.bossActivated = false;
 
     this.player = new Player(lv.playerSpawn.x, lv.playerSpawn.y);
     this.enemies = (lv.enemies || []).map(e => createEnemy(e));
@@ -89,7 +98,22 @@ export class Engine {
       new Breakable(b.x, b.y, b.w, b.h, b.btype, b.smashOnly)
     );
 
-    // Build platform list (static + breakable)
+    // Boss setup
+    if (lv.isBoss && lv.boss) {
+      this.boss = new Boss(lv.boss.x, lv.boss.y);
+      this.boss.arenaLeft = lv.boss.arenaLeft || -200;
+      this.boss.arenaRight = lv.boss.arenaRight || 800;
+    } else {
+      this.boss = null;
+    }
+
+    // Fox Spirit setup
+    if (lv.foxSpirit) {
+      this.foxSpirit = new FoxSpirit(lv.foxSpirit.x, lv.foxSpirit.y);
+    } else {
+      this.foxSpirit = null;
+    }
+
     this.platforms = [...(lv.platforms || [])];
 
     this.camera.setLimits(lv.camera.limitLeft, lv.camera.limitTop, lv.camera.limitRight, lv.camera.limitBottom);
@@ -163,6 +187,46 @@ export class Engine {
     this.particles.forEach(p => p.update(dt));
     this.particles = this.particles.filter(p => p.life > 0);
 
+    // Boss update
+    if (this.boss) {
+      // Activate boss when player enters trigger zone
+      if (!this.bossActivated && this.player.x > (this.currentLevel.boss?.triggerX || 0)) {
+        this.bossActivated = true;
+        this.boss.activate(this);
+      }
+      if (this.bossActivated) {
+        this.boss.update(dt, this);
+      }
+      // After boss defeated, spawn fox spirit
+      if (this.boss.defeated && this.foxSpirit && !this.foxSpirit.visible) {
+        this.foxSpirit.appear(this);
+        this.foxSpirit.showMessage('Follow the light...');
+        this.foxSpirit.setPath([
+          { x: this.foxSpirit.x + 200, y: this.foxSpirit.y },
+          { x: this.foxSpirit.x + 400, y: this.foxSpirit.y - 20 },
+          { x: this.currentLevel.exitX - 40, y: this.foxSpirit.y },
+        ]);
+      }
+    }
+
+    // Fox Spirit update
+    if (this.foxSpirit) {
+      this.foxSpirit.update(dt);
+      // Interact with fox
+      if (this.foxSpirit.interactable && this.input.interact) {
+        const dist = Math.abs(this.player.x - this.foxSpirit.x) + Math.abs(this.player.y - this.foxSpirit.y);
+        if (dist < 60) {
+          this.foxSpirit.showMessage('The path forward is clear. Go.');
+          this.flightLog.add('Fox Spirit: "The path forward is clear."', 'spirit');
+        }
+      }
+    }
+
+    // Toggle flight log
+    if (this.input.just('Tab')) {
+      this.showFlightLog = !this.showFlightLog;
+    }
+
     this.camera.follow(this.player.x, this.player.y - 40, dt);
     this.camera.updateShake(dt);
 
@@ -173,12 +237,15 @@ export class Engine {
       this.state = 'gameover';
       this.gameOverTimer = 0;
       this.onStateChange('gameover');
+      sfx.playerDeath();
     }
 
     // Level exit
     if (this.currentLevel && this.player.x >= this.currentLevel.exitX) {
       const allDead = this.enemies.every(e => !e.alive);
-      if (!this.currentLevel.isBoss || allDead) {
+      const bossCleared = !this.boss || this.boss.defeated;
+      if ((!this.currentLevel.isBoss || (allDead && bossCleared))) {
+        sfx.levelComplete();
         this.loadLevel(this.currentLevelIndex + 1);
       }
     }
@@ -237,6 +304,25 @@ export class Engine {
         p.collect(this);
       }
     });
+
+    // Boss collision
+    if (this.boss && this.boss.alive && this.bossActivated) {
+      const bh = this.boss.getHitbox();
+      // Boss contact damage (not during vulnerable)
+      if (this.boss.phase !== 'vulnerable' && this.boss.phase !== 'intro') {
+        if (this._aabb(pl.left, pl.top, pl.w, pl.h, bh.x, bh.y, bh.w, bh.h)) {
+          pl.takeDamage(2, this.boss.cx, this);
+        }
+      }
+      // Player attack vs boss
+      if (pl.atkTimer > 0) {
+        const ab = pl.getAtkBox();
+        if (this._aabb(ab.x, ab.y, ab.w, ab.h, bh.x, bh.y, bh.w, bh.h)) {
+          const dmgMul = this.powerManager.isGoldenGloves ? 2 : (this.powerManager.isSuperMode ? 1.5 : 1);
+          this.boss.takeDamage(Math.ceil(dmgMul), pl.x, this);
+        }
+      }
+    }
   }
 
   _aabb(x1, y1, w1, h1, x2, y2, w2, h2) {
@@ -279,6 +365,12 @@ export class Engine {
     // Enemies
     this.enemies.forEach(e => e.render(ctx));
 
+    // Boss
+    if (this.boss && this.bossActivated) this.boss.render(ctx);
+
+    // Fox Spirit
+    if (this.foxSpirit) this.foxSpirit.render(ctx);
+
     // Player
     if (this.player) this.player.render(ctx);
 
@@ -288,7 +380,9 @@ export class Engine {
     // Exit marker
     if (this.currentLevel) {
       const ex = this.currentLevel.exitX;
-      const canExit = !this.currentLevel.isBoss || this.enemies.every(e => !e.alive);
+      const allDead = this.enemies.every(e => !e.alive);
+      const bossCleared = !this.boss || this.boss.defeated;
+      const canExit = !this.currentLevel.isBoss || (allDead && bossCleared);
       ctx.fillStyle = canExit ? 'rgba(255,215,10,0.7)' : 'rgba(235,115,84,0.6)';
       ctx.fillRect(ex, 120, 20, 168);
       if (canExit) {
@@ -303,6 +397,11 @@ export class Engine {
 
     // HUD
     this.hud.render(ctx, this);
+
+    // Flight Log panel (full screen overlay)
+    if (this.showFlightLog) {
+      this._renderFlightLogPanel(ctx);
+    }
 
     // Transition overlay
     if (this.state === 'transition') {
@@ -422,7 +521,88 @@ export class Engine {
       }
     });
   }
+
+  _renderFlightLogPanel(ctx) {
+    // Full Flight Log overlay
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
+    ctx.fillRect(0, 0, W, H);
+
+    // Panel
+    const px = 180, py = 60, pw = W - 360, ph = H - 120;
+    ctx.fillStyle = '#0E1A14';
+    ctx.strokeStyle = C.teal;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(px, py, pw, ph, 16);
+    ctx.fill();
+    ctx.stroke();
+
+    // Title
+    ctx.fillStyle = C.teal;
+    ctx.font = 'bold 28px "Anton", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('FLIGHT LOG', W / 2, py + 40);
+
+    // Scrap branding
+    ctx.fillStyle = 'rgba(125,165,189,0.4)';
+    ctx.font = '11px "Nunito", sans-serif';
+    ctx.fillText('[ Scrap Analysis Terminal v1.2 ]', W / 2, py + 58);
+
+    // Separator
+    ctx.strokeStyle = 'rgba(0,199,190,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px + 20, py + 68);
+    ctx.lineTo(px + pw - 20, py + 68);
+    ctx.stroke();
+
+    // Entries
+    const entries = this.flightLog.entries;
+    const maxVisible = Math.min(entries.length, 18);
+    const catColors = {
+      system: '#88DDFF', combat: '#FF6644', nav: '#FFD60A',
+      explore: '#44DD66', power: '#CC88FF', spirit: '#88CCFF', general: '#AABBCC',
+    };
+
+    for (let i = 0; i < maxVisible; i++) {
+      const e = entries[i];
+      const ey = py + 86 + i * 28;
+      const catCol = catColors[e.category] || catColors.general;
+
+      // Category tag
+      ctx.fillStyle = catCol;
+      ctx.globalAlpha = 0.15;
+      ctx.beginPath();
+      ctx.roundRect(px + 24, ey - 4, 60, 20, 4);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = catCol;
+      ctx.font = 'bold 10px "Nunito", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(e.category.toUpperCase(), px + 54, ey + 10);
+
+      // Entry text
+      ctx.fillStyle = '#D8E0E8';
+      ctx.font = '13px "Nunito", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`> ${e.text}`, px + 94, ey + 10);
+    }
+
+    if (entries.length === 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.font = '14px "Nunito", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('No entries recorded yet.', W / 2, H / 2);
+    }
+
+    // Close hint
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '12px "Nunito", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Press TAB to close', W / 2, py + ph - 16);
+  }
 }
+
 
 class Particle {
   constructor(x, y, color) {

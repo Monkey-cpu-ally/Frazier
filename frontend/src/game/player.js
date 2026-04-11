@@ -1,4 +1,5 @@
 import { PL, GRAVITY, MAX_FALL, C } from './constants';
+import { sfx } from './sfx';
 
 export class Player {
   constructor(x, y) {
@@ -137,6 +138,7 @@ export class Player {
       this.coyoteT = 0;
       this.jumpBufT = 0;
       this.state = 'jumping';
+      sfx.jump();
     }
 
     // Variable jump
@@ -152,10 +154,12 @@ export class Player {
         this.state = 'smashing';
         this.vy = PL.smashSpeed;
         this.atkFlash = 0.1;
+        sfx.smash();
       } else if (!this.grounded) {
         this.atkTimer = PL.airAtkDur;
         this.state = 'air_attack';
         this.atkFlash = 0.1;
+        sfx.wrenchSwing();
       } else {
         this.combo = (this.comboTimer > 0) ? Math.min(this.combo + 1, PL.maxCombo) : 1;
         this.atkTimer = PL.atkDur[this.combo - 1] || PL.atkDur[0];
@@ -163,6 +167,8 @@ export class Player {
         this.state = 'attacking';
         this.atkFlash = 0.1;
         this.vx = this.facing * 80;
+        if (this.combo === 3) sfx.comboFinish();
+        else sfx.wrenchSwing();
       }
     }
 
@@ -201,8 +207,10 @@ export class Player {
           this.landSquash = 1;
           engine.camera.shake(6, 0.15);
           engine.addParticles(this.x, this.y, 8, C.ground);
+          sfx.smash();
         } else if (!prevGrounded) {
           this.landSquash = 0.5;
+          sfx.land();
         }
       } else if (minOverlap === overlapB && this.vy < 0) {
         this.y = p.y + p.h + this.h;
@@ -232,6 +240,7 @@ export class Player {
     if (dead) this.alive = false;
     engine.camera.shake(dmg >= 2 ? 8 : 4, 0.2);
     engine.addParticles(this.x, this.cy, 6, C.red);
+    sfx.playerHurt();
   }
 
   render(ctx) {

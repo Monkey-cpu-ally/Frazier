@@ -1,4 +1,5 @@
 import { EN, GRAVITY, MAX_FALL, C } from './constants';
+import { sfx } from './sfx';
 
 class EnemyBase {
   constructor(x, y, type) {
@@ -85,6 +86,7 @@ class EnemyBase {
     this.vy = -100;
     engine.hitStopTimer = 0.04;
     engine.addParticles(this.cx, this.cy, 4, C.white);
+    sfx.enemyHit();
     if (this.hp <= 0) {
       this.alive = false;
       this.deathTimer = 0.4;
@@ -95,6 +97,7 @@ class EnemyBase {
       );
       engine.addParticles(this.cx, this.cy, 10, this._getColor());
       engine.flightLog.add(`Defeated ${this.type.replace('_', ' ')}`, 'combat');
+      sfx.enemyDeath();
     }
   }
 

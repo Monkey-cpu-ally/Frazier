@@ -221,8 +221,14 @@ export class HUD {
 
   _drawLog(ctx, log) {
     const entries = log.recent(3);
-    if (entries.length === 0) return;
     const x = 16, y = H - 20;
+    // Tab hint
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = C.scrapC;
+    ctx.font = '10px "Nunito", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('[TAB] Flight Log', x, y - entries.length * 16 - 8);
+    // Entries
     ctx.globalAlpha = 0.6;
     entries.forEach((e, i) => {
       ctx.fillStyle = C.scrapC;

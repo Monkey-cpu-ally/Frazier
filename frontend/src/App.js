@@ -5,6 +5,8 @@ import GameCanvas from '@/components/GameCanvas';
 const BG_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/9bd20862f1893c7ac3624820fc882408e152c31c47e6fe43d6f18eb820a686c3.png';
 const CHAR_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/ccc10ae8614cd9d388b09db4d8b5b75f7e2e25f19a8cedfb88c9229fced9a361.png';
 
+import { sfx } from '@/game/sfx';
+
 function App() {
   const [screen, setScreen] = useState('title');
   const [showControls, setShowControls] = useState(false);
@@ -36,7 +38,7 @@ function App() {
                   <button
                     className="start-btn"
                     data-testid="start-game-button"
-                    onClick={startGame}
+                    onClick={() => { sfx.uiStart(); startGame(); }}
                   >
                     START GAME
                   </button>
