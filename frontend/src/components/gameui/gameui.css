@@ -1,0 +1,764 @@
+/* ============================================
+   HYPER AXEL — Game UI Design System
+   Scrap-Mechanical Aesthetic
+   ============================================ */
+
+/* === CSS Variables === */
+:root {
+  --gui-bg: #0C1510;
+  --gui-panel: #111E17;
+  --gui-panel-light: #16261D;
+  --gui-panel-hover: #1A2E23;
+  --gui-border: #2A4035;
+  --gui-border-light: #3A5A48;
+  --gui-accent: #00C7BE;
+  --gui-accent-dim: rgba(0,199,190,0.15);
+  --gui-accent-glow: rgba(0,199,190,0.4);
+  --gui-red: #FF3B30;
+  --gui-red-dark: #991F18;
+  --gui-red-dim: rgba(255,59,48,0.15);
+  --gui-yellow: #FFD60A;
+  --gui-yellow-dim: rgba(255,214,10,0.12);
+  --gui-purple: #8B5CF6;
+  --gui-text: #E8F0EC;
+  --gui-text-dim: #7A9488;
+  --gui-text-muted: #4A6458;
+  --gui-shadow: rgba(0,0,0,0.5);
+  --gui-radius: 12px;
+  --gui-radius-sm: 8px;
+  --gui-radius-lg: 18px;
+  --gui-font-title: 'Anton', sans-serif;
+  --gui-font-label: 'Fredoka', sans-serif;
+  --gui-font-body: 'Nunito', sans-serif;
+  --gui-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --gui-transition: 0.15s ease;
+}
+
+/* === GamePanel === */
+.gui-panel {
+  background: var(--gui-panel);
+  border: 2px solid var(--gui-border);
+  border-radius: var(--gui-radius);
+  position: relative;
+  overflow: hidden;
+}
+
+.gui-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(0,199,190,0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255,214,10,0.02) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.gui-panel--bordered {
+  border-width: 3px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 8px 32px var(--gui-shadow);
+}
+
+.gui-panel--accent {
+  border-color: var(--gui-accent);
+  box-shadow:
+    0 0 20px var(--gui-accent-glow),
+    inset 0 1px 0 rgba(0,199,190,0.1);
+}
+
+/* Corner rivets decoration */
+.gui-panel--rivets::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px dashed var(--gui-border);
+  border-radius: calc(var(--gui-radius) - 4px);
+  pointer-events: none;
+}
+
+.gui-panel-header {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--gui-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gui-panel-title {
+  font-family: var(--gui-font-title);
+  font-size: 1.4rem;
+  color: var(--gui-yellow);
+  letter-spacing: 3px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.gui-panel-subtitle {
+  font-family: var(--gui-font-mono);
+  font-size: 0.7rem;
+  color: var(--gui-text-muted);
+  letter-spacing: 1px;
+}
+
+.gui-panel-body {
+  padding: 16px 20px;
+}
+
+.gui-panel-footer {
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--gui-border);
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* === GameButton === */
+.gui-btn {
+  font-family: var(--gui-font-label);
+  font-weight: 700;
+  font-size: 1rem;
+  border: none;
+  border-radius: var(--gui-radius-sm);
+  cursor: pointer;
+  transition: all var(--gui-transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  position: relative;
+  white-space: nowrap;
+}
+
+.gui-btn:active {
+  transform: translateY(3px);
+}
+
+/* Primary (Red) */
+.gui-btn--primary {
+  color: #fff;
+  background: linear-gradient(180deg, #FF4D42 0%, #D12B22 100%);
+  border-bottom: 5px solid var(--gui-red-dark);
+  box-shadow: 0 4px 16px rgba(255,59,48,0.3);
+}
+
+.gui-btn--primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(255,59,48,0.4);
+}
+
+.gui-btn--primary:active {
+  border-bottom-width: 0;
+  box-shadow: 0 2px 8px rgba(255,59,48,0.2);
+}
+
+/* Secondary (Teal) */
+.gui-btn--secondary {
+  color: #fff;
+  background: linear-gradient(180deg, #00D4CA 0%, #009E96 100%);
+  border-bottom: 5px solid #006E68;
+  box-shadow: 0 4px 16px rgba(0,199,190,0.25);
+}
+
+.gui-btn--secondary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.gui-btn--secondary:active {
+  border-bottom-width: 0;
+}
+
+/* Ghost (Transparent) */
+.gui-btn--ghost {
+  color: var(--gui-text-dim);
+  background: rgba(255,255,255,0.04);
+  border: 2px solid var(--gui-border);
+  border-bottom: 4px solid var(--gui-border);
+}
+
+.gui-btn--ghost:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--gui-text);
+  border-color: var(--gui-border-light);
+}
+
+.gui-btn--ghost:active {
+  border-bottom-width: 2px;
+}
+
+/* Icon Button */
+.gui-btn--icon {
+  padding: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+}
+
+/* Small */
+.gui-btn--sm {
+  font-size: 0.8rem;
+  padding: 8px 18px;
+  letter-spacing: 1px;
+}
+
+/* Large */
+.gui-btn--lg {
+  font-size: 1.2rem;
+  padding: 16px 40px;
+}
+
+/* Full width */
+.gui-btn--full {
+  width: 100%;
+}
+
+/* Disabled */
+.gui-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.gui-btn:disabled:hover {
+  transform: none;
+  filter: grayscale(0.5);
+}
+
+/* === GameModal === */
+.gui-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: gui-fade-in 0.2s ease;
+}
+
+.gui-modal {
+  max-width: 600px;
+  width: 92%;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: gui-slide-up 0.25s ease;
+}
+
+.gui-modal--wide {
+  max-width: 900px;
+}
+
+.gui-modal--narrow {
+  max-width: 420px;
+}
+
+@keyframes gui-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gui-slide-up {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* === GameSlider === */
+.gui-slider-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gui-slider-label {
+  font-family: var(--gui-font-label);
+  font-size: 0.85rem;
+  color: var(--gui-text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+}
+
+.gui-slider-value {
+  color: var(--gui-accent);
+  font-family: var(--gui-font-mono);
+  font-size: 0.8rem;
+}
+
+.gui-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  background: var(--gui-bg);
+  border-radius: 4px;
+  border: 1px solid var(--gui-border);
+  outline: none;
+  cursor: pointer;
+}
+
+.gui-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  background: var(--gui-accent);
+  border: 3px solid var(--gui-panel);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--gui-accent-glow);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.gui-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.gui-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  background: var(--gui-accent);
+  border: 3px solid var(--gui-panel);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--gui-accent-glow);
+  cursor: pointer;
+}
+
+/* === GameToggle === */
+.gui-toggle-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.gui-toggle-label {
+  font-family: var(--gui-font-label);
+  font-size: 0.9rem;
+  color: var(--gui-text);
+}
+
+.gui-toggle {
+  width: 48px;
+  height: 26px;
+  background: var(--gui-bg);
+  border: 2px solid var(--gui-border);
+  border-radius: 13px;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--gui-transition);
+}
+
+.gui-toggle--on {
+  background: var(--gui-accent-dim);
+  border-color: var(--gui-accent);
+}
+
+.gui-toggle-knob {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--gui-text-dim);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: all var(--gui-transition);
+}
+
+.gui-toggle--on .gui-toggle-knob {
+  left: 24px;
+  background: var(--gui-accent);
+  box-shadow: 0 0 8px var(--gui-accent-glow);
+}
+
+/* === GameBadge === */
+.gui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-family: var(--gui-font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.gui-badge--teal {
+  background: var(--gui-accent-dim);
+  color: var(--gui-accent);
+  border: 1px solid rgba(0,199,190,0.3);
+}
+
+.gui-badge--red {
+  background: var(--gui-red-dim);
+  color: var(--gui-red);
+  border: 1px solid rgba(255,59,48,0.3);
+}
+
+.gui-badge--yellow {
+  background: var(--gui-yellow-dim);
+  color: var(--gui-yellow);
+  border: 1px solid rgba(255,214,10,0.3);
+}
+
+.gui-badge--purple {
+  background: rgba(139,92,246,0.12);
+  color: var(--gui-purple);
+  border: 1px solid rgba(139,92,246,0.3);
+}
+
+/* === GameTabs === */
+.gui-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--gui-bg);
+  border-radius: var(--gui-radius-sm);
+  padding: 3px;
+  border: 1px solid var(--gui-border);
+}
+
+.gui-tab {
+  flex: 1;
+  font-family: var(--gui-font-label);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gui-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all var(--gui-transition);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.gui-tab:hover {
+  color: var(--gui-text-dim);
+  background: rgba(255,255,255,0.03);
+}
+
+.gui-tab--active {
+  color: var(--gui-text);
+  background: var(--gui-panel-light);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* === GameList === */
+.gui-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gui-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid transparent;
+  border-radius: var(--gui-radius-sm);
+  cursor: pointer;
+  transition: all var(--gui-transition);
+}
+
+.gui-list-item:hover {
+  background: var(--gui-panel-hover);
+  border-color: var(--gui-border);
+}
+
+.gui-list-item--active {
+  background: var(--gui-accent-dim);
+  border-color: var(--gui-accent);
+}
+
+.gui-list-item--locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gui-list-num {
+  font-family: var(--gui-font-title);
+  font-size: 1.2rem;
+  color: var(--gui-text-muted);
+  width: 28px;
+  text-align: center;
+}
+
+.gui-list-item--active .gui-list-num {
+  color: var(--gui-accent);
+}
+
+.gui-list-content {
+  flex: 1;
+}
+
+.gui-list-title {
+  font-family: var(--gui-font-label);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--gui-text);
+}
+
+.gui-list-sub {
+  font-family: var(--gui-font-mono);
+  font-size: 0.7rem;
+  color: var(--gui-text-muted);
+  margin-top: 2px;
+}
+
+/* === SpeakerBox (Dialogue) === */
+.gui-speaker-box {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 700px;
+  z-index: 150;
+  animation: gui-slide-up 0.2s ease;
+}
+
+.gui-speaker-inner {
+  display: flex;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: var(--gui-radius);
+  border: 2px solid;
+}
+
+.gui-speaker-portrait {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  border: 2px solid;
+}
+
+.gui-speaker-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.gui-speaker-name {
+  font-family: var(--gui-font-title);
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.gui-speaker-text {
+  font-family: var(--gui-font-body);
+  font-size: 0.95rem;
+  color: var(--gui-text);
+  line-height: 1.5;
+}
+
+.gui-speaker-advance {
+  font-family: var(--gui-font-mono);
+  font-size: 0.65rem;
+  color: var(--gui-text-muted);
+  text-align: right;
+  margin-top: 6px;
+  animation: gui-blink 1.2s ease infinite;
+}
+
+@keyframes gui-blink {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* === MeterBar === */
+.gui-meter {
+  height: 10px;
+  background: var(--gui-bg);
+  border-radius: 5px;
+  border: 1px solid var(--gui-border);
+  overflow: hidden;
+}
+
+.gui-meter-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.gui-meter-fill--teal { background: var(--gui-accent); }
+.gui-meter-fill--red { background: var(--gui-red); }
+.gui-meter-fill--yellow { background: var(--gui-yellow); }
+
+/* === Divider === */
+.gui-divider {
+  height: 1px;
+  background: var(--gui-border);
+  margin: 12px 0;
+}
+
+.gui-divider--dashed {
+  background: none;
+  border-top: 1px dashed var(--gui-border);
+}
+
+/* === KeyCap (for controls display) === */
+.gui-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  padding: 3px 8px;
+  background: var(--gui-bg);
+  border-radius: 6px;
+  border-bottom: 3px solid var(--gui-border);
+  color: var(--gui-text);
+  font-family: var(--gui-font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* === Scrap Terminal Text === */
+.gui-terminal {
+  font-family: var(--gui-font-mono);
+  font-size: 0.75rem;
+  color: var(--gui-accent);
+  opacity: 0.6;
+  letter-spacing: 0.5px;
+}
+
+/* === Grid Layouts === */
+.gui-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.gui-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+/* === Scrollbar === */
+.gui-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.gui-scroll::-webkit-scrollbar-track {
+  background: var(--gui-bg);
+  border-radius: 3px;
+}
+
+.gui-scroll::-webkit-scrollbar-thumb {
+  background: var(--gui-border);
+  border-radius: 3px;
+}
+
+.gui-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--gui-border-light);
+}
+
+/* === Power Card === */
+.gui-power-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  background: rgba(255,255,255,0.02);
+  border: 2px solid var(--gui-border);
+  border-radius: var(--gui-radius);
+  transition: all var(--gui-transition);
+  cursor: default;
+}
+
+.gui-power-card--active {
+  border-color: var(--gui-yellow);
+  background: var(--gui-yellow-dim);
+}
+
+.gui-power-card--locked {
+  opacity: 0.3;
+}
+
+.gui-power-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--gui-font-title);
+  font-size: 1.2rem;
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+.gui-power-name {
+  font-family: var(--gui-font-label);
+  font-size: 0.7rem;
+  color: var(--gui-text);
+  text-align: center;
+  font-weight: 700;
+}
+
+.gui-power-desc {
+  font-family: var(--gui-font-mono);
+  font-size: 0.6rem;
+  color: var(--gui-text-muted);
+  text-align: center;
+}
+
+/* === Leaderboard Row === */
+.gui-lb-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: var(--gui-radius-sm);
+  transition: background var(--gui-transition);
+}
+
+.gui-lb-row:nth-child(odd) {
+  background: rgba(255,255,255,0.02);
+}
+
+.gui-lb-rank {
+  font-family: var(--gui-font-title);
+  font-size: 1.1rem;
+  width: 32px;
+  text-align: center;
+}
+
+.gui-lb-rank--gold { color: #FFD700; }
+.gui-lb-rank--silver { color: #C0C0C0; }
+.gui-lb-rank--bronze { color: #CD7F32; }
+.gui-lb-rank--default { color: var(--gui-text-muted); }
+
+.gui-lb-score {
+  flex: 1;
+  font-family: var(--gui-font-label);
+  font-size: 1rem;
+  color: var(--gui-text);
+  font-weight: 700;
+}
+
+.gui-lb-detail {
+  font-family: var(--gui-font-mono);
+  font-size: 0.75rem;
+  color: var(--gui-text-muted);
+}
