@@ -193,6 +193,124 @@
   background: #000;
 }
 
+/* ===== Menu Screen ===== */
+.menu-screen {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+.menu-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(4px);
+}
+
+.menu-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.main-menu-wrap {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  max-width: 900px;
+  width: 100%;
+}
+
+.menu-portraits {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.menu-portrait-axel,
+.menu-portrait-scrap {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 3px solid rgba(255,255,255,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.menu-portrait-axel {
+  object-position: top;
+  border-color: rgba(255,59,48,0.3);
+}
+
+.menu-portrait-scrap {
+  object-position: center;
+  border-color: rgba(0,199,190,0.3);
+}
+
+.menu-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-play-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menu-play-hero {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.menu-play-title {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 1.3rem;
+  color: #FFD60A;
+  margin: 0 0 6px 0;
+}
+
+/* ===== Pause Overlay ===== */
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.15s ease;
+}
+
+.pause-panel {
+  width: 340px;
+}
+
+.pause-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ===== Dialogue Overlay ===== */
+.dialogue-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 120;
+  pointer-events: none;
+}
+
+.dialogue-overlay > * {
+  pointer-events: auto;
+}
+
 /* Controls Overlay */
 .controls-overlay {
   position: fixed;
