@@ -1,4 +1,7 @@
-import { GRAVITY, MAX_FALL, C } from './constants';
+import { PL, C } from './constants';
+
+const GRAVITY = PL.gravity;
+const MAX_FALL = PL.maxFall;
 
 // Rootbound Siege Tank - Boss Entity
 // Attack/Vulnerable/Recover loop with multiple attack patterns

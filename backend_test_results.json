@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-12T16:07:40.240765",
+  "timestamp": "2026-04-12T16:21:04.074940",
   "total_tests": 6,
   "passed_tests": 6,
   "failed_tests": 0,
@@ -39,11 +39,11 @@
       "success": true,
       "response_size": 121,
       "response_data": {
-        "id": "21306018-4829-48a0-8595-b5f04ce412c1",
+        "id": "a80af0a4-b3e6-4156-ac74-fbe7a038e407",
         "score": 1500,
         "coins": 25,
         "level": 3,
-        "timestamp": "2026-04-12T16:07:39.855289Z"
+        "timestamp": "2026-04-12T16:21:03.531674Z"
       }
     },
     {
@@ -53,7 +53,7 @@
       "expected_status": 200,
       "actual_status": 200,
       "success": true,
-      "response_size": 333,
+      "response_size": 416,
       "response_data": [
         {
           "score": 1500,
@@ -78,6 +78,12 @@
           "coins": 25,
           "level": 3,
           "timestamp": "2026-04-12T16:07:39.855289+00:00"
+        },
+        {
+          "score": 1500,
+          "coins": 25,
+          "level": 3,
+          "timestamp": "2026-04-12T16:21:03.531674+00:00"
         }
       ]
     },

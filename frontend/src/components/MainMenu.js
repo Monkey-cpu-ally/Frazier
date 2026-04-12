@@ -16,7 +16,7 @@ const LEVELS = [
   { name: 'Siege Core', sub: 'Boss arena', enemies: 'ALL + Siege Tank' },
 ];
 
-const MainMenu = ({ onPlay, onLevelSelect, charUrl, scrapUrl }) => {
+const MainMenu = ({ onPlay, onLevelSelect, onWorkshop, charUrl, scrapUrl }) => {
   const [tab, setTab] = useState('play');
   const [scores, setScores] = useState([]);
   const [selectedLevel, setSelectedLevel] = useState(0);
@@ -33,6 +33,7 @@ const MainMenu = ({ onPlay, onLevelSelect, charUrl, scrapUrl }) => {
     { id: 'levels', label: 'Levels' },
     { id: 'board', label: 'Scores' },
     { id: 'powers', label: 'Powers' },
+    { id: 'workshop', label: 'Workshop' },
   ];
 
   return (
@@ -143,6 +144,27 @@ const MainMenu = ({ onPlay, onLevelSelect, charUrl, scrapUrl }) => {
                       desc={`${p.dur}s duration`}
                     />
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* WORKSHOP TAB */}
+            {tab === 'workshop' && (
+              <div style={{ textAlign: 'center', padding: 20 }}>
+                <div style={{ fontSize: '2rem', marginBottom: 10 }}>
+                  <svg width="60" height="60" viewBox="0 0 60 60">
+                    <rect x="26" y="10" width="8" height="35" rx="2" fill="#A0A8B0" />
+                    <rect x="18" y="2" width="24" height="14" rx="4" fill="#A0A8B0" />
+                    <rect x="22" y="2" width="6" height="8" rx="1" fill="rgba(0,0,0,0.2)" />
+                    <rect x="32" y="2" width="6" height="8" rx="1" fill="rgba(0,0,0,0.2)" />
+                    <rect x="22" y="42" width="16" height="10" rx="3" fill="#D43A2A" />
+                  </svg>
+                </div>
+                <TerminalText>[ Scrap's Workshop — Wrench Customization Bay ]</TerminalText>
+                <div style={{ marginTop: 16 }}>
+                  <GameButton variant="secondary" onClick={onWorkshop} data-testid="open-workshop-btn">
+                    ENTER WORKSHOP
+                  </GameButton>
                 </div>
               </div>
             )}

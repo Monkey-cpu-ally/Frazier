@@ -1,15 +1,24 @@
 export const W = 1280;
 export const H = 720;
-export const GRAVITY = 1600;
-export const MAX_FALL = 900;
 
 export const PL = {
   w: 24, h: 56,
-  speed: 300, accel: 2800, friction: 2200, airMul: 0.7,
-  jumpV: -580, jumpCut: 0.4,
-  coyote: 0.1, jumpBuf: 0.1,
+  // Movement (from Godot AxelController)
+  speed: 220, accel: 1400, friction: 1800, airMul: 0.7,
+  // Jump
+  jumpV: -420, gravity: 1200,
+  fallGravMul: 1.35, lowJumpGravMul: 1.8,
+  maxFall: 900,
+  jumpCut: 0.4,
+  coyote: 0.12, jumpBuf: 0.12,
+  // Wall
+  wallSlideSpd: 120,
+  wallJumpX: 280, wallJumpY: -360,
+  // Dash
+  dashSpeed: 520, dashTime: 0.14, dashCooldown: 0.20,
+  // Combat
   comboReset: 0.45, maxCombo: 3,
-  atkDur: [0.13, 0.13, 0.22],
+  atkDur: [0.18, 0.18, 0.25],
   atkCooldown: 0.06,
   airAtkDur: 0.18,
   smashSpeed: 750,

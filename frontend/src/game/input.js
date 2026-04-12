@@ -39,4 +39,5 @@ export class Input {
   get attack() { return this.just('KeyJ') || this.just('KeyX'); }
   get special() { return this.just('KeyK') || this.just('KeyZ'); }
   get interact() { return this.just('KeyE'); }
+  get dash() { return this.just('ShiftLeft') || this.just('ShiftRight'); }
 }

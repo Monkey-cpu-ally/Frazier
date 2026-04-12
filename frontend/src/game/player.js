@@ -1,4 +1,4 @@
-import { PL, GRAVITY, MAX_FALL, C } from './constants';
+import { PL, C } from './constants';
 import { sfx } from './sfx';
 
 export class Player {
@@ -8,23 +8,37 @@ export class Player {
     this.w = PL.w; this.h = PL.h;
     this.facing = 1;
     this.grounded = false;
+    this.onWall = false;
+    this.wallDir = 0;
     this.coyoteT = 0;
     this.jumpBufT = 0;
+    // Dash
+    this.isDashing = false;
+    this.canDash = true;
+    this.dashTimer = 0;
+    this.dashCooldownT = 0;
+    this.dashDir = 1;
+    // Attack
     this.state = 'idle';
     this.combo = 0;
     this.atkTimer = 0;
     this.atkCooldown = 0;
     this.comboTimer = 0;
+    this.isAttacking = false;
+    this.smashing = false;
+    // Health
     this.invTimer = 0;
     this.knockTimer = 0;
     this.knockDir = 0;
-    this.smashing = false;
     this.alive = true;
+    // Visual
     this.animT = 0;
     this.landSquash = 0;
     this.atkFlash = 0;
     this.shadows = [];
     this.shadowTimer = 0;
+    this.dashGhosts = [];
+    this.wasGrounded = false;
   }
 
   get left() { return this.x - this.w / 2; }
@@ -55,10 +69,12 @@ export class Player {
     this.animT += dt;
     if (!this.alive) return;
 
+    // Timers
     if (this.invTimer > 0) this.invTimer -= dt;
     if (this.atkCooldown > 0) this.atkCooldown -= dt;
     if (this.comboTimer > 0) { this.comboTimer -= dt; if (this.comboTimer <= 0) this.combo = 0; }
     if (this.landSquash > 0) this.landSquash -= dt * 6;
+    if (this.dashCooldownT > 0) this.dashCooldownT -= dt;
 
     // Shadow tag trail
     if (pm.isShadowTag) {
@@ -72,12 +88,28 @@ export class Player {
     this.shadows.forEach(s => { s.alpha -= dt * 1.5; });
     this.shadows = this.shadows.filter(s => s.alpha > 0);
 
+    // Dash ghosts
+    this.dashGhosts.forEach(g => { g.alpha -= dt * 4; });
+    this.dashGhosts = this.dashGhosts.filter(g => g.alpha > 0);
+
+    // Coyote time
+    if (this.grounded) {
+      this.coyoteT = PL.coyote;
+      this.canDash = true;
+    } else {
+      this.coyoteT = Math.max(0, this.coyoteT - dt);
+    }
+
+    // Jump buffer
+    if (inp.jump) this.jumpBufT = PL.jumpBuf;
+    else this.jumpBufT = Math.max(0, this.jumpBufT - dt);
+
     // Knockback
     if (this.knockTimer > 0) {
       this.knockTimer -= dt;
       this.vx = this.knockDir * PL.knockback;
-      this.vy += GRAVITY * dt;
-      if (this.vy > MAX_FALL) this.vy = MAX_FALL;
+      this.vy += PL.gravity * dt;
+      if (this.vy > PL.maxFall) this.vy = PL.maxFall;
       this.x += this.vx * dt;
       this.y += this.vy * dt;
       this._resolveCollisions(engine);
@@ -85,54 +117,47 @@ export class Player {
     }
 
     // Attack state
-    if (this.atkTimer > 0) {
-      this.atkTimer -= dt;
-      this.vy += GRAVITY * dt;
-      if (this.vy > MAX_FALL) this.vy = MAX_FALL;
-      if (!this.grounded) this.y += this.vy * dt;
-      if (this.smashing) {
-        this.vy = PL.smashSpeed;
-        this.y += this.vy * dt;
-      }
-      this._resolveCollisions(engine);
-      if (this.atkTimer <= 0) {
-        this.smashing = false;
-        this.atkCooldown = PL.atkCooldown;
-        this.state = this.grounded ? 'idle' : 'falling';
-      }
+    if (this.isAttacking) {
+      this._processAttack(dt, engine);
       return;
     }
 
-    // Horizontal movement
-    const spdMul = pm.isSuperMode ? 1.4 : 1;
+    // Dash state
+    if (this.isDashing) {
+      this._processDash(dt, engine);
+      return;
+    }
+
+    // === Normal state ===
+    // Input direction
     let moveDir = 0;
     if (inp.left) moveDir = -1;
     if (inp.right) moveDir = 1;
 
-    if (moveDir !== 0) {
+    // Horizontal movement (Godot-style move_toward)
+    const spdMul = pm.isSuperMode ? 1.4 : 1;
+    const targetSpeed = moveDir * PL.speed * spdMul;
+    if (Math.abs(targetSpeed) > 0.01) {
+      this.vx = this._moveToward(this.vx, targetSpeed, PL.accel * dt);
       this.facing = moveDir;
-      const acc = (this.grounded ? PL.accel : PL.accel * PL.airMul) * spdMul;
-      this.vx += moveDir * acc * dt;
-      const ms = PL.speed * spdMul;
-      if (Math.abs(this.vx) > ms) this.vx = moveDir * ms;
-      this.state = this.grounded ? 'running' : (this.vy < 0 ? 'jumping' : 'falling');
     } else {
-      const fric = this.grounded ? PL.friction : PL.friction * 0.5;
-      if (this.vx > 0) { this.vx = Math.max(0, this.vx - fric * dt); }
-      else if (this.vx < 0) { this.vx = Math.min(0, this.vx + fric * dt); }
-      if (this.grounded && Math.abs(this.vx) < 5) this.state = 'idle';
+      this.vx = this._moveToward(this.vx, 0, PL.friction * dt);
     }
 
-    // Coyote time
-    if (this.grounded) this.coyoteT = PL.coyote;
-    else this.coyoteT -= dt;
-
-    // Jump buffer
-    if (inp.jump) this.jumpBufT = PL.jumpBuf;
-    else this.jumpBufT -= dt;
+    // Gravity (Godot-style with multipliers)
+    if (!this.grounded) {
+      let grav = PL.gravity;
+      if (this.vy > 0) {
+        grav *= PL.fallGravMul;
+      } else if (this.vy < 0 && !inp.jumpHeld) {
+        grav *= PL.lowJumpGravMul;
+      }
+      this.vy += grav * dt;
+      this.vy = Math.min(this.vy, PL.maxFall);
+    }
 
     // Jump
-    if (this.jumpBufT > 0 && this.coyoteT > 0) {
+    if (this.jumpBufT > 0 && (this.grounded || this.coyoteT > 0)) {
       this.vy = PL.jumpV * (pm.isSuperMode ? 1.15 : 1);
       this.grounded = false;
       this.coyoteT = 0;
@@ -141,9 +166,32 @@ export class Player {
       sfx.jump();
     }
 
-    // Variable jump
-    if (inp.jumpRel && this.vy < 0) {
-      this.vy *= PL.jumpCut;
+    // Wall slide
+    if (!this.grounded && this.onWall && moveDir !== 0 && this.vy > 0) {
+      this.vy = Math.min(this.vy, PL.wallSlideSpd);
+      this.state = 'wall_slide';
+    }
+
+    // Wall jump
+    if (inp.jump && !this.grounded && this.onWall) {
+      this.vx = this.wallDir * PL.wallJumpX;
+      this.vy = PL.wallJumpY;
+      this.facing = this.wallDir;
+      this.coyoteT = 0;
+      this.jumpBufT = 0;
+      sfx.jump();
+    }
+
+    // Dash
+    if (inp.dash && this.canDash && this.dashCooldownT <= 0) {
+      this.isDashing = true;
+      this.canDash = false;
+      this.dashTimer = PL.dashTime;
+      this.dashDir = moveDir !== 0 ? moveDir : this.facing;
+      this.vx = this.dashDir * PL.dashSpeed;
+      this.vy = 0;
+      sfx.wrenchSwing();
+      return;
     }
 
     // Attack
@@ -151,12 +199,14 @@ export class Player {
       if (!this.grounded && inp.dn) {
         this.smashing = true;
         this.atkTimer = 0.5;
+        this.isAttacking = true;
         this.state = 'smashing';
         this.vy = PL.smashSpeed;
         this.atkFlash = 0.1;
         sfx.smash();
       } else if (!this.grounded) {
         this.atkTimer = PL.airAtkDur;
+        this.isAttacking = true;
         this.state = 'air_attack';
         this.atkFlash = 0.1;
         sfx.wrenchSwing();
@@ -164,28 +214,83 @@ export class Player {
         this.combo = (this.comboTimer > 0) ? Math.min(this.combo + 1, PL.maxCombo) : 1;
         this.atkTimer = PL.atkDur[this.combo - 1] || PL.atkDur[0];
         this.comboTimer = PL.comboReset;
+        this.isAttacking = true;
         this.state = 'attacking';
         this.atkFlash = 0.1;
-        this.vx = this.facing * 80;
         if (this.combo === 3) sfx.comboFinish();
         else sfx.wrenchSwing();
       }
+      return;
     }
 
-    // Gravity
-    this.vy += GRAVITY * dt;
-    if (this.vy > MAX_FALL) this.vy = MAX_FALL;
+    // Update state
+    if (this.grounded) {
+      this.state = Math.abs(this.vx) > 15 ? 'running' : 'idle';
+    } else {
+      if (this.onWall && this.vy > 0) this.state = 'wall_slide';
+      else this.state = this.vy < 0 ? 'jumping' : 'falling';
+    }
 
     // Apply velocity
     this.x += this.vx * dt;
     this.y += this.vy * dt;
-
     this._resolveCollisions(engine);
+  }
+
+  _processAttack(dt, engine) {
+    this.atkTimer -= dt;
+    // Friction during attack
+    this.vx = this._moveToward(this.vx, 0, PL.friction * dt);
+    // Gravity
+    if (!this.grounded) {
+      this.vy += PL.gravity * dt;
+      if (this.vy > PL.maxFall) this.vy = PL.maxFall;
+    }
+    if (this.smashing) {
+      this.vy = PL.smashSpeed;
+    }
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    this._resolveCollisions(engine);
+
+    if (this.atkTimer <= 0) {
+      this.isAttacking = false;
+      this.smashing = false;
+      this.atkCooldown = PL.atkCooldown;
+      if (this.combo >= PL.maxCombo) this.combo = 0;
+    }
+  }
+
+  _processDash(dt, engine) {
+    this.dashTimer -= dt;
+    this.vx = this.dashDir * PL.dashSpeed;
+    this.vy = 0;
+    // Add dash ghost
+    if (Math.random() < 0.6) {
+      this.dashGhosts.push({ x: this.x, y: this.y, facing: this.facing, alpha: 0.5 });
+    }
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    this._resolveCollisions(engine);
+
+    if (this.dashTimer <= 0) {
+      this.isDashing = false;
+      this.dashCooldownT = PL.dashCooldown;
+      this.vx *= 0.3; // Reduce speed after dash
+    }
+  }
+
+  _moveToward(current, target, step) {
+    if (current < target) return Math.min(current + step, target);
+    if (current > target) return Math.max(current - step, target);
+    return target;
   }
 
   _resolveCollisions(engine) {
     const prevGrounded = this.grounded;
     this.grounded = false;
+    this.onWall = false;
+    this.wallDir = 0;
 
     for (const p of engine.platforms) {
       if (this.right <= p.x || this.left >= p.x + p.w) continue;
@@ -203,6 +308,7 @@ export class Player {
         this.grounded = true;
         if (!prevGrounded && this.smashing) {
           this.smashing = false;
+          this.isAttacking = false;
           this.atkTimer = 0;
           this.landSquash = 1;
           engine.camera.shake(6, 0.15);
@@ -218,9 +324,13 @@ export class Player {
       } else if (minOverlap === overlapL) {
         this.x = p.x - this.w / 2;
         this.vx = 0;
+        this.onWall = true;
+        this.wallDir = -1;
       } else if (minOverlap === overlapR) {
         this.x = p.x + p.w + this.w / 2;
         this.vx = 0;
+        this.onWall = true;
+        this.wallDir = 1;
       }
     }
 
@@ -231,11 +341,13 @@ export class Player {
   }
 
   takeDamage(dmg, fromX, engine) {
-    if (this.invTimer > 0 || engine.powerManager.isSpecterMode) return;
+    if (this.invTimer > 0 || engine.powerManager.isSpecterMode || this.isDashing) return;
     this.knockDir = fromX < this.x ? 1 : -1;
     this.knockTimer = PL.knockDur;
     this.invTimer = PL.invTime;
     this.vy = -200;
+    this.isAttacking = false;
+    this.isDashing = false;
     const dead = engine.gameState.chipSticker(dmg >= 2);
     if (dead) this.alive = false;
     engine.camera.shake(dmg >= 2 ? 8 : 4, 0.2);
@@ -248,7 +360,14 @@ export class Player {
     const blink = this.invTimer > 0 && Math.floor(this.invTimer * 10) % 2 === 0;
     if (blink) return;
 
-    // Shadows
+    // Dash ghosts
+    this.dashGhosts.forEach(g => {
+      ctx.globalAlpha = g.alpha * 0.3;
+      this._drawBody(ctx, g.x, g.y, g.facing);
+      ctx.globalAlpha = 1;
+    });
+
+    // Shadow tag shadows
     this.shadows.forEach(s => {
       ctx.globalAlpha = s.alpha * 0.4;
       this._drawBody(ctx, s.x, s.y, s.facing);
@@ -262,20 +381,33 @@ export class Player {
     ctx.translate(Math.round(this.x), Math.round(this.y));
     ctx.scale(squashX, squashY);
 
-    // Attack flash
     if (this.atkFlash > 0) {
       this.atkFlash -= 0.016;
       ctx.globalAlpha = 0.85;
     }
 
+    // Dash afterimage tint
+    if (this.isDashing) {
+      ctx.globalAlpha = 0.8;
+    }
+
     this._drawBody(ctx, 0, 0, this.facing);
 
     // Wrench during attack
-    if (this.atkTimer > 0 && !this.smashing) {
+    if (this.isAttacking && !this.smashing) {
       this._drawWrench(ctx, this.facing);
     }
     if (this.smashing) {
       this._drawSmashEffect(ctx);
+    }
+
+    // Wall slide particles
+    if (this.state === 'wall_slide') {
+      ctx.fillStyle = 'rgba(180,160,120,0.5)';
+      for (let i = 0; i < 3; i++) {
+        const py = -this.h * Math.random();
+        ctx.fillRect(this.wallDir * -12, py, 2 + Math.random() * 2, 3);
+      }
     }
 
     ctx.restore();
@@ -283,86 +415,64 @@ export class Player {
 
   _drawBody(ctx, ox, oy, face) {
     const x = ox, y = oy;
-    const OL = 2; // outline thickness
+    const OL = 2;
 
-    // === OUTLINE PASS (draw everything slightly larger in dark color) ===
+    // Outline pass
     ctx.fillStyle = '#0A0A0A';
-    // Boot outlines
     ctx.fillRect(x - 8 - OL, y - 6 - OL, 6 + OL*2, 6 + OL*2);
     ctx.fillRect(x + 2 - OL, y - 6 - OL, 6 + OL*2, 6 + OL*2);
-    // Leg outlines
     ctx.fillRect(x - 7 - OL, y - 16 - OL, 5 + OL*2, 10 + OL*2);
     ctx.fillRect(x + 2 - OL, y - 16 - OL, 5 + OL*2, 10 + OL*2);
-    // Body outline
     ctx.fillRect(x - 10 - OL, y - 34 - OL, 20 + OL*2, 18 + OL*2);
-    // Arm outlines
     ctx.fillRect(x - 14 - OL, y - 32 - OL, 5 + OL*2, 15 + OL*2);
     ctx.fillRect(x + 9 - OL, y - 32 - OL, 5 + OL*2, 15 + OL*2);
-    // Head outline
     ctx.fillRect(x - 9 - OL, y - 48 - OL, 18 + OL*2, 14 + OL*2);
-    // Cap outline
     ctx.fillRect(x - 11 - OL, y - 54 - OL, 22 + OL*2, 8 + OL*2);
     ctx.fillRect(x - 13 - OL, y - 48 - OL, 26 + OL*2, 3 + OL*2);
-    // Hair puff outlines
     ctx.beginPath();
     ctx.arc(x - 10, y - 44, 6 + OL, 0, Math.PI * 2);
     ctx.arc(x + 10, y - 44, 6 + OL, 0, Math.PI * 2);
     ctx.fill();
 
-    // === COLOR PASS ===
-    // Boots
+    // Color pass
     ctx.fillStyle = C.boot;
     ctx.fillRect(x - 8, y - 6, 6, 6);
     ctx.fillRect(x + 2, y - 6, 6, 6);
-    // Legs
     ctx.fillStyle = C.outfit;
     ctx.fillRect(x - 7, y - 16, 5, 10);
     ctx.fillRect(x + 2, y - 16, 5, 10);
-    // Body
     ctx.fillStyle = C.outfit;
     ctx.fillRect(x - 10, y - 34, 20, 18);
-    // Outfit details - collar
     ctx.fillStyle = C.outfitDk;
     ctx.fillRect(x - 10, y - 34, 20, 3);
-    // Pocket detail
     ctx.fillStyle = C.outfitDk;
     ctx.fillRect(x - 6, y - 26, 5, 4);
     ctx.fillRect(x + 2, y - 26, 5, 4);
-    // Belt
     ctx.fillStyle = C.belt;
     ctx.fillRect(x - 10, y - 18, 20, 3);
-    // Belt buckle
     ctx.fillStyle = C.yellow;
     ctx.fillRect(x - 2, y - 18, 4, 3);
-    // Arms
     ctx.fillStyle = C.skin;
     ctx.fillRect(x - 14, y - 32, 5, 10);
     ctx.fillRect(x + 9, y - 32, 5, 10);
-    // Gloves
     ctx.fillStyle = C.glove;
     ctx.fillRect(x - 14, y - 22, 5, 5);
     ctx.fillRect(x + 9, y - 22, 5, 5);
-    // Head
     ctx.fillStyle = C.skin;
     ctx.fillRect(x - 9, y - 48, 18, 14);
-    // Hair puffs
     ctx.fillStyle = C.hair;
     ctx.beginPath();
     ctx.arc(x - 10, y - 44, 6, 0, Math.PI * 2);
     ctx.arc(x + 10, y - 44, 6, 0, Math.PI * 2);
     ctx.fill();
-    // Cap
     ctx.fillStyle = C.cap;
     ctx.fillRect(x - 11, y - 54, 22, 8);
     ctx.fillStyle = C.capDk;
     ctx.fillRect(x - 13, y - 48, 26, 3);
-    // Cap wear mark
     ctx.fillStyle = 'rgba(255,255,255,0.12)';
     ctx.fillRect(x - 4, y - 53, 8, 2);
-    // Brim
     ctx.fillStyle = C.capDk;
     ctx.fillRect(x + (face === 1 ? 2 : -14), y - 46, 12, 3);
-    // Eyes (bigger, more expressive)
     ctx.fillStyle = C.eyeW;
     ctx.fillRect(x - 6, y - 45, 6, 6);
     ctx.fillRect(x + 1, y - 45, 6, 6);
@@ -370,14 +480,11 @@ export class Player {
     const ep = face === 1 ? 2 : 0;
     ctx.fillRect(x - 5 + ep, y - 44, 3, 4);
     ctx.fillRect(x + 2 + ep, y - 44, 3, 4);
-    // Eye shine
     ctx.fillStyle = C.eyeW;
     ctx.fillRect(x - 5 + ep, y - 44, 1, 1);
     ctx.fillRect(x + 2 + ep, y - 44, 1, 1);
-    // Nose bandage
     ctx.fillStyle = C.noseBand;
     ctx.fillRect(x - 3, y - 39, 6, 3);
-    // Mouth (small confident line)
     ctx.fillStyle = C.skinDk;
     ctx.fillRect(x - 1 + face, y - 36, 3, 1);
   }

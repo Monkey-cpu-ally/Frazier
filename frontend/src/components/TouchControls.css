@@ -1,0 +1,122 @@
+.touch-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.touch-btn {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: rgba(255,255,255,0.7);
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  transition: transform 0.05s, background 0.05s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+
+.touch-btn:active {
+  transform: scale(0.9);
+  background: rgba(255,255,255,0.15) !important;
+}
+
+/* D-Pad */
+.touch-dpad {
+  position: absolute;
+  bottom: 40px;
+  left: 24px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.touch-dpad-left,
+.touch-dpad-right,
+.touch-dpad-down {
+  width: 56px;
+  height: 56px;
+  background: rgba(0,0,0,0.45);
+  border: 2px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(4px);
+}
+
+.touch-dpad-down {
+  position: absolute;
+  bottom: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 50px;
+}
+
+/* Action Buttons */
+.touch-actions {
+  position: absolute;
+  bottom: 40px;
+  right: 24px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.touch-jump {
+  width: 68px;
+  height: 68px;
+  background: rgba(0,199,190,0.25);
+  border: 2px solid rgba(0,199,190,0.4);
+  backdrop-filter: blur(4px);
+  font-size: 0.75rem;
+}
+
+.touch-attack {
+  width: 68px;
+  height: 68px;
+  background: rgba(255,59,48,0.25);
+  border: 2px solid rgba(255,59,48,0.4);
+  backdrop-filter: blur(4px);
+  margin-bottom: 30px;
+  font-size: 0.75rem;
+}
+
+.touch-special {
+  width: 50px;
+  height: 50px;
+  background: rgba(255,214,10,0.2);
+  border: 2px solid rgba(255,214,10,0.35);
+  backdrop-filter: blur(4px);
+  font-size: 0.65rem;
+}
+
+/* Top buttons */
+.touch-top {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  display: flex;
+  gap: 10px;
+}
+
+.touch-pause,
+.touch-interact {
+  width: 40px;
+  height: 40px;
+  background: rgba(0,0,0,0.4);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  backdrop-filter: blur(4px);
+  font-size: 0.7rem;
+}
+
+/* Hide on desktop, show on touch */
+@media (hover: hover) and (pointer: fine) {
+  .touch-controls {
+    display: none;
+  }
+}

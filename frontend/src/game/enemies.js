@@ -1,5 +1,8 @@
-import { EN, GRAVITY, MAX_FALL, C } from './constants';
+import { EN, PL, C } from './constants';
 import { sfx } from './sfx';
+
+const GRAVITY = PL.gravity;
+const MAX_FALL = PL.maxFall;
 
 class EnemyBase {
   constructor(x, y, type) {

@@ -5,8 +5,10 @@ import MainMenu from '@/components/MainMenu';
 import PauseMenu from '@/components/PauseMenu';
 import SettingsPanel from '@/components/SettingsPanel';
 import DialogueOverlay from '@/components/DialogueOverlay';
+import TouchControls from '@/components/TouchControls';
+import Workshop from '@/components/Workshop';
 import { sfx } from '@/game/sfx';
-import { KeyCap } from '@/components/gameui';
+import { music } from '@/game/music';
 
 const BG_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/e352993c8b6ad491a1f19da7bb7f3a7aa5ade71deb48994a814b5024daf01114.png';
 const CHAR_URL = 'https://customer-assets.emergentagent.com/job_agent-platform-73/artifacts/3vnrayz5_download%20%282%29.jpeg';
@@ -26,9 +28,11 @@ function App() {
   const [screen, setScreen] = useState('title');
   const [showControls, setShowControls] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showWorkshop, setShowWorkshop] = useState(false);
   const [paused, setPaused] = useState(false);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [startLevel, setStartLevel] = useState(0);
+  const [isMobile] = useState(() => 'ontouchstart' in window);
   const engineRef = useRef(null);
 
   // Apply settings
@@ -36,6 +40,8 @@ function App() {
     setSettings(newSettings);
     sfx.volume = newSettings.sfxVolume / 100;
     sfx.enabled = newSettings.sfxVolume > 0;
+    music.setVolume(newSettings.musicVolume / 200);
+    music.enabled = newSettings.musicVolume > 0;
     if (engineRef.current) {
       engineRef.current.camera && (engineRef.current.camera.shakeEnabled = newSettings.screenShake);
     }
@@ -47,11 +53,15 @@ function App() {
 
   const goToMenu = () => {
     sfx.uiClick();
+    music.stop();
+    music.playMenu();
     setScreen('menu');
   };
 
   const startGame = (levelIndex = 0) => {
     sfx.uiStart();
+    music.stop();
+    music.playExploration();
     setStartLevel(levelIndex);
     setScreen('playing');
     setPaused(false);
@@ -144,6 +154,7 @@ function App() {
               <MainMenu
                 onPlay={startGame}
                 onLevelSelect={startGame}
+                onWorkshop={() => setShowWorkshop(true)}
                 charUrl={CHAR_URL}
                 scrapUrl={SCRAP_URL}
               />
@@ -172,8 +183,18 @@ function App() {
                 onQuit={handleQuitToMenu}
               />
             )}
+
+            {/* Touch Controls for mobile */}
+            <TouchControls visible={isMobile && !paused} />
           </div>
         )}
+
+        {/* ===== WORKSHOP ===== */}
+        <Workshop
+          open={showWorkshop}
+          onClose={() => setShowWorkshop(false)}
+          scrapParts={0}
+        />
 
         {/* ===== SETTINGS MODAL ===== */}
         <SettingsPanel
@@ -193,6 +214,7 @@ function App() {
                 <ControlRow keys={['SPACE']} action="Jump" />
                 <ControlRow keys={['X', 'J']} action="Swing Wrench" />
                 <ControlRow keys={['S', '+', 'X']} action="Downward Smash (in air)" />
+                <ControlRow keys={['SHIFT']} action="Dash" />
                 <ControlRow keys={['K', 'Z']} action="Special / Use Power" />
                 <ControlRow keys={['E']} action="Interact" />
                 <ControlRow keys={['TAB']} action="Flight Log" />
