@@ -1,0 +1,5 @@
+[gd_scene format=3]
+[node name="FoxStatue" type="Node2D"]
+[node name="Sprite" type="Polygon2D" parent="."]
+color = Color(0.5, 0.7, 0.9, 1)
+polygon = PackedVector2Array(-12, 8, 0, -20, 12, 8)

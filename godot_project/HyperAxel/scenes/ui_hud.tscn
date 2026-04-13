@@ -1,0 +1,16 @@
+[gd_scene load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_hud"]
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_hud")
+[node name="StickerContainer" type="HBoxContainer" parent="."]
+[node name="CoinLabel" type="Label" parent="."]
+text = "x 0"
+[node name="ScrapBar" type="ProgressBar" parent="."]
+max_value = 100.0
+[node name="ScoreLabel" type="Label" parent="."]
+text = "Score: 0"
+[node name="PowerIcon" type="TextureRect" parent="."]
+visible = false
+[node name="PowerTimerLabel" type="Label" parent="."]
+visible = false
+[node name="PickupLabel" type="Label" parent="."]

@@ -1,0 +1,8 @@
+[gd_scene format=3]
+[node name="RootboundSiegeTank" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 3
+[node name="Body" type="Polygon2D" parent="."]
+color = Color(0.4, 0.51, 0.63, 1)
+polygon = PackedVector2Array(-36, -20, -30, -50, 30, -50, 36, -20, 36, 10, -36, 10)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
