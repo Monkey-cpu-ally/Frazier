@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import '@/App.css';
 import GameCanvas from '@/components/GameCanvas';
+import IntroScreen from '@/components/IntroScreen';
 import MainMenu from '@/components/MainMenu';
 import PauseMenu from '@/components/PauseMenu';
 import SettingsPanel from '@/components/SettingsPanel';
@@ -24,8 +25,8 @@ const DEFAULT_SETTINGS = {
 };
 
 function App() {
-  // Screen states: title -> menu -> playing
-  const [screen, setScreen] = useState('title');
+  // Screen states: intro -> title -> menu -> playing
+  const [screen, setScreen] = useState('intro');
   const [showControls, setShowControls] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showWorkshop, setShowWorkshop] = useState(false);
@@ -101,6 +102,11 @@ function App() {
   return (
     <div className="app-root" data-testid="app-root">
       <div className="game-wrapper" data-testid="game-wrapper">
+
+        {/* ===== INTRO CINEMATIC ===== */}
+        {screen === 'intro' && (
+          <IntroScreen onComplete={() => setScreen('title')} />
+        )}
 
         {/* ===== TITLE SCREEN ===== */}
         {screen === 'title' && (
