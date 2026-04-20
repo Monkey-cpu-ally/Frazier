@@ -1,0 +1,26 @@
+[gd_scene load_steps=3 format=3]
+[ext_resource type="Script" path="res://scripts/entities/heavy_enemy.gd" id="1"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_auto_1"]
+size = Vector2(46, 34)
+[node name="HeavyEnemy" type="CharacterBody2D"]
+script = ExtResource("1")
+collision_layer = 4
+collision_mask = 3
+[node name="SpriteRoot" type="Node2D" parent="."]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="SpriteRoot"]
+[node name="Body" type="Polygon2D" parent="SpriteRoot"]
+color = Color(0.4, 0.51, 0.63, 1)
+polygon = PackedVector2Array(-24, -16, -8, -20, 10, -20, 24, -14, 28, -2, 24, 14, 8, 20, -10, 20, -24, 14, -28, -2)
+[node name="AccentPlate" type="Polygon2D" parent="SpriteRoot"]
+position = Vector2(0, -2)
+color = Color(0.64, 0.78, 0.4, 1)
+polygon = PackedVector2Array(-12, -8, 12, -8, 16, 0, 12, 8, -12, 8, -16, 0)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_auto_1")
+[node name="RayWall" type="RayCast2D" parent="."]
+target_position = Vector2(24, 0)
+collision_mask = 1
+[node name="RayFloor" type="RayCast2D" parent="."]
+position = Vector2(23, 17)
+target_position = Vector2(0, 10)
+collision_mask = 1

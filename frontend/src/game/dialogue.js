@@ -44,6 +44,38 @@ export const DIALOGUES = {
     { speaker: 'scrap', text: "System failure. Rebooting..." },
     { speaker: 'scrap', text: "Recommendation: avoid direct contact with hostiles." },
   ],
+  workshop_enter: [
+    { speaker: 'scrap', text: "This place... I know it." },
+    { speaker: 'scrap', text: "Old workshop. My components were assembled here." },
+    { speaker: 'scrap', text: "Check the benches. Useful parts might remain." },
+  ],
+  canopy_enter: [
+    { speaker: 'scrap', text: "Canopy layer. No solid ground below." },
+    { speaker: 'scrap', text: "Branch integrity varies. Stay sharp." },
+  ],
+  pipe_enter: [
+    { speaker: 'scrap', text: "Industrial pipe network. Pre-collapse infrastructure." },
+    { speaker: 'scrap', text: "Wall surfaces should support lateral jumps here." },
+  ],
+  vault_enter: [
+    { speaker: 'scrap', text: "Energy signature anomaly. Mirror-class resonance." },
+    { speaker: 'scrap', text: "Something is sealed in this vault. Fragments detected." },
+    { speaker: 'fox', text: "...you're close now." },
+  ],
+  core_enter: [
+    { speaker: 'scrap', text: "Final sector. All hostiles converging." },
+    { speaker: 'scrap', text: "Whatever broke this world... it started here." },
+    { speaker: 'scrap', text: "Full power recommended. Don't hold back." },
+  ],
+  mirror_fragment: [
+    { speaker: 'scrap', text: "Mirror fragment acquired. Resonance stored." },
+    { speaker: 'fox', text: "One piece closer to the truth." },
+  ],
+  all_fragments: [
+    { speaker: 'fox', text: "You found them all." },
+    { speaker: 'fox', text: "The mirror remembers. Look inside." },
+    { speaker: 'scrap', text: "Full mirror resonance achieved. Something is unlocking..." },
+  ],
 };
 
 export const SPEAKER_CONFIG = {

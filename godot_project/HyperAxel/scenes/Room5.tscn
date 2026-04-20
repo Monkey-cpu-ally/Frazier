@@ -1,0 +1,70 @@
+[gd_scene load_steps=11 format=3]
+[ext_resource type="Script" path="res://scripts/levels/room5_boss_arena.gd" id="1_room5"]
+[ext_resource type="PackedScene" path="res://scenes/player_axel.tscn" id="2_axel"]
+[ext_resource type="PackedScene" path="res://scenes/ui_hud.tscn" id="3_hud"]
+[ext_resource type="PackedScene" path="res://scenes/root_crawler_simple.tscn" id="4_boss_placeholder"]
+[sub_resource type="RectangleShape2D" id="s1"]
+size = Vector2(3800, 48)
+[sub_resource type="RectangleShape2D" id="s2"]
+size = Vector2(24, 144)
+[sub_resource type="RectangleShape2D" id="s3"]
+size = Vector2(24, 144)
+[sub_resource type="RectangleShape2D" id="s4"]
+size = Vector2(90, 120)
+[sub_resource type="RectangleShape2D" id="s5"]
+size = Vector2(140, 120)
+[node name="Room5" type="Node2D"]
+script = ExtResource("1_room5")
+[node name="Ground" type="StaticBody2D" parent="."]
+collision_layer = 1
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
+shape = SubResource("s1")
+position = Vector2(0, 312)
+[node name="GroundVisual" type="ColorRect" parent="Ground"]
+offset_left = -1900.0
+offset_top = 288.0
+offset_right = 1900.0
+offset_bottom = 336.0
+color = Color(0.37, 0.31, 0.23, 1)
+[node name="Axel" parent="." instance=ExtResource("2_axel")]
+position = Vector2(-840, 210)
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(-460, 110)
+enabled = true
+smoothing_enabled = true
+smoothing_speed = 8.0
+[node name="HUD" parent="." instance=ExtResource("3_hud")]
+[node name="BossGate" type="StaticBody2D" parent="."]
+position = Vector2(-220, 240)
+collision_layer = 1
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BossGate"]
+shape = SubResource("s2")
+[node name="GateVisual" type="ColorRect" parent="BossGate"]
+offset_left = -12.0
+offset_top = -72.0
+offset_right = 12.0
+offset_bottom = 72.0
+color = Color(0.45, 0.36, 0.25, 1)
+[node name="ExitGate" type="StaticBody2D" parent="."]
+position = Vector2(860, 240)
+collision_layer = 1
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitGate"]
+shape = SubResource("s3")
+[node name="FightTrigger" type="Area2D" parent="."]
+position = Vector2(-120, 236)
+monitoring = true
+collision_layer = 0
+collision_mask = 2
+[node name="CollisionShape2D" type="CollisionShape2D" parent="FightTrigger"]
+shape = SubResource("s4")
+[node name="BossPlaceholder" parent="." instance=ExtResource("4_boss_placeholder")]
+position = Vector2(360, 246)
+visible = false
+[node name="ArenaStateLabel" type="Label" parent="."]
+offset_left = -250.0
+offset_top = 44.0
+offset_right = 520.0
+offset_bottom = 78.0
+text = "Boss arena locked. Enter trigger to begin fight."
+[node name="ExitMarker" type="Marker2D" parent="."]
+position = Vector2(1040, 238)

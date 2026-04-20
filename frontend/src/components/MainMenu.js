@@ -14,6 +14,11 @@ const LEVELS = [
   { name: 'Hidden Depths', sub: 'Breakable floor puzzle', enemies: 'Flicker, Crawlers' },
   { name: 'Buffalo Gate', sub: 'Power + wall interaction', enemies: 'Gear Bugs, Crawlers' },
   { name: 'Siege Core', sub: 'Boss arena', enemies: 'ALL + Siege Tank' },
+  { name: "Scrap's Workshop", sub: 'Old base exploration', enemies: 'Gear Bugs, Heavy, Flicker' },
+  { name: 'Canopy Run', sub: 'Treetop platforming', enemies: 'Flicker, Crawlers, Gear Bugs' },
+  { name: 'Pipe Network', sub: 'Wall jump challenge', enemies: 'ALL types' },
+  { name: 'Mirror Vault', sub: 'Crystal realm', enemies: 'Flicker swarm, Heavy' },
+  { name: 'Shattered Core', sub: 'Final gauntlet', enemies: 'EVERYTHING' },
 ];
 
 const MainMenu = ({ onPlay, onLevelSelect, onWorkshop, charUrl, scrapUrl }) => {
@@ -91,7 +96,7 @@ const MainMenu = ({ onPlay, onLevelSelect, onWorkshop, charUrl, scrapUrl }) => {
                       subtitle={`${lv.sub} — ${lv.enemies}`}
                       active={selectedLevel === i}
                       onClick={() => setSelectedLevel(i)}
-                      right={<GameBadge color={i < 4 ? 'teal' : 'red'}>{i < 4 ? 'OPEN' : 'BOSS'}</GameBadge>}
+                      right={<GameBadge color={i === 4 ? 'red' : (lv.name.includes('Mirror') || lv.name.includes('Shattered') ? 'purple' : 'teal')}>{i === 4 ? 'BOSS' : (i >= 5 ? 'NEW' : 'OPEN')}</GameBadge>}
                       testId={`level-select-${i}`}
                     />
                   ))}

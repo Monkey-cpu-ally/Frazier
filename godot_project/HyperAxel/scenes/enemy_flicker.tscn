@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3]
+[ext_resource type="Script" path="res://scripts/entities/flicker_enemy.gd" id="1_flicker_script"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_auto_1"]
+size = Vector2(32, 24)
+[node name="FlickerEnemy" type="CharacterBody2D"]
+script = ExtResource("1_flicker_script")
+collision_layer = 4
+collision_mask = 3
+[node name="SpriteRoot" type="Node2D" parent="."]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="SpriteRoot"]
+[node name="Body" type="Polygon2D" parent="SpriteRoot"]
+color = Color(0.58, 0.44, 0.78, 1)
+polygon = PackedVector2Array(-20, -10, -8, -18, 8, -18, 20, -8, 18, 10, -14, 12)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_auto_1")
+[node name="RayWall" type="RayCast2D" parent="."]
+target_position = Vector2(18, 0)
+collision_mask = 1
+[node name="RayFloor" type="RayCast2D" parent="."]
+position = Vector2(16, 12)
+target_position = Vector2(0, 10)
+collision_mask = 1

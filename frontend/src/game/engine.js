@@ -9,6 +9,7 @@ import { getLevels } from './levels';
 import { HUD } from './hud';
 import { Boss, FoxSpirit } from './boss';
 import { sfx } from './sfx';
+import { DialogueManager } from './dialogue';
 
 export class Engine {
   constructor(canvas, onStateChange) {
@@ -41,6 +42,9 @@ export class Engine {
     this.boss = null;
     this.foxSpirit = null;
     this.sfx = sfx;
+    this.dialogue = new DialogueManager();
+    this.mirrorFragments = 0;
+    this.totalFragments = 4;
     this.showFlightLog = false;
     this.levels = getLevels();
     this.currentLevelIndex = 0;
@@ -131,6 +135,11 @@ export class Engine {
     this.transitionTimer = 0.8;
     this.transitionType = 'in';
     this.flightLog.add(`Entering: ${lv.name}`, 'nav');
+
+    // Trigger level dialogue
+    if (lv.dialogueId) {
+      setTimeout(() => this.dialogue.trigger(lv.dialogueId), 1200);
+    }
   }
 
   _loop = () => {
@@ -151,6 +160,15 @@ export class Engine {
     this.input.update();
 
     if (this.state === 'playing') {
+      // Dialogue blocks gameplay input
+      if (this.dialogue.active) {
+        this.dialogue.update(dt);
+        if (this.input.jump || this.input.attack) {
+          this.dialogue.advance();
+        }
+        this._render();
+        return;
+      }
       this._update(dt);
     } else if (this.state === 'transition') {
       this.transitionTimer -= dt;
@@ -233,6 +251,26 @@ export class Engine {
     // Toggle flight log
     if (this.input.just('Tab')) {
       this.showFlightLog = !this.showFlightLog;
+    }
+
+    // Mirror Fragment check
+    if (this.currentLevel && this.currentLevel.mirrorFragment && !this.currentLevel._fragmentCollected) {
+      const mf = this.currentLevel.mirrorFragment;
+      const dist = Math.abs(this.player.x - mf.x) + Math.abs(this.player.cy - mf.y);
+      if (dist < 40) {
+        this.currentLevel._fragmentCollected = true;
+        this.mirrorFragments++;
+        sfx.powerPickup();
+        this.gameState.addScore(500);
+        this.gameState.showPickup(`Mirror Fragment ${this.mirrorFragments}/${this.totalFragments}`);
+        this.flightLog.add(`Mirror fragment collected (${this.mirrorFragments}/${this.totalFragments})`, 'explore');
+        this.dialogue.trigger('mirror_fragment');
+        this.camera.shake(6, 0.3);
+        this.addParticles(mf.x, mf.y, 15, '#AADDFF');
+        if (this.mirrorFragments >= this.totalFragments) {
+          setTimeout(() => this.dialogue.trigger('all_fragments'), 3000);
+        }
+      }
     }
 
     this.camera.follow(this.player.x, this.player.y - 40, dt);
@@ -373,6 +411,50 @@ export class Engine {
     // Pickups
     this.pickups.forEach(p => p.render(ctx));
 
+    // Mirror Fragment (floating crystal)
+    if (this.currentLevel && this.currentLevel.mirrorFragment && !this.currentLevel._fragmentCollected) {
+      const mf = this.currentLevel.mirrorFragment;
+      const bob = Math.sin(this.levelTimer * 2.5) * 6;
+      const hue = (this.levelTimer * 60) % 360;
+      const mx = Math.round(mf.x), my = Math.round(mf.y + bob);
+      // Glow
+      ctx.globalAlpha = 0.25 + Math.sin(this.levelTimer * 3) * 0.1;
+      ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+      ctx.beginPath();
+      ctx.arc(mx, my, 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      // Crystal diamond
+      ctx.fillStyle = `hsl(${hue}, 80%, 70%)`;
+      ctx.beginPath();
+      ctx.moveTo(mx, my - 14);
+      ctx.lineTo(mx + 10, my);
+      ctx.lineTo(mx, my + 10);
+      ctx.lineTo(mx - 10, my);
+      ctx.closePath();
+      ctx.fill();
+      // Inner shine
+      ctx.fillStyle = '#FFFFFF';
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(mx, my - 6);
+      ctx.lineTo(mx + 4, my);
+      ctx.lineTo(mx, my + 4);
+      ctx.lineTo(mx - 4, my);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      // Sparkle particles
+      for (let i = 0; i < 3; i++) {
+        const sa = this.levelTimer * 2 + i * 2.1;
+        const sr = 16 + Math.sin(sa * 1.5) * 6;
+        const sx = mx + Math.cos(sa) * sr;
+        const sy = my + Math.sin(sa) * sr + bob;
+        ctx.fillStyle = `hsla(${(hue + i * 40) % 360}, 90%, 80%, 0.5)`;
+        ctx.fillRect(sx - 1, sy - 1, 3, 3);
+      }
+    }
+
     // Enemies
     this.enemies.forEach(e => e.render(ctx));
 
@@ -412,6 +494,34 @@ export class Engine {
     // Flight Log panel (full screen overlay)
     if (this.showFlightLog) {
       this._renderFlightLogPanel(ctx);
+    }
+
+    // Dialogue box
+    if (this.dialogue.active && this.dialogue.current) {
+      this._renderDialogue(ctx);
+    }
+
+    // Mirror fragment counter (top-right)
+    if (this.mirrorFragments > 0) {
+      const fx = W - 50, fy = 74;
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.beginPath();
+      ctx.roundRect(fx - 30, fy - 2, 60, 22, 6);
+      ctx.fill();
+      const hue = (this.levelTimer * 40) % 360;
+      ctx.fillStyle = `hsl(${hue}, 70%, 65%)`;
+      ctx.font = 'bold 11px "Fredoka", sans-serif';
+      ctx.textAlign = 'center';
+      // Diamond icon
+      ctx.beginPath();
+      ctx.moveTo(fx - 16, fy + 9);
+      ctx.lineTo(fx - 10, fy + 3);
+      ctx.lineTo(fx - 4, fy + 9);
+      ctx.lineTo(fx - 10, fy + 15);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText(`${this.mirrorFragments}/${this.totalFragments}`, fx + 8, fy + 14);
     }
 
     // Transition overlay
@@ -627,6 +737,87 @@ export class Engine {
     ctx.textAlign = 'center';
     ctx.fillText('Press TAB to close', W / 2, py + ph - 16);
   }
+
+  _renderDialogue(ctx) {
+    const d = this.dialogue;
+    const s = d.current;
+    if (!s) return;
+
+    const bx = W / 2, by = H - 90;
+    const bw = 600, bh = 80;
+
+    // Background
+    ctx.fillStyle = s.bgColor || 'rgba(20,40,50,0.95)';
+    ctx.strokeStyle = s.borderColor || '#5A8098';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(bx - bw / 2, by - bh / 2, bw, bh, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    // Speaker portrait (Scrap = gear icon, Fox = fox icon)
+    const px = bx - bw / 2 + 36;
+    const py = by;
+    ctx.fillStyle = `${s.color}33`;
+    ctx.strokeStyle = s.borderColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(px - 22, py - 22, 44, 44, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    if (s.portrait === 'scrap') {
+      ctx.fillStyle = s.color;
+      ctx.beginPath();
+      ctx.arc(px, py - 5, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(px - 3, py + 5, 6, 12);
+      ctx.fillStyle = '#FF3B30';
+      ctx.beginPath();
+      ctx.arc(px - 4, py - 6, 3, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = s.color;
+      ctx.beginPath();
+      ctx.moveTo(px, py - 14);
+      ctx.lineTo(px - 10, py + 2);
+      ctx.lineTo(px - 6, py - 4);
+      ctx.lineTo(px - 14, py - 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(px, py - 14);
+      ctx.lineTo(px + 10, py + 2);
+      ctx.lineTo(px + 6, py - 4);
+      ctx.lineTo(px + 14, py - 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(px - 5, py - 4, 3, 3);
+      ctx.fillRect(px + 2, py - 4, 3, 3);
+    }
+
+    // Speaker name
+    ctx.fillStyle = s.color;
+    ctx.font = 'bold 12px "Anton", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(s.name, px + 32, by - bh / 2 + 20);
+
+    // Text (typewriter)
+    ctx.fillStyle = '#E8F0EC';
+    ctx.font = '14px "Nunito", sans-serif';
+    ctx.fillText(d.getDisplayText(), px + 32, by + 4);
+
+    // Advance hint
+    if (d.waitingForInput) {
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.font = '10px "Nunito", sans-serif';
+      ctx.textAlign = 'right';
+      const blink = Math.sin(this.levelTimer * 5) > 0;
+      if (blink) ctx.fillText('SPACE / X to continue', bx + bw / 2 - 12, by + bh / 2 - 10);
+    }
+  }
+
 
   _initAmbient() {
     const arr = [];

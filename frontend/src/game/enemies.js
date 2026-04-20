@@ -19,6 +19,7 @@ class EnemyBase {
     this.dir = 1;
     this.state = 'patrol';
     this.alive = true;
+    this.grounded = false;
     this.hurtTimer = 0;
     this.flashTimer = 0;
     this.animT = 0;
@@ -57,8 +58,25 @@ class EnemyBase {
 
     if (this.state === 'patrol') {
       this.vx = this.dir * this.speed;
+      // Wall bounce
       if (Math.abs(this.x - this.originX) > this.patrol) {
         this.dir *= -1;
+      }
+      // Ledge detection — check if there's ground ahead
+      if (this.grounded) {
+        const checkX = this.x + this.dir * (this.w / 2 + 8);
+        const checkY = this.y + 10;
+        let hasFloor = false;
+        for (const p of engine.platforms) {
+          if (checkX >= p.x && checkX <= p.x + p.w && checkY >= p.y && checkY <= p.y + p.h + 10) {
+            hasFloor = true;
+            break;
+          }
+        }
+        if (!hasFloor) {
+          this.dir *= -1;
+          this.originX = this.x; // Reset patrol center
+        }
       }
       if (dist < 200 && this.type !== 'heavy') {
         this.state = 'chase';
@@ -72,11 +90,13 @@ class EnemyBase {
   }
 
   _resolveGround(engine) {
+    this.grounded = false;
     for (const p of engine.platforms) {
       if (this.right <= p.x || this.left >= p.x + p.w) continue;
       if (this.bottom > p.y && this.bottom < p.y + p.h + 10 && this.vy >= 0) {
         this.y = p.y;
         this.vy = 0;
+        this.grounded = true;
       }
     }
   }

@@ -1,54 +1,54 @@
 # Hyper Axel: Shattered Mirrors - PRD
 
-## Architecture
-- Frontend: React 19 + HTML5 Canvas 2D engine + Game UI Design System
-- Backend: FastAPI + MongoDB (scores/leaderboard)
-- Audio: Web Audio API (SFX + procedural music)
-- Art: Claymation style (user-provided Axel/Scrap), AI-generated backgrounds/logo
+## Full Feature List (Jan 2026)
 
-## Full Flow
-Intro Cinematic (8s) → Title Screen → Main Menu → Gameplay → Pause Menu
+### 10 Levels
+1. Overgrown Outskirts (intro)
+2. Rust Climb (vertical + mixed enemies)
+3. Hidden Depths (breakable floor, secret area)
+4. Buffalo Gate (power + wall interaction)
+5. Siege Core (boss: Rootbound Siege Tank + Fox Spirit)
+6. Scrap's Workshop (old base, Scrap dialogue)
+7. Canopy Run (no-ground treetop platforming)
+8. Pipe Network (wall jump challenge, industrial)
+9. Mirror Vault (crystal realm, fragment hunting)
+10. Shattered Core (final gauntlet, all enemies)
 
-## Complete Feature List
-### Cinematic Intro (SHATTERED MIRRORS)
-- 7-phase animated sequence: Void → Fragments → Pull → Mirror → Shatter → Logo → Key Lock
-- Synthesized audio: hum, crystal chimes, impacts, shatter, lock sound
-- Skippable (any key/click)
+### Mirror Fragment System
+- 4 hidden crystal fragments across levels 5, 7, 8, 9
+- Rainbow-glowing diamond pickup with sparkle particles
+- HUD counter (top-right) with rotating hue diamond icon
+- Dialogue triggers on each pickup + special dialogue when all 4 collected
+- Leads to secret ending (Shattered Mirrors narrative)
 
-### Game UI Design System (/components/gameui/)
-15+ reusable components: GamePanel, GameButton, GameModal, GameSlider, GameToggle, GameBadge, GameTabs, GameList, SpeakerBox, MeterBar, PowerCard, LeaderboardRow, KeyCap, Divider, TerminalText
+### Dialogue System
+- DialogueManager with typewriter text, speaker portraits (Scrap/Fox)
+- Auto-triggers at level start for levels with dialogueId
+- Blocks gameplay input during dialogue
+- SPACE/X to advance, auto-complete on first press
+- 12 dialogue sequences covering all levels + mirror fragments
 
-### Screens
-1. Title Screen (graffiti logo, claymation Axel, ruins bg)
-2. Main Menu (COMMAND TERMINAL: Play/Levels/Scores/Powers/Workshop tabs)
-3. Level Select (5 levels, OPEN/BOSS badges)
-4. Power Inventory (6 powers in card grid)
-5. Leaderboard (top 10 from backend)
-6. Scrap's Workshop (8 wrench skins, scrap currency)
-7. Pause Menu (ESC: Resume/Settings/Controls/Restart/Quit)
-8. Settings Panel (volume sliders, toggles)
-9. Controls Overlay (full keyboard + SHIFT dash)
-10. Game Over / Victory
+### Godot-Accurate Physics
+- move_toward acceleration/friction, gravity multipliers
+- Wall slide (120px/s), wall jump (280x, -360y)
+- Dash (SHIFT: 520 speed, 0.14s, 0.2s cooldown)
+- Enemy ledge detection (check ground ahead before moving)
 
-### Gameplay (Godot-accurate physics)
-- Movement: speed 220, accel 1400, friction 1800
-- Jump: force -420, gravity 1200, fall multiplier 1.35, low jump 1.8
-- Wall slide (speed 120), wall jump (280x, -360y)
-- Dash (SHIFT: speed 520, 0.14s duration, 0.2s cooldown)
-- 3-hit wrench combo + air attack + downward smash
-- Sticker health (3 stickers, chip damage)
-- Scrap meter + 6 powers (15s each)
-- 4 enemy types + boss (Rootbound Siege Tank)
-- Breakable walls/floors, pickups, Fox Spirit NPC
+### Complete UI System
+- Cinematic intro (8s Shattered Mirrors sequence)
+- Title → Menu → Game flow
+- 5-tab menu (Play/Levels/Scores/Powers/Workshop)
+- Pause (ESC), Settings, Controls overlay
+- Scrap's Workshop (wrench skins)
+- Game UI Design System (15+ reusable components)
 
 ### Audio
-- SFX: all actions synthesized (jump, attack, enemies, pickups, boss, UI)
-- Music: procedural exploration/boss/menu tracks (Web Audio API)
-
-### Mobile
-- Touch controls overlay (D-pad, jump, attack, power, pause)
-- Hidden on desktop, shown on touch devices
+- SFX: all actions (Web Audio API synthesized)
+- Music: procedural exploration/boss/menu tracks
+- Dialogue: crystal chimes for fragment collection
 
 ## Backlog
-- P1: Dialogue triggers, enemy ledge detection, more levels
-- P2: Save/load, achievements, cutscenes
+- P1: Claymation enemy art generation (quota hit, retry next session)
+- P1: Save/load progress to backend
+- P2: Achievement system, cutscene system
+- P2: Secret ending animation when all fragments collected

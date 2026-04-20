@@ -1,0 +1,60 @@
+[gd_scene load_steps=12 format=3]
+[ext_resource type="Script" path="res://scripts/systems/game_root.gd" id="1_root"]
+[ext_resource type="PackedScene" path="res://scenes/player_axel.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui_hud.tscn" id="3_hud"]
+[ext_resource type="PackedScene" path="res://scenes/enemy_root_crawler.tscn" id="4_root_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/enemy_gear_bug.tscn" id="5_gear_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/enemy_flicker.tscn" id="6_flicker_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/enemy_heavy.tscn" id="7_heavy_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/pickup_item.tscn" id="8_pickup"]
+[sub_resource type="RectangleShape2D" id="s1"]
+size = Vector2(3200, 48)
+[sub_resource type="RectangleShape2D" id="s2"]
+size = Vector2(40, 120)
+[sub_resource type="RectangleShape2D" id="s3"]
+size = Vector2(88, 18)
+[node name="GameRoot" type="Node2D"]
+script = ExtResource("1_root")
+[node name="BackgroundSky" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-1800, -600, 2200, -600, 2200, 520, -1800, 520)
+color = Color(0.266667, 0.301961, 0.329412, 1)
+[node name="BackgroundHills" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-1800, 140, -1450, 70, -1120, 145, -760, 62, -420, 155, -80, 72, 250, 158, 590, 84, 920, 164, 1280, 92, 1610, 170, 1950, 122, 2200, 180, 2200, 520, -1800, 520)
+color = Color(0.337255, 0.384314, 0.423529, 1)
+[node name="Ground" type="StaticBody2D" parent="."]
+position = Vector2(0, 312)
+collision_layer = 1
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
+shape = SubResource("s1")
+[node name="GroundVisual" type="Polygon2D" parent="Ground"]
+polygon = PackedVector2Array(-1600, -24, 1600, -24, 1600, 24, -1600, 24)
+color = Color(0.372549, 0.309804, 0.231373, 1)
+[node name="BreakableWall" type="StaticBody2D" parent="."]
+position = Vector2(1080, 250)
+collision_layer = 1
+groups = ["breakable"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BreakableWall"]
+shape = SubResource("s2")
+[node name="BreakableFloor" type="StaticBody2D" parent="."]
+position = Vector2(1320, 274)
+collision_layer = 1
+groups = ["breakable"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BreakableFloor"]
+shape = SubResource("s3")
+[node name="SpawnLayer" type="Node2D" parent="."]
+[node name="Axel" parent="SpawnLayer" instance=ExtResource("2_player")]
+position = Vector2(-520, 210)
+[node name="RootCrawlerA" parent="SpawnLayer" instance=ExtResource("4_root_enemy")]
+position = Vector2(-90, 240)
+[node name="GearBugA" parent="SpawnLayer" instance=ExtResource("5_gear_enemy")]
+position = Vector2(220, 240)
+[node name="FlickerA" parent="SpawnLayer" instance=ExtResource("6_flicker_enemy")]
+position = Vector2(560, 240)
+[node name="HeavyA" parent="SpawnLayer" instance=ExtResource("7_heavy_enemy")]
+position = Vector2(940, 240)
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(-80, 112)
+enabled = true
+smoothing_enabled = true
+smoothing_speed = 7.0
+[node name="HUD" parent="." instance=ExtResource("3_hud")]
