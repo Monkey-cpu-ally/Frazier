@@ -104,7 +104,7 @@ export class Engine {
     this._loop();
   }
 
-  restart() {
+  restart(levelIndex = 0) {
     this.gameState.reset();
     this.powerManager.reset();
     this.flightLog.entries = [];
@@ -121,7 +121,8 @@ export class Engine {
     } else {
       this.totalFragments = 4;
     }
-    this.loadLevel(0);
+    const safeIdx = Math.max(0, Math.min(levelIndex, this.levels.length - 1));
+    this.loadLevel(safeIdx);
     this.flightLog.add(this.newGamePlus ? 'NG+ initialized. Reality unstable.' : 'Rebooting systems...', 'system');
     this.onStateChange('playing');
   }

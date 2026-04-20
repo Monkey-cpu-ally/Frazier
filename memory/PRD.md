@@ -29,3 +29,28 @@
 
 ### Audio
 - SFX + procedural music (exploration/boss/menu) via Web Audio API
+
+
+## QA / Bug-Hunt Pass (Feb 20, 2026)
+
+User requested "LETS LOOK FOR PROBLEMS IN THIS DEMO". Audited codebase and fixed 9 bugs:
+
+### Critical
+- **Dialogue freeze**: `engine._loop` dialogue branch was returning without `requestAnimationFrame`, freezing the game every time a dialogue triggered. Added missing RAF call.
+- **GameCanvas ignored props**: `paused`, `startLevel`, `settings`, and `ref` were passed from App.js but the component only accepted `onStateChange`. Rewrote with `forwardRef` + `useImperativeHandle` and propagated props to engine via `useEffect`.
+- **Enemy wall-climb**: `_resolveGround` was snapping any side-touching enemy onto a platform top. Tightened to only land when feet cross the platform top within an 8px tolerance.
+- **Flicker falls**: `FlickerEnemy._ai` set `vy` but base `update()` then added gravity again, negating the hover. Gave Flicker its own `update()` that skips gravity and bobs around `baseY`.
+
+### High
+- **Camera shake setting**: Added `shakeEnabled` flag to Camera; `shake()` early-returns when disabled; GameCanvas syncs it from `settings.screenShake`.
+- **ESC priority**: `Escape` now closes any open overlay (controls/settings/workshop/achievements/gallery) before opening pause. In-game ESC toggles pause as before.
+- **Restart flicker**: Removed the `setScreen('restart')`+setTimeout hack. Restart now bumps a `restartKey` that remounts GameCanvas, fully reinitializing the engine without a blank frame.
+- **Chase-off-ledge**: Enemies now check for ground in front of them during chase and stop/turn at ledges instead of running off.
+- **roundRect polyfill**: Added in engine constructor so iOS Safari <16 / older Firefox don't crash.
+
+### Engine API hardening
+- `engine.start(startLevel)` now accepts a starting level index.
+- `engine.restart(levelIndex)` now accepts a level index (defaults to 0) so pause-menu restart can preserve the selected level if wired directly.
+
+### Verified
+iteration_6.json — 100% pass on frontend + backend. No blocking issues remaining.
