@@ -1,8 +1,8 @@
 // Level data translated from Godot .tscn scenes
 // Coordinate system: world space, y-down, ground typically at y~288-336
 
-export function getLevels() {
-  return [
+export function getLevels(newGamePlus = false) {
+  const levels = [
     // Level 0: Intro (based on Level1.tscn)
     {
       name: 'Overgrown Outskirts',
@@ -463,4 +463,80 @@ export function getLevels() {
       message: 'The final stretch. Everything you have learned leads here.',
     },
   ];
+
+  // NEW GAME+ modifications
+  if (newGamePlus) {
+    // Relocate mirror fragments to different levels/positions
+    levels.forEach(l => { l.mirrorFragment = null; l._fragmentCollected = false; });
+
+    // NG+ fragment locations (different from normal)
+    if (levels[1]) levels[1].mirrorFragment = { x: 1100, y: 116 }; // Rust Climb high platform
+    if (levels[3]) levels[3].mirrorFragment = { x: -400, y: 260 }; // Buffalo Gate start area
+    if (levels[5]) levels[5].mirrorFragment = { x: 300, y: 166 }; // Workshop bench
+    if (levels[8]) levels[8].mirrorFragment = { x: 1350, y: 116 }; // Mirror Vault end
+
+    // Add hidden 11th level: The Other Side of the Mirror
+    levels.push({
+      name: 'The Other Side',
+      playerSpawn: { x: -600, y: 286 },
+      camera: { startX: -300, startY: 100, limitLeft: -1400, limitTop: -400, limitRight: 2400, limitBottom: 700 },
+      deathY: 850,
+      exitX: 2100,
+      dialogueId: 'core_enter',
+      backgrounds: [
+        { type: 'sky', color1: '#180420', color2: '#0A0210' },
+        { type: 'hills', color: '#1A0A2A', points: [
+          [-1400,160],[-900,80],[-400,170],[100,60],[600,160],[1100,70],[1600,180],[2100,100],[2400,160],[2400,520],[-1400,520]
+        ]},
+      ],
+      platforms: [
+        { x: -1400, y: 288, w: 3800, h: 48, color: '#150A20', topColor: '#251A30' },
+        // Mirror platforms (reflective aesthetic)
+        { x: -300, y: 210, w: 100, h: 14, color: '#3A2A5A' },
+        { x: -50, y: 170, w: 80, h: 12, color: '#3A2A5A' },
+        { x: 200, y: 130, w: 120, h: 14, color: '#3A2A5A' },
+        { x: 450, y: 180, w: 100, h: 14, color: '#3A2A5A' },
+        { x: 650, y: 140, w: 80, h: 12, color: '#3A2A5A' },
+        // Wall jump corridor
+        { x: 850, y: 40, w: 24, h: 250, color: '#2A1A3A' },
+        { x: 1050, y: 40, w: 24, h: 250, color: '#2A1A3A' },
+        { x: 850, y: 40, w: 224, h: 16, color: '#3A2A5A' },
+        // Final platforms
+        { x: 1200, y: 200, w: 160, h: 18, color: '#3A2A5A' },
+        { x: 1450, y: 160, w: 140, h: 16, color: '#3A2A5A' },
+        { x: 1700, y: 120, w: 120, h: 14, color: '#3A2A5A' },
+        { x: 1900, y: 200, w: 200, h: 20, color: '#3A2A5A', topColor: '#4A3A6A' },
+      ],
+      enemies: [
+        { type: 'flicker', x: -200, y: 260 },
+        { type: 'heavy', x: 100, y: 286 },
+        { type: 'flicker', x: 400, y: 240 },
+        { type: 'gear_bug', x: 600, y: 286 },
+        { type: 'heavy', x: 950, y: 286 },
+        { type: 'flicker', x: 1250, y: 200 },
+        { type: 'root_crawler', x: 1500, y: 286 },
+        { type: 'heavy', x: 1750, y: 286 },
+        { type: 'flicker', x: 1950, y: 260 },
+      ],
+      pickups: [
+        { type: 'power', x: -400, y: 260, powerId: 'super_mode' },
+        { type: 'food', x: 0, y: 146 },
+        { type: 'scrap', x: 250, y: 106 },
+        { type: 'power', x: 500, y: 156, powerId: 'golden_gloves' },
+        { type: 'food', x: 700, y: 260 },
+        { type: 'power', x: 950, y: 20, powerId: 'specter_mode' },
+        { type: 'food', x: 1300, y: 176 },
+        { type: 'power', x: 1600, y: 136, powerId: 'burning_buffalo' },
+        { type: 'food', x: 1850, y: 260 },
+      ],
+      breakables: [
+        { x: 1100, y: 280, w: 100, h: 18, btype: 'floor', smashOnly: true },
+      ],
+      mirrorFragment: { x: 1130, y: 500 }, // 5th secret fragment!
+      message: 'NG+ SECRET LEVEL: The Other Side of the Mirror',
+      hint: 'Reality is inverted here. The 5th fragment awaits.',
+    });
+  }
+
+  return levels;
 }

@@ -1,39 +1,31 @@
-# Hyper Axel: Shattered Mirrors - PRD
+# Hyper Axel: Shattered Mirrors - PRD (Final)
 
-## Complete Feature List (Jan 2026)
+## Complete Game (Jan 2026)
 
-### Game
-- 10 levels across 5 biomes (ruins, climb, depths, factory, workshop, canopy, pipes, crystal vault, shattered core)
+### 11 Levels (10 + 1 secret)
+1. Overgrown Outskirts | 2. Rust Climb | 3. Hidden Depths | 4. Buffalo Gate
+5. Siege Core (Boss) | 6. Scrap's Workshop | 7. Canopy Run | 8. Pipe Network
+9. Mirror Vault | 10. Shattered Core | 11. The Other Side (NG+ secret)
+
+### Core Systems
 - Godot-accurate physics (wall slide/jump, dash, gravity multipliers)
-- Boss fight (Rootbound Siege Tank)
-- 4 enemy types with ledge detection AI
+- 3-hit combo + air attack + downward smash
+- 4 enemy types with ledge detection AI + boss
 - 6 timed powers, sticker health, scrap meter
-- Mirror Fragment collectible system (4 hidden crystals)
-- Dialogue system (Scrap + Fox Spirit, 12 sequences)
+- Mirror Fragment system (4 normal, 5th in NG+)
+- Dialogue system (Scrap + Fox Spirit, 12+ sequences)
+- Secret Ending cinematic (triggers when all fragments collected)
+- New Game+ (faster/tougher enemies, relocated fragments, hidden 11th level)
 
-### UI System
-- Cinematic intro (8s Shattered Mirrors animation)
-- Game UI Design System (15+ reusable components)
-- Main Menu (Play/Levels/Scores/More tabs)
-- Level Select (10 levels with badges)
-- Achievements (15 achievements, persistent via API)
-- Mirror Gallery (4 lore entries unlocked by fragments)
-- Scrap's Workshop (8 wrench skins)
-- Pause Menu, Settings, Controls
-- Mobile touch controls
+### UI
+- Cinematic intro (Shattered Mirrors, 8s)
+- Game UI Design System (15+ components)
+- 4-tab menu (Play/Levels/Scores/More)
+- More hub: Powers, Workshop (8 wrench skins), Achievements (15), Mirror Gallery (4 lore entries)
+- Pause, Settings, Controls, Touch controls
 
 ### Backend
-- Score persistence + leaderboard
-- Save/load game progress (levels, fragments, achievements)
-- Achievement definitions API
-- MongoDB storage
+- Score leaderboard, save/load progress, achievement definitions API
 
 ### Audio
-- SFX: all actions (Web Audio API)
-- Music: procedural exploration/boss/menu tracks
-- Secret ending audio
-
-## Backlog
-- P1: Claymation enemy art (image quota - retry next session)
-- P1: Secret ending trigger when all fragments collected in-game
-- P2: Cloud save sync, multiple save slots
+- SFX + procedural music (exploration/boss/menu) via Web Audio API

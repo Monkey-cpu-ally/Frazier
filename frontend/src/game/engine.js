@@ -10,6 +10,7 @@ import { HUD } from './hud';
 import { Boss, FoxSpirit } from './boss';
 import { sfx } from './sfx';
 import { DialogueManager } from './dialogue';
+import { SecretEnding } from './secretEnding';
 
 export class Engine {
   constructor(canvas, onStateChange) {
@@ -45,6 +46,10 @@ export class Engine {
     this.dialogue = new DialogueManager();
     this.mirrorFragments = 0;
     this.totalFragments = 4;
+    this.secretEndingTriggered = false;
+    this.secretEnding = null;
+    this.newGamePlus = false;
+    this.ngPlusMultiplier = 1.5;
     this.showFlightLog = false;
     this.levels = getLevels();
     this.currentLevelIndex = 0;
@@ -67,6 +72,11 @@ export class Engine {
     this.gameState.reset();
     this.powerManager.reset();
     this.flightLog.entries = [];
+    this.dialogue.reset();
+    this.mirrorFragments = 0;
+    this.secretEndingTriggered = false;
+    this.levels = getLevels(this.newGamePlus);
+    this.totalFragments = this.newGamePlus ? 5 : 4;
     this.loadLevel(0);
     this.running = true;
     this.lastTime = performance.now();
@@ -78,18 +88,46 @@ export class Engine {
     this.gameState.reset();
     this.powerManager.reset();
     this.flightLog.entries = [];
+    this.dialogue.reset();
     this.particles = [];
     this.gameOverTimer = 0;
+    this.mirrorFragments = 0;
+    this.secretEndingTriggered = false;
+    this.secretEnding = null;
     this.state = 'playing';
+    this.levels = getLevels(this.newGamePlus);
+    if (this.newGamePlus) {
+      this.totalFragments = 5;
+    } else {
+      this.totalFragments = 4;
+    }
     this.loadLevel(0);
-    this.flightLog.add('Rebooting systems...', 'system');
+    this.flightLog.add(this.newGamePlus ? 'NG+ initialized. Reality unstable.' : 'Rebooting systems...', 'system');
     this.onStateChange('playing');
+  }
+
+  startNewGamePlus() {
+    this.newGamePlus = true;
+    this.restart();
+    this.flightLog.add('NEW GAME+ activated. Enemies enhanced.', 'system');
   }
 
   stop() { this.running = false; this.input.destroy(); }
 
   loadLevel(index) {
     if (index >= this.levels.length) {
+      // Check if secret ending should play
+      if (this.mirrorFragments >= this.totalFragments && !this.secretEndingTriggered) {
+        this.secretEndingTriggered = true;
+        this.state = 'secret_ending';
+        this.secretEnding = new SecretEnding(this.canvas, () => {
+          this.state = 'victory';
+          this.onStateChange('victory');
+        });
+        this.secretEnding.start();
+        sfx.levelComplete();
+        return;
+      }
       this.state = 'victory';
       this.onStateChange('victory');
       sfx.levelComplete();
@@ -103,7 +141,15 @@ export class Engine {
     this.bossActivated = false;
 
     this.player = new Player(lv.playerSpawn.x, lv.playerSpawn.y);
-    this.enemies = (lv.enemies || []).map(e => createEnemy(e));
+    this.enemies = (lv.enemies || []).map(e => {
+      const enemy = createEnemy(e);
+      if (this.newGamePlus) {
+        enemy.speed *= this.ngPlusMultiplier;
+        enemy.hp = Math.ceil(enemy.hp * 1.3);
+        enemy.maxHp = enemy.hp;
+      }
+      return enemy;
+    });
     this.pickups = (lv.pickups || []).map(p => createPickup(p));
     this.breakables = (lv.breakables || []).map(b =>
       new Breakable(b.x, b.y, b.w, b.h, b.btype, b.smashOnly)
@@ -182,6 +228,14 @@ export class Engine {
       }
     } else if (this.state === 'victory') {
       if (this.input.jump) this.restart();
+      if (this.input.just('KeyN') && !this.newGamePlus) {
+        this.startNewGamePlus();
+      }
+    } else if (this.state === 'secret_ending') {
+      // Secret ending handles its own loop via SecretEnding class
+      if (this.input.jump || this.input.attack) {
+        if (this.secretEnding) this.secretEnding.skip();
+      }
     }
 
     this._render();
@@ -564,17 +618,36 @@ export class Engine {
     if (this.state === 'victory') {
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
       ctx.fillRect(0, 0, W, H);
+
+      const isNG = this.newGamePlus;
       ctx.fillStyle = C.yellow;
       ctx.font = 'bold 56px "Anton", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('DEMO COMPLETE', W / 2, H / 2 - 30);
+      ctx.fillText(isNG ? 'NG+ COMPLETE' : 'JOURNEY COMPLETE', W / 2, H / 2 - 50);
+
       ctx.fillStyle = C.white;
       ctx.font = '22px "Nunito", sans-serif';
-      ctx.fillText(`Final Score: ${this.gameState.score}`, W / 2, H / 2 + 20);
-      ctx.fillText(`Coins: ${this.gameState.coins}`, W / 2, H / 2 + 50);
+      ctx.fillText(`Final Score: ${this.gameState.score}`, W / 2, H / 2);
+      ctx.fillText(`Coins: ${this.gameState.coins}  |  Fragments: ${this.mirrorFragments}/${this.totalFragments}`, W / 2, H / 2 + 30);
+
       ctx.fillStyle = 'rgba(255,255,255,0.6)';
       ctx.font = '16px "Nunito", sans-serif';
-      ctx.fillText('Press SPACE to play again', W / 2, H / 2 + 90);
+      ctx.fillText('Press SPACE to play again', W / 2, H / 2 + 75);
+
+      if (!isNG) {
+        ctx.fillStyle = C.teal;
+        ctx.font = 'bold 16px "Fredoka", sans-serif';
+        ctx.fillText('Press N for NEW GAME+ (harder enemies, relocated fragments, secret level)', W / 2, H / 2 + 105);
+      }
+
+      if (this.mirrorFragments >= this.totalFragments) {
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 18px "Fredoka", sans-serif';
+        const pulse = 0.6 + Math.sin(Date.now() / 300) * 0.4;
+        ctx.globalAlpha = pulse;
+        ctx.fillText('ALL MIRROR FRAGMENTS COLLECTED', W / 2, H / 2 + 140);
+        ctx.globalAlpha = 1;
+      }
     }
   }
 
