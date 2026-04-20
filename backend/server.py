@@ -40,6 +40,27 @@ class LeaderboardEntry(BaseModel):
     level: int
     timestamp: str
 
+# Save/Load game progress
+class GameProgress(BaseModel):
+    player_id: str = "default"
+    levels_completed: List[int] = []
+    mirror_fragments: int = 0
+    total_coins: int = 0
+    total_scrap: int = 0
+    achievements: List[str] = []
+    wrench_skin: str = "standard"
+    high_score: int = 0
+
+class ProgressUpdate(BaseModel):
+    player_id: str = "default"
+    levels_completed: List[int] = []
+    mirror_fragments: int = 0
+    total_coins: int = 0
+    total_scrap: int = 0
+    achievements: List[str] = []
+    wrench_skin: str = "standard"
+    high_score: int = 0
+
 # Routes
 @api_router.get("/")
 async def root():
@@ -70,6 +91,47 @@ async def get_top_scores():
 @api_router.get("/health")
 async def health():
     return {"status": "ok", "game": "Hyper Axel"}
+
+# === Save/Load Progress ===
+@api_router.get("/progress/{player_id}")
+async def get_progress(player_id: str = "default"):
+    doc = await db.progress.find_one({"player_id": player_id}, {"_id": 0})
+    if not doc:
+        return GameProgress(player_id=player_id).model_dump()
+    return doc
+
+@api_router.post("/progress")
+async def save_progress(data: ProgressUpdate):
+    doc = data.model_dump()
+    await db.progress.update_one(
+        {"player_id": data.player_id},
+        {"$set": doc},
+        upsert=True
+    )
+    return {"status": "saved", "player_id": data.player_id}
+
+# === Achievements ===
+ACHIEVEMENTS = [
+    {"id": "first_blood", "name": "First Blood", "desc": "Defeat your first enemy"},
+    {"id": "combo_master", "name": "Combo Master", "desc": "Land a full 3-hit combo"},
+    {"id": "coin_collector", "name": "Coin Collector", "desc": "Collect 50 coins total"},
+    {"id": "scrap_hoarder", "name": "Scrap Hoarder", "desc": "Collect 20 scrap parts"},
+    {"id": "power_user", "name": "Power User", "desc": "Activate all 6 powers"},
+    {"id": "wall_jumper", "name": "Wall Jumper", "desc": "Perform 10 wall jumps"},
+    {"id": "dasher", "name": "Speed Demon", "desc": "Dash 50 times"},
+    {"id": "boss_slayer", "name": "Boss Slayer", "desc": "Defeat the Rootbound Siege Tank"},
+    {"id": "fragment_1", "name": "First Shard", "desc": "Find your first mirror fragment"},
+    {"id": "fragment_all", "name": "Mirror Complete", "desc": "Collect all 4 mirror fragments"},
+    {"id": "no_damage_level", "name": "Untouchable", "desc": "Complete a level without taking damage"},
+    {"id": "speed_run", "name": "Speed Runner", "desc": "Complete level 1 in under 30 seconds"},
+    {"id": "explorer", "name": "Explorer", "desc": "Find a hidden secret area"},
+    {"id": "all_levels", "name": "Journey Complete", "desc": "Complete all 10 levels"},
+    {"id": "high_score", "name": "High Roller", "desc": "Score over 5000 points"},
+]
+
+@api_router.get("/achievements")
+async def get_achievements():
+    return ACHIEVEMENTS
 
 app.include_router(api_router)
 

@@ -8,6 +8,8 @@ import SettingsPanel from '@/components/SettingsPanel';
 import DialogueOverlay from '@/components/DialogueOverlay';
 import TouchControls from '@/components/TouchControls';
 import Workshop from '@/components/Workshop';
+import Achievements from '@/components/Achievements';
+import MirrorGallery from '@/components/MirrorGallery';
 import { sfx } from '@/game/sfx';
 import { music } from '@/game/music';
 
@@ -15,6 +17,7 @@ const BG_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-
 const CHAR_URL = 'https://customer-assets.emergentagent.com/job_agent-platform-73/artifacts/3vnrayz5_download%20%282%29.jpeg';
 const LOGO_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/b9f1e61660d975d35abd57e13d38465e838517983dcb816893171db757fb203e.png';
 const SCRAP_URL = 'https://customer-assets.emergentagent.com/job_agent-platform-73/artifacts/65k5qqhf_file_00000000b57c71fbb0f6cfcc4204d795.png';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const DEFAULT_SETTINGS = {
   sfxVolume: 35,
@@ -30,11 +33,25 @@ function App() {
   const [showControls, setShowControls] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showWorkshop, setShowWorkshop] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
   const [paused, setPaused] = useState(false);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [startLevel, setStartLevel] = useState(0);
   const [isMobile] = useState(() => 'ontouchstart' in window);
+  const [progress, setProgress] = useState({
+    levels_completed: [], mirror_fragments: 0, achievements: [],
+    total_coins: 0, total_scrap: 0, high_score: 0,
+  });
   const engineRef = useRef(null);
+
+  // Load progress on mount
+  React.useEffect(() => {
+    fetch(`${BACKEND_URL}/api/progress/default`)
+      .then(r => r.json())
+      .then(data => setProgress(prev => ({ ...prev, ...data })))
+      .catch(() => {});
+  }, []);
 
   // Apply settings
   const handleSettingsChange = useCallback((newSettings) => {
@@ -161,8 +178,11 @@ function App() {
                 onPlay={startGame}
                 onLevelSelect={startGame}
                 onWorkshop={() => setShowWorkshop(true)}
+                onAchievements={() => setShowAchievements(true)}
+                onGallery={() => setShowGallery(true)}
                 charUrl={CHAR_URL}
                 scrapUrl={SCRAP_URL}
+                progress={progress}
               />
             </div>
           </div>
@@ -199,7 +219,21 @@ function App() {
         <Workshop
           open={showWorkshop}
           onClose={() => setShowWorkshop(false)}
-          scrapParts={0}
+          scrapParts={progress.total_scrap}
+        />
+
+        {/* ===== ACHIEVEMENTS ===== */}
+        <Achievements
+          open={showAchievements}
+          onClose={() => setShowAchievements(false)}
+          unlockedIds={progress.achievements}
+        />
+
+        {/* ===== MIRROR GALLERY ===== */}
+        <MirrorGallery
+          open={showGallery}
+          onClose={() => setShowGallery(false)}
+          fragmentsCollected={progress.mirror_fragments}
         />
 
         {/* ===== SETTINGS MODAL ===== */}

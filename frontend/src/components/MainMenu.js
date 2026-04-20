@@ -21,7 +21,7 @@ const LEVELS = [
   { name: 'Shattered Core', sub: 'Final gauntlet', enemies: 'EVERYTHING' },
 ];
 
-const MainMenu = ({ onPlay, onLevelSelect, onWorkshop, charUrl, scrapUrl }) => {
+const MainMenu = ({ onPlay, onLevelSelect, onWorkshop, onAchievements, onGallery, charUrl, scrapUrl, progress }) => {
   const [tab, setTab] = useState('play');
   const [scores, setScores] = useState([]);
   const [selectedLevel, setSelectedLevel] = useState(0);
@@ -37,8 +37,7 @@ const MainMenu = ({ onPlay, onLevelSelect, onWorkshop, charUrl, scrapUrl }) => {
     { id: 'play', label: 'Play' },
     { id: 'levels', label: 'Levels' },
     { id: 'board', label: 'Scores' },
-    { id: 'powers', label: 'Powers' },
-    { id: 'workshop', label: 'Workshop' },
+    { id: 'more', label: 'More' },
   ];
 
   return (
@@ -136,10 +135,34 @@ const MainMenu = ({ onPlay, onLevelSelect, onWorkshop, charUrl, scrapUrl }) => {
             )}
 
             {/* POWERS TAB */}
+            {tab === 'more' && (
+              <div>
+                <TerminalText>[ Systems & Collections ]</TerminalText>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+                  <GameButton variant="ghost" full onClick={() => setTab('powers')} data-testid="menu-powers-btn">
+                    POWER DATABASE ({Object.keys(POWERS).length} ENTRIES)
+                  </GameButton>
+                  <GameButton variant="ghost" full onClick={onWorkshop} data-testid="open-workshop-btn">
+                    SCRAP'S WORKSHOP
+                  </GameButton>
+                  <GameButton variant="ghost" full onClick={onAchievements} data-testid="menu-achievements-btn">
+                    ACHIEVEMENTS ({progress?.achievements?.length || 0} UNLOCKED)
+                  </GameButton>
+                  <GameButton variant="ghost" full onClick={onGallery} data-testid="menu-gallery-btn">
+                    MIRROR GALLERY ({progress?.mirror_fragments || 0}/4 FRAGMENTS)
+                  </GameButton>
+                </div>
+              </div>
+            )}
+
+            {/* POWERS SUB-TAB */}
             {tab === 'powers' && (
               <div>
-                <TerminalText>[ Power Database — 6 entries catalogued ]</TerminalText>
-                <div className="gui-grid-3" style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <GameButton variant="ghost" size="sm" onClick={() => setTab('more')}>BACK</GameButton>
+                  <TerminalText>[ Power Database — 6 entries ]</TerminalText>
+                </div>
+                <div className="gui-grid-3">
                   {Object.entries(POWERS).map(([id, p]) => (
                     <PowerCard
                       key={id}
@@ -149,27 +172,6 @@ const MainMenu = ({ onPlay, onLevelSelect, onWorkshop, charUrl, scrapUrl }) => {
                       desc={`${p.dur}s duration`}
                     />
                   ))}
-                </div>
-              </div>
-            )}
-
-            {/* WORKSHOP TAB */}
-            {tab === 'workshop' && (
-              <div style={{ textAlign: 'center', padding: 20 }}>
-                <div style={{ fontSize: '2rem', marginBottom: 10 }}>
-                  <svg width="60" height="60" viewBox="0 0 60 60">
-                    <rect x="26" y="10" width="8" height="35" rx="2" fill="#A0A8B0" />
-                    <rect x="18" y="2" width="24" height="14" rx="4" fill="#A0A8B0" />
-                    <rect x="22" y="2" width="6" height="8" rx="1" fill="rgba(0,0,0,0.2)" />
-                    <rect x="32" y="2" width="6" height="8" rx="1" fill="rgba(0,0,0,0.2)" />
-                    <rect x="22" y="42" width="16" height="10" rx="3" fill="#D43A2A" />
-                  </svg>
-                </div>
-                <TerminalText>[ Scrap's Workshop — Wrench Customization Bay ]</TerminalText>
-                <div style={{ marginTop: 16 }}>
-                  <GameButton variant="secondary" onClick={onWorkshop} data-testid="open-workshop-btn">
-                    ENTER WORKSHOP
-                  </GameButton>
                 </div>
               </div>
             )}
