@@ -38,6 +38,7 @@ function App() {
   const [paused, setPaused] = useState(false);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [startLevel, setStartLevel] = useState(0);
+  const [restartKey, setRestartKey] = useState(0);
   const [isMobile] = useState(() => 'ontouchstart' in window);
   const [progress, setProgress] = useState({
     levels_completed: [], mirror_fragments: 0, achievements: [],
@@ -98,23 +99,27 @@ function App() {
 
   const handleRestart = () => {
     setPaused(false);
-    setScreen('restart');
-    setTimeout(() => {
-      setScreen('playing');
-    }, 50);
     sfx.uiClick();
+    // Force-remount GameCanvas via key bump to fully reinit engine
+    setRestartKey(k => k + 1);
   };
 
-  // Global ESC handler for pause
+  // Global ESC handler: close overlays first, then pause game
   React.useEffect(() => {
     const handleKey = (e) => {
-      if (e.code === 'Escape' && screen === 'playing') {
+      if (e.code !== 'Escape') return;
+      if (showControls) { setShowControls(false); return; }
+      if (showSettings) { setShowSettings(false); return; }
+      if (showWorkshop) { setShowWorkshop(false); return; }
+      if (showAchievements) { setShowAchievements(false); return; }
+      if (showGallery) { setShowGallery(false); return; }
+      if (screen === 'playing') {
         handlePause();
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [screen, handlePause]);
+  }, [screen, handlePause, showControls, showSettings, showWorkshop, showAchievements, showGallery]);
 
   return (
     <div className="app-root" data-testid="app-root">
@@ -192,6 +197,7 @@ function App() {
         {(screen === 'playing') && (
           <div className="game-screen" data-testid="game-screen">
             <GameCanvas
+              key={restartKey}
               onStateChange={handleGameState}
               startLevel={startLevel}
               paused={paused}

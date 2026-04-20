@@ -83,6 +83,26 @@ class EnemyBase {
       }
     } else if (this.state === 'chase') {
       const toPlayer = px > this.x ? 1 : -1;
+      // Ledge check while chasing — don't run off ledges
+      if (this.grounded) {
+        const checkX = this.x + toPlayer * (this.w / 2 + 8);
+        const checkY = this.y + 10;
+        let hasFloor = false;
+        for (const p of engine.platforms) {
+          if (checkX >= p.x && checkX <= p.x + p.w && checkY >= p.y && checkY <= p.y + p.h + 10) {
+            hasFloor = true;
+            break;
+          }
+        }
+        if (!hasFloor) {
+          // Stop at ledge instead of falling
+          this.vx = 0;
+          this.dir = -toPlayer;
+          this.state = 'patrol';
+          this.originX = this.x;
+          return;
+        }
+      }
       this.dir = toPlayer;
       this.vx = toPlayer * this.speed * 1.3;
       if (dist > 300) this.state = 'patrol';
@@ -93,7 +113,9 @@ class EnemyBase {
     this.grounded = false;
     for (const p of engine.platforms) {
       if (this.right <= p.x || this.left >= p.x + p.w) continue;
-      if (this.bottom > p.y && this.bottom < p.y + p.h + 10 && this.vy >= 0) {
+      // Only land if the enemy's feet were above the platform top in the previous frame
+      // (prev bottom) or within a small tolerance — avoids snapping onto platform sides
+      if (this.vy >= 0 && this.bottom > p.y && this.bottom <= p.y + 8) {
         this.y = p.y;
         this.vy = 0;
         this.grounded = true;
@@ -207,12 +229,44 @@ export class GearBug extends EnemyBase {
 }
 
 export class FlickerEnemy extends EnemyBase {
-  constructor(x, y) { super(x, y, 'flicker'); }
+  constructor(x, y) {
+    super(x, y, 'flicker');
+    this.baseY = y;
+  }
   _getColor() { return C.flBody; }
+  // Flicker floats — override update to skip gravity and stay airborne
+  update(dt, engine) {
+    if (!this.alive) {
+      this.deathTimer -= dt;
+      return;
+    }
+    this.animT += dt;
+    if (this.hurtTimer > 0) { this.hurtTimer -= dt; return; }
+    if (this.flashTimer > 0) this.flashTimer -= dt;
+
+    this._ai(dt, engine);
+    // Bob vertically around baseY; no gravity
+    const targetY = this.baseY + Math.sin(this.animT * 2.2) * 14;
+    this.y += (targetY - this.y) * Math.min(1, dt * 6);
+    this.vy = 0;
+    this.x += this.vx * dt;
+  }
   _ai(dt, engine) {
-    // Flicker floats and bobs, less aggressive patrol
-    this.vy = Math.sin(this.animT * 3) * 30 - GRAVITY * dt;
-    super._ai(dt, engine);
+    // Horizontal patrol/chase only (gravity-free)
+    const px = engine.player.x;
+    const dist = Math.abs(px - this.x);
+    if (this.state === 'patrol') {
+      this.vx = this.dir * this.speed;
+      if (Math.abs(this.x - this.originX) > this.patrol) this.dir *= -1;
+      if (dist < 220) this.state = 'chase';
+    } else {
+      const toPlayer = px > this.x ? 1 : -1;
+      this.dir = toPlayer;
+      this.vx = toPlayer * this.speed * 1.2;
+      // Slow vertical drift toward player too
+      this.baseY += ((engine.player.cy) - this.baseY) * Math.min(1, dt * 0.5);
+      if (dist > 320) this.state = 'patrol';
+    }
   }
   _draw(ctx) {
     const x = Math.round(this.x), y = Math.round(this.y);

@@ -1,9 +1,9 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { Engine } from '../game/engine';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
-const GameCanvas = ({ onStateChange }) => {
+const GameCanvas = forwardRef(({ onStateChange, startLevel = 0, paused = false, settings }, ref) => {
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
 
@@ -11,15 +11,28 @@ const GameCanvas = ({ onStateChange }) => {
     if (onStateChange) onStateChange(state);
   }, [onStateChange]);
 
+  // Expose engine instance to parent
+  useImperativeHandle(ref, () => ({
+    get engine() { return engineRef.current; },
+    get camera() { return engineRef.current?.camera; },
+  }), []);
+
+  // Initialize engine ONCE
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const engine = new Engine(canvas, handleStateChange);
     engineRef.current = engine;
-    engine.start();
 
-    // Save score on game over
+    // Apply initial settings before start
+    if (settings) {
+      engine.camera.shakeEnabled = settings.screenShake !== false;
+    }
+
+    engine.start(startLevel);
+
+    // Save score on game over / victory
     const origOnState = engine.onStateChange;
     engine.onStateChange = (state) => {
       origOnState(state);
@@ -38,7 +51,23 @@ const GameCanvas = ({ onStateChange }) => {
       engine.stop();
       engineRef.current = null;
     };
-  }, [handleStateChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Propagate pause to engine
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.paused = paused;
+    }
+  }, [paused]);
+
+  // Propagate settings changes to engine
+  useEffect(() => {
+    if (engineRef.current && settings) {
+      engineRef.current.camera.shakeEnabled = settings.screenShake !== false;
+      engineRef.current.showFpsOverlay = !!settings.showFps;
+    }
+  }, [settings]);
 
   return (
     <canvas
@@ -52,6 +81,8 @@ const GameCanvas = ({ onStateChange }) => {
       }}
     />
   );
-};
+});
+
+GameCanvas.displayName = 'GameCanvas';
 
 export default GameCanvas;

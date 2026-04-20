@@ -19,6 +19,26 @@ export class Engine {
     canvas.width = W;
     canvas.height = H;
     this.onStateChange = onStateChange || (() => {});
+    this.paused = false;
+
+    // roundRect polyfill for older Safari/Firefox
+    if (typeof CanvasRenderingContext2D !== 'undefined' &&
+        typeof CanvasRenderingContext2D.prototype.roundRect !== 'function') {
+      CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+        if (typeof r === 'number') r = [r, r, r, r];
+        else if (!Array.isArray(r)) r = [0, 0, 0, 0];
+        this.moveTo(x + r[0], y);
+        this.lineTo(x + w - r[1], y);
+        this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+        this.lineTo(x + w, y + h - r[2]);
+        this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+        this.lineTo(x + r[3], y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+        this.lineTo(x, y + r[0]);
+        this.quadraticCurveTo(x, y, x + r[0], y);
+        return this;
+      };
+    }
 
     this.input = new Input();
     this.camera = new Camera(W, H);
@@ -68,7 +88,7 @@ export class Engine {
     this.running = false;
   }
 
-  start() {
+  start(startLevel = 0) {
     this.gameState.reset();
     this.powerManager.reset();
     this.flightLog.entries = [];
@@ -77,7 +97,7 @@ export class Engine {
     this.secretEndingTriggered = false;
     this.levels = getLevels(this.newGamePlus);
     this.totalFragments = this.newGamePlus ? 5 : 4;
-    this.loadLevel(0);
+    this.loadLevel(Math.max(0, Math.min(startLevel, this.levels.length - 1)));
     this.running = true;
     this.lastTime = performance.now();
     this.flightLog.add('System boot. Scanning sector...', 'system');
@@ -195,6 +215,15 @@ export class Engine {
     this.lastTime = now;
     if (dt > 0.05) dt = 0.05;
 
+    // When paused, skip updates but keep rendering and schedule next frame
+    if (this.paused) {
+      this._render();
+      // Reset lastTime so pause duration doesn't leak into dt on resume
+      this.lastTime = performance.now();
+      requestAnimationFrame(this._loop);
+      return;
+    }
+
     if (this.hitStopTimer > 0) {
       this.hitStopTimer -= dt;
       this.input.update();
@@ -213,6 +242,7 @@ export class Engine {
           this.dialogue.advance();
         }
         this._render();
+        requestAnimationFrame(this._loop);
         return;
       }
       this._update(dt);
@@ -227,9 +257,10 @@ export class Engine {
         this.restart();
       }
     } else if (this.state === 'victory') {
-      if (this.input.jump) this.restart();
       if (this.input.just('KeyN') && !this.newGamePlus) {
         this.startNewGamePlus();
+      } else if (this.input.jump) {
+        this.restart();
       }
     } else if (this.state === 'secret_ending') {
       // Secret ending handles its own loop via SecretEnding class

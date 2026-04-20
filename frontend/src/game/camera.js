@@ -5,6 +5,7 @@ export class Camera {
     this.smooth = 8;
     this.lim = { l: -9999, t: -9999, r: 9999, b: 9999 };
     this.sk = { x: 0, y: 0, int: 0, dur: 0 };
+    this.shakeEnabled = true;
   }
 
   setLimits(l, t, r, b) { this.lim = { l, t, r, b }; }
@@ -18,7 +19,11 @@ export class Camera {
     this.y = Math.max(this.lim.t, Math.min(this.y, this.lim.b - this.vh));
   }
 
-  shake(intensity, dur) { this.sk.int = intensity; this.sk.dur = dur; }
+  shake(intensity, dur) {
+    if (!this.shakeEnabled) return;
+    this.sk.int = intensity;
+    this.sk.dur = dur;
+  }
 
   updateShake(dt) {
     if (this.sk.dur > 0) {
