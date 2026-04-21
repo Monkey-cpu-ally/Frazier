@@ -1,0 +1,73 @@
+name: Deploy HTML5 React Game (GitHub Pages)
+
+# Deploys the React/Canvas version of Hyper Axel to GitHub Pages
+# (alternative to the Godot web export — runs on a different Pages path).
+# Note: the backend (FastAPI/MongoDB) is NOT hosted here — leaderboard,
+# progress save, daily challenge, and speedrun leaderboard will gracefully
+# fall back to local-only mode when REACT_APP_BACKEND_URL is unset.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-html5.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-html5
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build
+        env:
+          # Leave blank for GitHub Pages deployment — the app falls back to
+          # localStorage for progress. Set this in repo secrets if you deploy
+          # a backend separately (e.g. Railway, Render).
+          REACT_APP_BACKEND_URL: ${{ secrets.REACT_APP_BACKEND_URL }}
+          PUBLIC_URL: /${{ github.event.repository.name }}
+        run: yarn build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
