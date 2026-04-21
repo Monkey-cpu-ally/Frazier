@@ -93,3 +93,35 @@ Tiers must be purchased in order. Progress persists to backend via `POST /api/pr
 
 Backend: `GameProgress` / `ProgressUpdate` pydantic models extended with two new int fields. Curl-verified save/load round-trip.
 
+
+## Iteration 8 — "All" Feature Bundle (Feb 20, 2026)
+
+User said "All" to a plan bundling 4 features. All landed green via testing agent (iteration_8.json, 100% backend pytest + frontend flows).
+
+### 1. Achievement Unlock System
+- `AchievementTracker` in `systems.js` — manages 15 achievement IDs + per-run counters (kills, wall-jumps, dashes, combo-3s, powers used, damage taken, level-1 timer).
+- Hooks fire from: `player.js` (wall-jump, dash, combo-3, damaged), `enemies.js` (enemy killed), `pickups.js` (power activated), `engine.js` (boss defeated, level completed, mirror fragment, coin/scrap threshold sync).
+- Sonner toast pops top-right with gold border when an achievement unlocks. Duplicate unlocks suppressed via seeded `unlockedAchievements` from persisted progress.
+- Persisted to backend via POST /api/progress.
+
+### 2. Speedrun Timer Mode
+- Toggle on Play tab of Main Menu (`menu-speedrun-toggle`).
+- In-game HUD renders a yellow MM:SS.cc timer box top-right when `engine.speedrunMode` is true.
+- Freezes on victory; `runFinalMs` + `level1TimeMs` persisted to `best_run_time_ms` / `best_l1_time_ms`.
+- Best times displayed on Main Menu when present.
+
+### 3. Wrench Skin Persistence
+- Workshop SKINS tab shows 8 skins; equipped shows yellow EQUIP badge + EQUIPPED label.
+- Owned-but-not-equipped shows EQUIP button; locked shows UNLOCK (cost) button (disabled if insufficient scrap).
+- Scrap spent on unlock deducts from `progress.total_scrap`.
+- `wrench_skin` + `unlocked_skins` persisted to backend. Engine maps equipped skin id → player.skinColor for in-game wrench color.
+
+### 4. Claymation Enemy Sprites
+- 3 of 4 enemy types now render as Gemini Nano Banana PNG sprites (root_crawler, gear_bug, heavy) at `/enemies/*.png`.
+- Generator script at `/app/backend/scripts/generate_enemy_art.py` (one-shot, reusable).
+- Flicker still procedural (blink alpha animation tied tightly to code; budget also exhausted on 4th image).
+- `ENEMY_SPRITES` preload + `_drawSprite` fallback method in `enemies.js` render().
+
+### Backend schema extended
+`GameProgress` + `ProgressUpdate`: new fields `unlocked_skins: List[str] = ["standard"]`, `best_run_time_ms: int = 0`, `best_l1_time_ms: int = 0`. Pytest 8/8 in `/app/backend/tests/test_progress_iter8.py`.
+

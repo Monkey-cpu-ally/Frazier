@@ -141,7 +141,7 @@ const Workshop = ({
         />
 
         <div style={{ display: 'flex', gap: 10, padding: '12px 24px 0' }}>
-          <TabBtn id="skins" label="WRENCHES" />
+          <TabBtn id="skins" label="SKINS" />
           <TabBtn id="upgrades" label="ASSIST UPGRADES" />
         </div>
 
