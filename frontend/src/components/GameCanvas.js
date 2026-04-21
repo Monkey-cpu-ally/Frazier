@@ -20,6 +20,7 @@ const GameCanvas = forwardRef(({
   assistDamageLevel = 0, assistStabilizerLevel = 0,
   equippedSkin = 'standard',
   speedrunMode = false,
+  dailyMode = false, dailyModifier = null,
   persistentTotalCoins = 0, persistentTotalScrap = 0,
   unlockedAchievements = [],
 }, ref) => {
@@ -47,6 +48,8 @@ const GameCanvas = forwardRef(({
       engine.camera.shakeEnabled = settings.screenShake !== false;
     }
     engine.speedrunMode = !!speedrunMode;
+    engine.dailyMode = !!dailyMode;
+    engine.dailyModifier = dailyModifier;
     engine.equippedSkin = equippedSkin;
     engine.persistentTotalCoins = persistentTotalCoins;
     engine.persistentTotalScrap = persistentTotalScrap;
@@ -120,6 +123,13 @@ const GameCanvas = forwardRef(({
     if (!engineRef.current) return;
     engineRef.current.speedrunMode = !!speedrunMode;
   }, [speedrunMode]);
+
+  // Propagate daily mode / modifier
+  useEffect(() => {
+    if (!engineRef.current) return;
+    engineRef.current.dailyMode = !!dailyMode;
+    engineRef.current.dailyModifier = dailyModifier;
+  }, [dailyMode, dailyModifier]);
 
   return (
     <canvas

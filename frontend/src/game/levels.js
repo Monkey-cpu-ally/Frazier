@@ -40,6 +40,10 @@ export function getLevels(newGamePlus = false) {
       ],
       breakables: [],
       message: 'WASD move | SPACE jump | X/J attack',
+      hintTriggers: [
+        { x: 180, y: 200, w: 120, h: 100, text: 'Press X near the crawler!', color: '#FFD68F' },
+        { x: 500, y: 200, w: 120, h: 100, text: 'Grab scrap to power assists [Q]', color: '#7FE08A' },
+      ],
     },
 
     // Level 1: Climbing (based on Room2.tscn)
@@ -81,6 +85,10 @@ export function getLevels(newGamePlus = false) {
         { type: 'scrap', x: 1160, y: 116 },
       ],
       breakables: [],
+      hintTriggers: [
+        { x: -500, y: 200, w: 100, h: 120, text: 'Hold A/D against walls in air → wall-slide', color: '#88DDFF' },
+        { x: 780, y: 180, w: 120, h: 80, text: 'SHIFT to dash through gaps', color: '#FFD447' },
+      ],
     },
 
     // Level 2: Secret Room (based on Room3.tscn)
@@ -120,6 +128,10 @@ export function getLevels(newGamePlus = false) {
         { x: 36, y: 280, w: 88, h: 18, btype: 'floor', smashOnly: true },
       ],
       hint: 'Hint: Use downward smash (DOWN+X in air) on cracked floors!',
+      hintTriggers: [
+        { x: -120, y: 220, w: 200, h: 80, text: 'Cracked floor below → DOWN + X to smash', color: '#FF9F43' },
+        { x: 0, y: 500, w: 280, h: 80, text: 'A hidden fragment glimmers somewhere…', color: '#AADDFF' },
+      ],
     },
 
     // Level 3: Power Room (based on Room4.tscn)
@@ -153,6 +165,10 @@ export function getLevels(newGamePlus = false) {
         { x: 90, y: 190, w: 40, h: 120, btype: 'wall', smashOnly: false },
       ],
       hint: 'Grab the Burning Buffalo power to smash through walls!',
+      hintTriggers: [
+        { x: -550, y: 220, w: 120, h: 80, text: 'Orb grants Burning Buffalo — K to charge!', color: '#FF5533' },
+        { x: 60, y: 200, w: 100, h: 120, text: 'Wall ahead — use the charge!', color: '#FFD447' },
+      ],
     },
 
     // Level 4: Boss Arena (based on Room5.tscn + BossRoom.tscn)
@@ -196,6 +212,10 @@ export function getLevels(newGamePlus = false) {
       },
       message: 'Rootbound Siege Tank ahead! Grab Golden Gloves!',
       dialogueId: 'boss_enter',
+      hintTriggers: [
+        { x: -250, y: 200, w: 120, h: 120, text: 'Boss incoming — watch its weak-spot glow', color: '#FF5A5A' },
+        { x: 200, y: 200, w: 240, h: 140, text: 'Only strike when it glows VULNERABLE', color: '#FFFF44' },
+      ],
     },
 
     // === NEW LEVELS 5-9 ===
@@ -402,6 +422,10 @@ export function getLevels(newGamePlus = false) {
       ],
       mirrorFragment: { x: 740, y: 500 },
       hint: 'A strange energy resonates here... mirror fragments nearby.',
+      hintTriggers: [
+        { x: 1060, y: 220, w: 100, h: 80, text: 'Press E near the Fox Statue to heal', color: '#88CCFF' },
+        { x: 680, y: 240, w: 120, h: 60, text: 'Smash the cracked floor — fragment below!', color: '#AADDFF' },
+      ],
     },
 
     // Level 9: Shattered Core (final level — all enemy types, leads to ending)

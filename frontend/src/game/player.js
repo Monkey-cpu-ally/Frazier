@@ -183,8 +183,9 @@ export class Player {
       if (engine.achievements) engine.achievements.onWallJump();
     }
 
-    // Dash
-    if (inp.dash && this.canDash && this.dashCooldownT <= 0) {
+    // Dash (daily modifier may disable)
+    const dashBlocked = engine.dailyMode && engine.dailyModifier && engine.dailyModifier.no_dash;
+    if (inp.dash && this.canDash && this.dashCooldownT <= 0 && !dashBlocked) {
       this.isDashing = true;
       this.canDash = false;
       this.dashTimer = PL.dashTime;
@@ -347,6 +348,10 @@ export class Player {
 
   takeDamage(dmg, fromX, engine) {
     if (this.invTimer > 0 || engine.powerManager.isSpecterMode || this.isDashing) return;
+    // Daily modifier: dmg_taken_mul
+    if (engine.dailyMode && engine.dailyModifier && engine.dailyModifier.dmg_taken_mul) {
+      dmg = Math.max(1, Math.ceil(dmg * engine.dailyModifier.dmg_taken_mul));
+    }
     this.knockDir = fromX < this.x ? 1 : -1;
     this.knockTimer = PL.knockDur;
     this.invTimer = PL.invTime;

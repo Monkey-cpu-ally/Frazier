@@ -40,6 +40,25 @@ export class HUD {
       ctx.fillText(engine.currentLevel.name || '', W - 20, 76);
     }
 
+    // Daily challenge modifier indicator (below top bar, left)
+    if (engine.dailyMode && engine.dailyModifier) {
+      const m = engine.dailyModifier;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.beginPath();
+      ctx.roundRect(20, 76, 220, 28, 8);
+      ctx.fill();
+      ctx.strokeStyle = '#FF9F43';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#FF9F43';
+      ctx.font = 'bold 10px "Nunito", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('DAILY CHALLENGE', 30, 89);
+      ctx.fillStyle = '#FFF';
+      ctx.font = 'bold 11px "Fredoka", sans-serif';
+      ctx.fillText(m.name.toUpperCase(), 30, 101);
+    }
+
     // Speedrun timer (top-right, below level name)
     if (engine.speedrunMode) {
       const ms = engine.runFinalMs ?? engine.runTimerMs;

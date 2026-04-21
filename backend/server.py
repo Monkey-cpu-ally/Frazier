@@ -143,6 +143,81 @@ ACHIEVEMENTS = [
 async def get_achievements():
     return ACHIEVEMENTS
 
+# === Speedrun Leaderboard ===
+class SpeedrunEntry(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    player_name: str = "Anonymous"
+    total_ms: int
+    l1_ms: int = 0
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class SpeedrunSubmit(BaseModel):
+    player_name: str = "Anonymous"
+    total_ms: int
+    l1_ms: int = 0
+
+@api_router.post("/leaderboard/speedrun")
+async def submit_speedrun(data: SpeedrunSubmit):
+    if data.total_ms <= 0:
+        return {"status": "invalid"}
+    entry = SpeedrunEntry(**data.model_dump())
+    await db.speedrun_leaderboard.insert_one(entry.model_dump())
+    return {"status": "submitted", "id": entry.id}
+
+@api_router.get("/leaderboard/speedrun")
+async def get_speedrun_leaderboard(limit: int = 10):
+    cursor = db.speedrun_leaderboard.find({}, {"_id": 0}).sort("total_ms", 1).limit(limit)
+    return [doc async for doc in cursor]
+
+# === Daily Challenge ===
+# Seeded by date — deterministic per day. Returns a modifier + identifier.
+DAILY_MODIFIERS = [
+    {"id": "glass_cannon",  "name": "Glass Cannon",  "desc": "2x damage dealt, 2x damage taken", "dmg_mul": 2.0, "dmg_taken_mul": 2.0, "no_heal": False, "scrap_mul": 1.0},
+    {"id": "no_heal",       "name": "No Mercy",      "desc": "No healing pickups work today",    "dmg_mul": 1.0, "dmg_taken_mul": 1.0, "no_heal": True,  "scrap_mul": 1.0},
+    {"id": "scrap_famine",  "name": "Scrap Famine",  "desc": "Half scrap from enemies & pickups", "dmg_mul": 1.0, "dmg_taken_mul": 1.0, "no_heal": False, "scrap_mul": 0.5},
+    {"id": "mirror_mania",  "name": "Mirror Mania",  "desc": "Enemies move 40% faster",            "dmg_mul": 1.0, "dmg_taken_mul": 1.0, "no_heal": False, "scrap_mul": 1.0, "enemy_speed_mul": 1.4},
+    {"id": "iron_fist",     "name": "Iron Fist",     "desc": "No dashing allowed",                 "dmg_mul": 1.0, "dmg_taken_mul": 1.0, "no_heal": False, "scrap_mul": 1.0, "no_dash": True},
+    {"id": "golden_hour",   "name": "Golden Hour",   "desc": "1.5x coins & score, but timer runs 1.5x",  "dmg_mul": 1.0, "dmg_taken_mul": 1.0, "no_heal": False, "scrap_mul": 1.0, "coin_mul": 1.5, "score_mul": 1.5},
+]
+
+@api_router.get("/daily-challenge")
+async def get_daily_challenge():
+    # Deterministic seed from today's UTC date
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    # Simple hash → mod index
+    seed = sum(ord(c) for c in today)
+    modifier = DAILY_MODIFIERS[seed % len(DAILY_MODIFIERS)]
+    return {"date": today, "modifier": modifier, "seed": seed}
+
+class DailyCompleteSubmit(BaseModel):
+    player_id: str = "default"
+    date: str  # "YYYY-MM-DD"
+    total_ms: int
+
+@api_router.post("/daily-challenge/complete")
+async def complete_daily(data: DailyCompleteSubmit):
+    key = f"{data.player_id}:{data.date}"
+    await db.daily_completions.update_one(
+        {"key": key},
+        {"$set": {
+            "key": key,
+            "player_id": data.player_id,
+            "date": data.date,
+            "total_ms": data.total_ms,
+            "ts": datetime.now(timezone.utc),
+        }},
+        upsert=True,
+    )
+    return {"status": "recorded"}
+
+@api_router.get("/daily-challenge/completed/{player_id}")
+async def get_completed_daily(player_id: str):
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    key = f"{player_id}:{today}"
+    doc = await db.daily_completions.find_one({"key": key}, {"_id": 0})
+    return {"completed": bool(doc), "record": doc}
+
 app.include_router(api_router)
 
 app.add_middleware(

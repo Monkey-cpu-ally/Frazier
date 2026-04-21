@@ -32,7 +32,11 @@ export class CoinPickup extends PickupBase {
 
   collect(engine) {
     super.collect(engine);
-    engine.gameState.addCoin();
+    const coinMul = engine.dailyMode && engine.dailyModifier ? (engine.dailyModifier.coin_mul || 1) : 1;
+    const amount = Math.max(1, Math.round(coinMul));
+    for (let i = 0; i < amount; i++) engine.gameState.addCoin();
+    const scoreMul = engine.dailyMode && engine.dailyModifier ? (engine.dailyModifier.score_mul || 1) : 1;
+    if (scoreMul > 1) engine.gameState.addScore(Math.floor(10 * (scoreMul - 1)));
     sfx.coinPickup();
   }
 
@@ -58,7 +62,15 @@ export class ScrapPickup extends PickupBase {
 
   collect(engine) {
     super.collect(engine);
-    engine.gameState.addScrap();
+    const mul = engine.dailyMode && engine.dailyModifier ? (engine.dailyModifier.scrap_mul || 1) : 1;
+    if (mul >= 1) {
+      const n = Math.max(1, Math.round(mul));
+      for (let i = 0; i < n; i++) engine.gameState.addScrap();
+    } else {
+      // Scrap Famine: 50% chance to skip, otherwise add 1
+      if (Math.random() < mul) engine.gameState.addScrap();
+      else engine.gameState.showPickup('Scrap Famine — nothing here');
+    }
     sfx.scrapPickup();
   }
 
@@ -78,6 +90,13 @@ export class FoodPickup extends PickupBase {
   constructor(x, y) { super(x, y, 'food'); }
 
   collect(engine) {
+    // Daily modifier: no_heal blocks food/heals entirely
+    if (engine.dailyMode && engine.dailyModifier && engine.dailyModifier.no_heal) {
+      // Still mark collected so it disappears, but show banner
+      this.collected = true;
+      engine.gameState.showPickup('No Mercy — healing disabled today');
+      return;
+    }
     super.collect(engine);
     engine.gameState.addFood();
     sfx.foodPickup();
@@ -249,6 +268,11 @@ export class FoxStatuePickup extends PickupBase {
   // Override — Fox Statue only activates on E interact, not contact
   collect(engine) {
     if (this.used) return;
+    // Daily modifier: no_heal disables fox statue
+    if (engine.dailyMode && engine.dailyModifier && engine.dailyModifier.no_heal) {
+      engine.gameState.showPickup('Fox Statue is silent today');
+      return;
+    }
     this.used = true;
     this.collected = true;
     engine.gameState.healSticker();

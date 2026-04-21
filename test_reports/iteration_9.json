@@ -1,0 +1,47 @@
+{
+  "summary": "Iteration 9 testing complete. Backend: 10/10 pytest passing for new endpoints (GET /api/daily-challenge deterministic; POST/GET /api/daily-challenge/complete + completed/{player_id} with idempotent upsert; POST/GET /api/leaderboard/speedrun with ASC sort + invalid total_ms=0 rejection + limit cap). Plus iter8 regression 8/8 still green. Frontend: Daily Challenge card (data-testid=daily-challenge-card) renders on Play tab with today's modifier 'Golden Hour' (1.5x coins & score, but timer runs 1.5x) and PLAY CHALLENGE button (data-testid=play-daily-btn). Clicking it starts mission with orange 'DAILY CHALLENGE / GOLDEN HOUR' banner top-left and yellow speedrun timer top-right (auto-enabled). Scores tab now renders BOTH '[ Top Scores ]' and '[ Speedrun Leaderboard ]' (data-testid=speedrun-leaderboard) with rows sorted ASC by total_ms (#1 TEST_2d764e_FAST 00:10.00, #2 Axel 02:00.00). Regular START MISSION (data-testid=menu-start-btn) shows NO daily banner and NO timer when speedrun is off — regression intact. Zero JS console errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Backend pytest 10/10 (test_iter9_daily_speedrun.py): health, daily shape, daily deterministic same-day, daily completion roundtrip, daily completion idempotent upsert (latest wins), speedrun submit + ASC sort + names persisted + _id excluded, speedrun rejects total_ms=0, speedrun limit cap, progress default with iter8 fields, scores submit",
+    "Backend pytest iter8 regression 8/8 still green",
+    "GET /api/daily-challenge returns Golden Hour for today (date 2026-04-21, seed 491, 491%6=5 -> golden_hour) — matches request",
+    "Main Menu Play tab renders daily-challenge-card with 'Golden Hour', desc and PLAY CHALLENGE button",
+    "Clicking PLAY CHALLENGE starts level 0 with orange 'DAILY CHALLENGE / GOLDEN HOUR' banner top-left and SPEEDRUN MM:SS.cc timer top-right (engine.dailyMode=true, dailyModifier set, speedrunMode auto-on)",
+    "Main Menu Scores tab renders Top Scores + new Speedrun Leaderboard section with rank/name/MM:SS.cc, ASC sorted",
+    "Regular START MISSION (menu-start-btn) starts level WITHOUT daily banner and WITHOUT speedrun timer — regression OK",
+    "ESC pause still works, WASD movement still works, level 0 'Overgrown Outskirts' loads with claymation root_crawler sprites visible",
+    "Zero JS console errors / page errors across both flows (only benign AudioContext autoplay warnings before user gesture)"
+  ],
+  "critical_code_review_comments": [
+    "server.py: Daily seed is sum(ord(c) for c in 'YYYY-MM-DD') — adjacent days can collide to the same modifier (e.g. 2026-04-21 and 2026-04-12 share digits and may map close). Acceptable for MVP since it's deterministic per-day, but not perfectly distributed; consider hashlib for better distribution if needed.",
+    "server.py POST /leaderboard/speedrun returns {status:'invalid'} with HTTP 200 for total_ms<=0 instead of 400. Frontend treats this fine but a 400 would be more correct REST semantics.",
+    "server.py /daily-challenge/completed/{player_id} record DOES include 'ts' field as datetime — Mongo driver returns it serializable but client code should be aware. _id is correctly excluded via projection.",
+    "App.js handleRunComplete posts BOTH speedrun submission and daily completion when dailyMode+speedrunMode are true; correct. dailyMode auto-triggers speedrunMode in handlePlayDaily — verified via UI (yellow timer appeared without manual toggle).",
+    "MainMenu fetches /api/daily-challenge/completed/default on mount — uses hardcoded 'default' player_id. If localStorage hyperaxel_player_name differs, daily-completed status may be inconsistent across sessions. Minor."
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_iter9_daily_speedrun.py",
+    "/app/test_reports/pytest/iter9_results.xml",
+    "/app/backend/tests/test_progress_iter8.py"
+  ],
+  "action_items": [
+    "Optional: improve daily seed distribution (use hashlib.md5(date).digest() instead of sum(ord)) for even modifier rotation across days.",
+    "Optional: return HTTP 400 (not 200) from POST /leaderboard/speedrun when total_ms<=0.",
+    "Optional manual playthrough: confirm hint-trigger banners ('Press X near the crawler!' at ~x=420 on Level 0) actually pop on screen — code path in engine.js _update is wired to gameState.showPickup, but visual confirmation in canvas could not be asserted from DOM in automated test.",
+    "Optional: complete a daily run end-to-end manually to verify (a) green border + 'CLEARED TODAY' badge + 'REPLAY CHALLENGE' button on the daily card, (b) /api/daily-challenge/complete is POSTed, (c) speedrun leaderboard auto-submission on victory with player_name from localStorage."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter9_daily_speedrun.py (new)"
+  ],
+  "success_rate": {"backend": "100% (10/10 iter9 + 8/8 iter8 regression)", "frontend": "100% on automated checks (daily card, banner, timer, leaderboard, regression-no-banner); hint banner + victory completion not confirmed visually"},
+  "seed_data_creation": "Backend tests create TEST_-prefixed records in db.daily_completions (TEST_daily_*, TEST_daily_idem_*) and db.speedrun_leaderboard (TEST_*, TEST_*_FAST, TEST_zero) and db.progress (TEST_iter9_*). Safe — does not affect 'default' player or production scores.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iter 9 adds: (1) /api/daily-challenge GET deterministic-by-UTC-date, /api/daily-challenge/complete POST, /api/daily-challenge/completed/{pid} GET. (2) /api/leaderboard/speedrun POST/GET. (3) MainMenu Play-tab daily-challenge-card + play-daily-btn; Scores-tab speedrun-leaderboard. (4) In-game orange DAILY CHALLENGE banner (hud.js) when engine.dailyMode+dailyModifier set. (5) Hint triggers loaded into engine.hintTriggers for L0/1/2/3/4/8 with AABB-once-fire. Today's modifier is golden_hour (Golden Hour). play-daily-btn auto-enables speedrunMode (so yellow timer always appears with daily). Regular menu-start-btn keeps dailyMode=false. Test files: /app/backend/tests/test_iter9_daily_speedrun.py (10 tests) and existing /app/backend/tests/test_progress_iter8.py (8 tests, iter8 regression). Run with: pytest /app/backend/tests/ -v.",
+  "rca of the issue": "No bugs found requiring RCA in this iteration."
+}

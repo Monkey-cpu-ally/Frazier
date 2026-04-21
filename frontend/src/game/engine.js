@@ -58,6 +58,9 @@ export class Engine {
     this.runFinalMs = null;
     this.levelsCompleted = 0;
     this.equippedSkin = 'standard';
+    // Daily challenge modifier (applied when speedrunMode + dailyMode are both on)
+    this.dailyModifier = null;
+    this.dailyMode = false;
 
     // Preload background image
     this.bgImage = new Image();
@@ -207,6 +210,11 @@ export class Engine {
         enemy.hp = Math.ceil(enemy.hp * 1.3);
         enemy.maxHp = enemy.hp;
       }
+      // Daily Challenge: enemy speed buff
+      if (this.dailyMode && this.dailyModifier) {
+        const mul = this.dailyModifier.enemy_speed_mul;
+        if (mul) enemy.speed *= mul;
+      }
       return enemy;
     });
     this.pickups = (lv.pickups || []).map(p => createPickup(p));
@@ -214,6 +222,12 @@ export class Engine {
       new Breakable(b.x, b.y, b.w, b.h, b.btype, b.smashOnly)
     );
     this.assists = [];
+    // Hint prompt triggers — fire once when Axel walks into the area
+    this.hintTriggers = (lv.hintTriggers || []).map(h => ({
+      x: h.x, y: h.y, w: h.w || 80, h: h.h || 120,
+      text: h.text, color: h.color || '#FFD68F',
+      triggered: false,
+    }));
 
     // Boss setup
     if (lv.isBoss && lv.boss) {
@@ -461,7 +475,11 @@ export class Engine {
     // Player attack vs enemies
     if (pl.atkTimer > 0) {
       const ab = pl.getAtkBox();
-      const dmgMul = this.powerManager.isGoldenGloves ? 2 : (this.powerManager.isSuperMode ? 1.5 : 1);
+      let dmgMul = this.powerManager.isGoldenGloves ? 2 : (this.powerManager.isSuperMode ? 1.5 : 1);
+      // Daily: dmg_mul
+      if (this.dailyMode && this.dailyModifier && this.dailyModifier.dmg_mul) {
+        dmgMul *= this.dailyModifier.dmg_mul;
+      }
       this.enemies.forEach(e => {
         if (!e.alive || e.hurtTimer > 0) return;
         const hb = e.getHitbox();
@@ -512,6 +530,18 @@ export class Engine {
         }
       }
     });
+
+    // Hint Prompt Triggers — fire once when player enters area
+    if (this.hintTriggers) {
+      this.hintTriggers.forEach(h => {
+        if (h.triggered) return;
+        if (this._aabb(pl.left, pl.top, pl.w, pl.h, h.x, h.y, h.w, h.h)) {
+          h.triggered = true;
+          this.gameState.showPickup(h.text);
+          this.flightLog.add(h.text, 'hint');
+        }
+      });
+    }
 
     // Boss collision
     if (this.boss && this.boss.alive && this.bossActivated) {

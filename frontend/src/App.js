@@ -67,6 +67,16 @@ function App() {
     best_run_time_ms: 0, best_l1_time_ms: 0,
   });
   const [speedrunMode, setSpeedrunMode] = useState(false);
+  const [dailyMode, setDailyMode] = useState(false);
+  const [dailyModifier, setDailyModifier] = useState(null);
+
+  // Fetch daily modifier on mount
+  React.useEffect(() => {
+    fetch(`${BACKEND_URL}/api/daily-challenge`)
+      .then(r => r.json())
+      .then(d => setDailyModifier(d.modifier))
+      .catch(() => {});
+  }, []);
   const engineRef = useRef(null);
 
   // Load progress on mount
@@ -169,6 +179,50 @@ function App() {
       }).catch(() => {});
       return next;
     });
+    // Submit speedrun leaderboard entry if speedrun mode was on
+    if (speedrunMode && finalMs > 0) {
+      const name = (window.localStorage.getItem('hyperaxel_player_name') || '').trim() || 'Axel';
+      fetch(`${BACKEND_URL}/api/leaderboard/speedrun`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          player_name: name,
+          total_ms: Math.floor(finalMs),
+          l1_ms: Math.floor(level1Ms || 0),
+        }),
+      }).catch(() => {});
+    }
+    // Record daily challenge completion if daily was on
+    if (dailyMode && finalMs > 0) {
+      const today = new Date().toISOString().slice(0, 10);
+      fetch(`${BACKEND_URL}/api/daily-challenge/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          player_id: 'default',
+          date: today,
+          total_ms: Math.floor(finalMs),
+        }),
+      }).catch(() => {});
+      toast.success('🎯 Daily Challenge cleared!', {
+        duration: 4000,
+        style: {
+          background: 'rgba(12,18,24,0.95)',
+          border: '2px solid #FF9F43',
+          color: '#FF9F43',
+          fontFamily: 'Fredoka, sans-serif',
+        },
+      });
+    }
+  }, [speedrunMode, dailyMode]);
+
+  const handlePlayDaily = useCallback(() => {
+    setDailyMode(true);
+    setSpeedrunMode(true); // daily implies speedrun tracking
+    setStartLevel(0);
+    setRestartKey(k => k + 1);
+    setScreen('playing');
+    sfx.uiStart();
   }, []);
 
   const handleEquipSkin = useCallback((skinId) => {
@@ -217,6 +271,7 @@ function App() {
     music.stop();
     music.playExploration();
     setStartLevel(levelIndex);
+    setDailyMode(false); // regular play — not a daily run
     setScreen('playing');
     setPaused(false);
   };
@@ -326,6 +381,10 @@ function App() {
                 progress={progress}
                 speedrunMode={speedrunMode}
                 onToggleSpeedrun={setSpeedrunMode}
+                dailyMode={dailyMode}
+                onToggleDaily={setDailyMode}
+                dailyModifier={dailyModifier}
+                onPlayDaily={handlePlayDaily}
               />
             </div>
           </div>
@@ -347,6 +406,8 @@ function App() {
               assistStabilizerLevel={progress.assist_stabilizer_level || 0}
               equippedSkin={progress.wrench_skin || 'standard'}
               speedrunMode={speedrunMode}
+              dailyMode={dailyMode}
+              dailyModifier={dailyModifier}
               persistentTotalCoins={progress.total_coins || 0}
               persistentTotalScrap={progress.total_scrap || 0}
               unlockedAchievements={progress.achievements || []}

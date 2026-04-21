@@ -33,16 +33,23 @@ const MainMenu = ({
   onPlay, onLevelSelect, onWorkshop, onAchievements, onGallery,
   charUrl, scrapUrl, progress,
   speedrunMode = false, onToggleSpeedrun,
+  dailyMode = false, onToggleDaily,
+  dailyModifier = null,
+  onPlayDaily,
 }) => {
   const [tab, setTab] = useState('play');
   const [scores, setScores] = useState([]);
+  const [speedrunBoard, setSpeedrunBoard] = useState([]);
+  const [dailyCompleted, setDailyCompleted] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState(0);
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/scores/top`)
-      .then(r => r.json())
-      .then(setScores)
-      .catch(() => {});
+      .then(r => r.json()).then(setScores).catch(() => {});
+    fetch(`${BACKEND_URL}/api/leaderboard/speedrun?limit=10`)
+      .then(r => r.json()).then(setSpeedrunBoard).catch(() => {});
+    fetch(`${BACKEND_URL}/api/daily-challenge/completed/default`)
+      .then(r => r.json()).then(d => setDailyCompleted(!!d.completed)).catch(() => {});
   }, []);
 
   const tabs = [
@@ -137,6 +144,45 @@ const MainMenu = ({
                     {progress.best_l1_time_ms > 0 && <span style={{ marginLeft: 10 }}>• L1: {formatMs(progress.best_l1_time_ms)}</span>}
                   </div>
                 )}
+
+                {/* Daily Challenge Card */}
+                {dailyModifier && (
+                  <div
+                    data-testid="daily-challenge-card"
+                    style={{
+                      marginTop: 14,
+                      padding: 14,
+                      background: dailyCompleted ? 'rgba(127,224,138,0.10)' : 'rgba(255,159,67,0.10)',
+                      border: `2px solid ${dailyCompleted ? '#7FE08A' : '#FF9F43'}`,
+                      borderRadius: 12,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                      <div style={{ fontFamily: 'Anton', fontSize: '0.75rem', color: '#FF9F43', letterSpacing: 2 }}>
+                        DAILY CHALLENGE
+                      </div>
+                      {dailyCompleted && (
+                        <div style={{ fontFamily: 'Fredoka', fontWeight: 800, color: '#7FE08A', fontSize: '0.7rem' }}>✓ CLEARED TODAY</div>
+                      )}
+                    </div>
+                    <div style={{ fontFamily: 'Fredoka', fontWeight: 800, color: '#E8F0EC', fontSize: '1.1rem' }}>
+                      {dailyModifier.name}
+                    </div>
+                    <div style={{ fontFamily: 'Nunito', fontSize: '0.8rem', color: '#C5D5CC', marginTop: 2 }}>
+                      {dailyModifier.desc}
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <GameButton
+                        variant={dailyCompleted ? 'ghost' : 'secondary'}
+                        full
+                        onClick={() => onPlayDaily && onPlayDaily()}
+                        data-testid="play-daily-btn"
+                      >
+                        {dailyCompleted ? 'REPLAY CHALLENGE' : 'PLAY CHALLENGE'}
+                      </GameButton>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -173,21 +219,47 @@ const MainMenu = ({
             {/* LEADERBOARD TAB */}
             {tab === 'board' && (
               <div>
-                {scores.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 30 }}>
-                    <TerminalText>No scores recorded yet. Go play!</TerminalText>
-                  </div>
-                ) : (
-                  scores.map((s, i) => (
-                    <LeaderboardRow
-                      key={i}
-                      rank={i + 1}
-                      score={s.score}
-                      coins={s.coins}
-                      level={s.level}
-                    />
-                  ))
-                )}
+                <TerminalText>[ Top Scores ]</TerminalText>
+                <div style={{ marginBottom: 18 }}>
+                  {scores.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 16 }}>
+                      <TerminalText>No scores recorded yet. Go play!</TerminalText>
+                    </div>
+                  ) : (
+                    scores.map((s, i) => (
+                      <LeaderboardRow
+                        key={i}
+                        rank={i + 1}
+                        score={s.score}
+                        coins={s.coins}
+                        level={s.level}
+                      />
+                    ))
+                  )}
+                </div>
+                <Divider />
+                <TerminalText>[ Speedrun Leaderboard ]</TerminalText>
+                <div data-testid="speedrun-leaderboard" style={{ marginTop: 10 }}>
+                  {speedrunBoard.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 16 }}>
+                      <TerminalText>Finish a run in Speedrun Mode to appear here.</TerminalText>
+                    </div>
+                  ) : (
+                    speedrunBoard.map((e, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '8px 12px',
+                        background: i === 0 ? 'rgba(255,214,10,0.12)' : 'rgba(255,255,255,0.02)',
+                        border: `2px solid ${i === 0 ? '#FFD60A' : 'var(--gui-border)'}`,
+                        borderRadius: 8, marginBottom: 6,
+                      }}>
+                        <div style={{ fontFamily: 'Anton', fontSize: '1.2rem', color: i === 0 ? '#FFD60A' : '#E8F0EC', width: 32 }}>#{i + 1}</div>
+                        <div style={{ flex: 1, fontFamily: 'Fredoka', fontWeight: 700, color: '#E8F0EC' }}>{e.player_name}</div>
+                        <div style={{ fontFamily: 'JetBrains Mono, monospace', color: '#FFD60A' }}>{formatMs(e.total_ms)}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             )}
 
