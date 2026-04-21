@@ -109,6 +109,7 @@ export class PowerPickup extends PickupBase {
     engine.powerManager.activate(this.powerId);
     engine.gameState.showPickup(`Power: ${this.powerId.replace('_', ' ').toUpperCase()}`);
     engine.flightLog.add(`Activated ${this.powerId.replace('_', ' ')}`, 'power');
+    if (engine.achievements) engine.achievements.onPowerActivated(this.powerId);
     sfx.powerPickup();
   }
 

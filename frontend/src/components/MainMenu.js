@@ -8,6 +8,14 @@ import { POWERS } from '../game/constants';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
+function formatMs(ms) {
+  const total = Math.floor(ms);
+  const mins = Math.floor(total / 60000);
+  const secs = Math.floor((total % 60000) / 1000);
+  const cs = Math.floor((total % 1000) / 10);
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${cs.toString().padStart(2, '0')}`;
+}
+
 const LEVELS = [
   { name: 'Overgrown Outskirts', sub: 'Intro platforming + coins', enemies: 'Root Crawlers' },
   { name: 'Rust Climb', sub: 'Vertical traverse + mixed enemies', enemies: 'Crawlers, Gear Bugs' },
@@ -21,7 +29,11 @@ const LEVELS = [
   { name: 'Shattered Core', sub: 'Final gauntlet', enemies: 'EVERYTHING' },
 ];
 
-const MainMenu = ({ onPlay, onLevelSelect, onWorkshop, onAchievements, onGallery, charUrl, scrapUrl, progress }) => {
+const MainMenu = ({
+  onPlay, onLevelSelect, onWorkshop, onAchievements, onGallery,
+  charUrl, scrapUrl, progress,
+  speedrunMode = false, onToggleSpeedrun,
+}) => {
   const [tab, setTab] = useState('play');
   const [scores, setScores] = useState([]);
   const [selectedLevel, setSelectedLevel] = useState(0);
@@ -80,6 +92,51 @@ const MainMenu = ({ onPlay, onLevelSelect, onWorkshop, onAchievements, onGallery
                     SELECT LEVEL
                   </GameButton>
                 </div>
+                {/* Speedrun Mode toggle */}
+                <div
+                  onClick={() => onToggleSpeedrun && onToggleSpeedrun(!speedrunMode)}
+                  data-testid="menu-speedrun-toggle"
+                  style={{
+                    marginTop: 14,
+                    padding: '10px 14px',
+                    background: speedrunMode ? 'rgba(255,214,10,0.14)' : 'rgba(255,255,255,0.03)',
+                    border: `2px solid ${speedrunMode ? '#FFD60A' : 'var(--gui-border)'}`,
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontFamily: 'Fredoka', fontWeight: 700, color: speedrunMode ? '#FFD60A' : '#E8F0EC', fontSize: '0.9rem' }}>
+                      SPEEDRUN MODE
+                    </div>
+                    <div style={{ fontFamily: 'Nunito', fontSize: '0.7rem', color: '#8AA89A', marginTop: 2 }}>
+                      Show live timer • track personal best
+                    </div>
+                  </div>
+                  <div style={{
+                    width: 38, height: 22, borderRadius: 11,
+                    background: speedrunMode ? '#FFD60A' : 'rgba(255,255,255,0.15)',
+                    position: 'relative', transition: 'background 0.15s',
+                  }}>
+                    <div style={{
+                      position: 'absolute', top: 2,
+                      left: speedrunMode ? 18 : 2,
+                      width: 18, height: 18, borderRadius: '50%',
+                      background: speedrunMode ? '#0A0A0A' : '#8AA89A',
+                      transition: 'left 0.15s',
+                    }} />
+                  </div>
+                </div>
+                {progress && progress.best_run_time_ms > 0 && (
+                  <div style={{ textAlign: 'center', marginTop: 10, fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: '#FFD60A' }}>
+                    Best run: {formatMs(progress.best_run_time_ms)}
+                    {progress.best_l1_time_ms > 0 && <span style={{ marginLeft: 10 }}>• L1: {formatMs(progress.best_l1_time_ms)}</span>}
+                  </div>
+                )}
               </div>
             )}
 

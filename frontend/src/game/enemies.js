@@ -4,6 +4,24 @@ import { sfx } from './sfx';
 const GRAVITY = PL.gravity;
 const MAX_FALL = PL.maxFall;
 
+// Preload claymation enemy sprite PNGs (generated via Gemini Nano Banana).
+// If a sprite fails to load, _drawSprite returns false and the procedural
+// canvas drawing fallback is used.
+const ENEMY_SPRITES = {};
+const SPRITE_FILES = {
+  root_crawler: '/enemies/root_crawler.png',
+  gear_bug: '/enemies/gear_bug.png',
+  heavy: '/enemies/heavy.png',
+};
+if (typeof window !== 'undefined') {
+  Object.entries(SPRITE_FILES).forEach(([k, src]) => {
+    const img = new Image();
+    img.onload = () => { img._ready = true; };
+    img.src = src;
+    ENEMY_SPRITES[k] = img;
+  });
+}
+
 class EnemyBase {
   constructor(x, y, type) {
     const cfg = EN[type];
@@ -167,6 +185,7 @@ class EnemyBase {
       engine.addParticles(this.cx, this.cy, 10, this._getColor());
       engine.flightLog.add(`Defeated ${this.type.replace('_', ' ')} [${this.family}]`, 'combat');
       sfx.enemyDeath();
+      if (engine.achievements) engine.achievements.onEnemyKilled();
     }
   }
 
@@ -181,7 +200,7 @@ class EnemyBase {
     if (!this.alive) {
       if (this.deathTimer > 0) {
         ctx.globalAlpha = this.deathTimer / 0.4;
-        this._draw(ctx);
+        if (!this._drawSprite(ctx)) this._draw(ctx);
         ctx.globalAlpha = 1;
       }
       return;
@@ -196,7 +215,7 @@ class EnemyBase {
       ctx.save();
       ctx.globalCompositeOperation = 'source-atop';
     }
-    this._draw(ctx);
+    if (!this._drawSprite(ctx)) this._draw(ctx);
     if (this.flashTimer > 0) ctx.restore();
     if (this.hasFlicker && !this.flickerOpen) {
       ctx.globalAlpha = savedAlpha;
@@ -204,6 +223,26 @@ class EnemyBase {
   }
 
   _draw(ctx) {}
+
+  _drawSprite(ctx) {
+    const img = ENEMY_SPRITES[this.type];
+    if (!img || !img._ready) return false;
+    const drawW = this.w * 1.45;
+    const drawH = this.h * 1.6;
+    const sx = Math.round(this.x - drawW / 2);
+    const sy = Math.round(this.y - drawH);
+    ctx.save();
+    if (this.dir < 0) {
+      ctx.translate(this.x, 0);
+      ctx.scale(-1, 1);
+      ctx.translate(-this.x, 0);
+    }
+    // Bob micro-animation
+    const bob = Math.sin(this.animT * 4) * 1.2;
+    ctx.drawImage(img, sx, Math.round(sy + bob), Math.round(drawW), Math.round(drawH));
+    ctx.restore();
+    return true;
+  }
 }
 
 export class RootCrawler extends EnemyBase {

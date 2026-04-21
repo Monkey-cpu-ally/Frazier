@@ -40,6 +40,30 @@ export class HUD {
       ctx.fillText(engine.currentLevel.name || '', W - 20, 76);
     }
 
+    // Speedrun timer (top-right, below level name)
+    if (engine.speedrunMode) {
+      const ms = engine.runFinalMs ?? engine.runTimerMs;
+      const total = Math.floor(ms);
+      const mins = Math.floor(total / 60000);
+      const secs = Math.floor((total % 60000) / 1000);
+      const cs = Math.floor((total % 1000) / 10);
+      const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${cs.toString().padStart(2, '0')}`;
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.beginPath();
+      ctx.roundRect(W - 158, 86, 138, 26, 8);
+      ctx.fill();
+      ctx.strokeStyle = '#FFD60A';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#FFD60A';
+      ctx.font = 'bold 15px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(timeStr, W - 89, 104);
+      ctx.font = 'bold 9px "Nunito", sans-serif';
+      ctx.fillStyle = 'rgba(255,214,10,0.7)';
+      ctx.fillText('SPEEDRUN', W - 89, 120);
+    }
+
     // Pickup text
     if (gs.pickupTimer > 0) {
       const alpha = Math.min(1, gs.pickupTimer);

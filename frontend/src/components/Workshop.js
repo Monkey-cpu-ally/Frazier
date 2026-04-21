@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import {
+import React, { useState } from 'react';import {
   GamePanel, PanelHeader, PanelBody, PanelFooter,
   GameButton, GameBadge, Divider, TerminalText, MeterBar,
 } from './gameui';
@@ -30,20 +29,34 @@ const STABILIZER_TIERS = [
 const Workshop = ({
   open, onClose, scrapParts = 0,
   damageLevel = 0, stabilizerLevel = 0,
+  equippedSkin = 'standard',
+  unlockedSkins = ['standard'],
   onUpgrade,
+  onEquipSkin,
+  onUnlockSkin,
 }) => {
   const [tab, setTab] = useState('skins');
-  const [selected, setSelected] = useState('standard');
-  const [skins, setSkins] = useState(WRENCH_SKINS);
+  const [selected, setSelected] = useState(equippedSkin);
+  // Merge persistent unlock set into skin list
+  const skins = WRENCH_SKINS.map(s => ({
+    ...s,
+    unlocked: unlockedSkins.includes(s.id),
+  }));
+
+  // Keep selected in sync when equipped changes
+  React.useEffect(() => { setSelected(equippedSkin); }, [equippedSkin, open]);
 
   if (!open) return null;
 
   const selectedSkin = skins.find(s => s.id === selected);
 
-  const handleUnlock = (skinId) => {
-    const skin = skins.find(s => s.id === skinId);
-    if (!skin || skin.unlocked || scrapParts < skin.cost) return;
-    setSkins(prev => prev.map(s => s.id === skinId ? { ...s, unlocked: true } : s));
+  const handleUnlockOrEquip = (skin) => {
+    if (!skin) return;
+    if (skin.unlocked) {
+      if (skin.id !== equippedSkin) onEquipSkin && onEquipSkin(skin.id);
+    } else {
+      if (scrapParts >= skin.cost) onUnlockSkin && onUnlockSkin(skin.id, skin.cost);
+    }
   };
 
   const purchaseUpgrade = (kind, tier) => {
@@ -163,9 +176,11 @@ const Workshop = ({
                   <div style={{ fontFamily: 'Fredoka', fontWeight: 700, color: '#E8F0EC', fontSize: '1rem' }}>
                     {selectedSkin?.name}
                   </div>
-                  {selectedSkin?.unlocked
+                  {selectedSkin?.id === equippedSkin
                     ? <GameBadge color="teal">EQUIPPED</GameBadge>
-                    : <GameBadge color="yellow">{selectedSkin?.cost} SCRAP</GameBadge>}
+                    : selectedSkin?.unlocked
+                      ? <GameBadge color="yellow">OWNED</GameBadge>
+                      : <GameBadge color="yellow">{selectedSkin?.cost} SCRAP</GameBadge>}
                 </div>
               </div>
 
@@ -183,11 +198,21 @@ const Workshop = ({
                       style={{
                         padding: '10px 8px',
                         background: selected === skin.id ? 'rgba(0,199,190,0.12)' : 'rgba(255,255,255,0.02)',
-                        border: `2px solid ${selected === skin.id ? 'var(--gui-accent)' : 'var(--gui-border)'}`,
+                        border: `2px solid ${selected === skin.id ? 'var(--gui-accent)' : skin.id === equippedSkin ? '#FFD60A' : 'var(--gui-border)'}`,
                         borderRadius: 10, cursor: 'pointer', textAlign: 'center',
                         opacity: skin.unlocked ? 1 : 0.5, transition: 'all 0.15s',
+                        position: 'relative',
                       }}
                     >
+                      {skin.id === equippedSkin && (
+                        <div style={{
+                          position: 'absolute', top: -6, right: -6,
+                          background: '#FFD60A', color: '#0A0A0A',
+                          fontSize: '0.55rem', fontWeight: 800,
+                          padding: '2px 6px', borderRadius: 6,
+                          fontFamily: 'Fredoka',
+                        }}>EQUIP</div>
+                      )}
                       <div style={{
                         width: 28, height: 28, borderRadius: '50%',
                         background: skin.color, margin: '0 auto 6px',
@@ -212,9 +237,18 @@ const Workshop = ({
                     <GameButton
                       variant="secondary" full
                       disabled={scrapParts < selectedSkin.cost}
-                      onClick={() => handleUnlock(selected)}
+                      onClick={() => handleUnlockOrEquip(selectedSkin)}
                       data-testid="workshop-unlock-btn"
                     >UNLOCK ({selectedSkin.cost} SCRAP)</GameButton>
+                  </div>
+                )}
+                {selectedSkin && selectedSkin.unlocked && selectedSkin.id !== equippedSkin && (
+                  <div style={{ marginTop: 14 }}>
+                    <GameButton
+                      variant="primary" full
+                      onClick={() => handleUnlockOrEquip(selectedSkin)}
+                      data-testid="workshop-equip-btn"
+                    >EQUIP</GameButton>
                   </div>
                 )}
               </div>

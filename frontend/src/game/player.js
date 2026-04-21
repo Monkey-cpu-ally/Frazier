@@ -180,6 +180,7 @@ export class Player {
       this.coyoteT = 0;
       this.jumpBufT = 0;
       sfx.jump();
+      if (engine.achievements) engine.achievements.onWallJump();
     }
 
     // Dash
@@ -191,6 +192,7 @@ export class Player {
       this.vx = this.dashDir * PL.dashSpeed;
       this.vy = 0;
       sfx.wrenchSwing();
+      if (engine.achievements) engine.achievements.onDash();
       return;
     }
 
@@ -217,7 +219,10 @@ export class Player {
         this.isAttacking = true;
         this.state = 'attacking';
         this.atkFlash = 0.1;
-        if (this.combo === 3) sfx.comboFinish();
+        if (this.combo === 3) {
+          sfx.comboFinish();
+          if (engine.achievements) engine.achievements.onComboFinished();
+        }
         else sfx.wrenchSwing();
       }
       return;
@@ -353,6 +358,7 @@ export class Player {
     engine.camera.shake(dmg >= 2 ? 8 : 4, 0.2);
     engine.addParticles(this.x, this.cy, 6, C.red);
     sfx.playerHurt();
+    if (engine.achievements) engine.achievements.onPlayerDamaged();
   }
 
   render(ctx) {
@@ -496,7 +502,7 @@ export class Player {
     ctx.rotate(angle * face);
     ctx.fillStyle = C.wrenchHandle;
     ctx.fillRect(-2, -2, 4, 18);
-    ctx.fillStyle = C.wrench;
+    ctx.fillStyle = this.skinColor || C.wrench;
     ctx.fillRect(-5, -8, 10, 8);
     ctx.fillRect(-3, -10, 2, 4);
     ctx.fillRect(1, -10, 2, 4);

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import '@/App.css';
+import { Toaster, toast } from 'sonner';
 import GameCanvas from '@/components/GameCanvas';
 import IntroScreen from '@/components/IntroScreen';
 import MainMenu from '@/components/MainMenu';
@@ -12,6 +13,24 @@ import Achievements from '@/components/Achievements';
 import MirrorGallery from '@/components/MirrorGallery';
 import { sfx } from '@/game/sfx';
 import { music } from '@/game/music';
+
+const ACHIEVEMENT_NAMES = {
+  first_blood: 'First Blood',
+  combo_master: 'Combo Master',
+  coin_collector: 'Coin Collector',
+  scrap_hoarder: 'Scrap Hoarder',
+  power_user: 'Power User',
+  wall_jumper: 'Wall Jumper',
+  dasher: 'Dasher',
+  boss_slayer: 'Boss Slayer',
+  fragment_1: 'First Fragment',
+  fragment_all: 'All Fragments',
+  no_damage_level: 'Untouchable',
+  speed_run: 'Speed Runner',
+  explorer: 'Explorer',
+  all_levels: 'Full Circuit',
+  high_score: 'High Score',
+};
 
 const BG_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/e352993c8b6ad491a1f19da7bb7f3a7aa5ade71deb48994a814b5024daf01114.png';
 const CHAR_URL = 'https://customer-assets.emergentagent.com/job_agent-platform-73/artifacts/3vnrayz5_download%20%282%29.jpeg';
@@ -43,8 +62,11 @@ function App() {
   const [progress, setProgress] = useState({
     levels_completed: [], mirror_fragments: 0, achievements: [],
     total_coins: 0, total_scrap: 0, high_score: 0,
+    wrench_skin: 'standard', unlocked_skins: ['standard'],
     assist_damage_level: 0, assist_stabilizer_level: 0,
+    best_run_time_ms: 0, best_l1_time_ms: 0,
   });
+  const [speedrunMode, setSpeedrunMode] = useState(false);
   const engineRef = useRef(null);
 
   // Load progress on mount
@@ -88,11 +110,12 @@ function App() {
     });
   }, []);
 
-  const handleScrapEarned = useCallback((earned, finalScore) => {
+  const handleScrapEarned = useCallback((earned, finalScore, finalCoins) => {
     setProgress(prev => {
       const next = {
         ...prev,
         total_scrap: (prev.total_scrap || 0) + earned,
+        total_coins: (prev.total_coins || 0) + (finalCoins || 0),
         high_score: Math.max(prev.high_score || 0, finalScore || 0),
       };
       fetch(`${BACKEND_URL}/api/progress`, {
@@ -102,6 +125,84 @@ function App() {
       }).catch(() => {});
       return next;
     });
+  }, []);
+
+  const handleAchievement = useCallback((id) => {
+    setProgress(prev => {
+      if ((prev.achievements || []).includes(id)) return prev;
+      const next = { ...prev, achievements: [...(prev.achievements || []), id] };
+      fetch(`${BACKEND_URL}/api/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...next, player_id: 'default' }),
+      }).catch(() => {});
+      return next;
+    });
+    toast.success(`🏆 ${ACHIEVEMENT_NAMES[id] || id}`, {
+      description: 'Achievement unlocked',
+      duration: 3600,
+      style: {
+        background: 'rgba(12, 18, 24, 0.95)',
+        border: '2px solid #FFD60A',
+        color: '#FFD60A',
+        fontFamily: 'Fredoka, sans-serif',
+      },
+    });
+    sfx.uiStart();
+  }, []);
+
+  const handleRunComplete = useCallback(({ finalMs, level1Ms }) => {
+    setProgress(prev => {
+      const next = {
+        ...prev,
+        best_run_time_ms: prev.best_run_time_ms && prev.best_run_time_ms < finalMs
+          ? prev.best_run_time_ms
+          : Math.floor(finalMs || 0),
+        best_l1_time_ms: prev.best_l1_time_ms && level1Ms && prev.best_l1_time_ms < level1Ms
+          ? prev.best_l1_time_ms
+          : (level1Ms ? Math.floor(level1Ms) : prev.best_l1_time_ms),
+      };
+      fetch(`${BACKEND_URL}/api/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...next, player_id: 'default' }),
+      }).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  const handleEquipSkin = useCallback((skinId) => {
+    setProgress(prev => {
+      if (!(prev.unlocked_skins || []).includes(skinId)) return prev;
+      const next = { ...prev, wrench_skin: skinId };
+      fetch(`${BACKEND_URL}/api/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...next, player_id: 'default' }),
+      }).catch(() => {});
+      return next;
+    });
+    sfx.uiClick();
+  }, []);
+
+  const handleUnlockSkin = useCallback((skinId, cost) => {
+    setProgress(prev => {
+      if ((prev.unlocked_skins || []).includes(skinId)) return prev;
+      if ((prev.total_scrap || 0) < cost) return prev;
+      const next = {
+        ...prev,
+        total_scrap: prev.total_scrap - cost,
+        unlocked_skins: [...(prev.unlocked_skins || []), skinId],
+        wrench_skin: skinId,
+      };
+      fetch(`${BACKEND_URL}/api/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...next, player_id: 'default' }),
+      }).catch(() => {});
+      return next;
+    });
+    sfx.uiStart();
   }, []);
 
   const goToMenu = () => {
@@ -157,6 +258,7 @@ function App() {
 
   return (
     <div className="app-root" data-testid="app-root">
+      <Toaster position="top-right" richColors theme="dark" />
       <div className="game-wrapper" data-testid="game-wrapper">
 
         {/* ===== INTRO CINEMATIC ===== */}
@@ -222,6 +324,8 @@ function App() {
                 charUrl={CHAR_URL}
                 scrapUrl={SCRAP_URL}
                 progress={progress}
+                speedrunMode={speedrunMode}
+                onToggleSpeedrun={setSpeedrunMode}
               />
             </div>
           </div>
@@ -234,11 +338,18 @@ function App() {
               key={restartKey}
               onStateChange={handleGameState}
               onScrapEarned={handleScrapEarned}
+              onAchievement={handleAchievement}
+              onRunComplete={handleRunComplete}
               startLevel={startLevel}
               paused={paused}
               settings={settings}
               assistDamageLevel={progress.assist_damage_level || 0}
               assistStabilizerLevel={progress.assist_stabilizer_level || 0}
+              equippedSkin={progress.wrench_skin || 'standard'}
+              speedrunMode={speedrunMode}
+              persistentTotalCoins={progress.total_coins || 0}
+              persistentTotalScrap={progress.total_scrap || 0}
+              unlockedAchievements={progress.achievements || []}
               ref={engineRef}
             />
 
@@ -265,7 +376,11 @@ function App() {
           scrapParts={progress.total_scrap}
           damageLevel={progress.assist_damage_level || 0}
           stabilizerLevel={progress.assist_stabilizer_level || 0}
+          equippedSkin={progress.wrench_skin || 'standard'}
+          unlockedSkins={progress.unlocked_skins || ['standard']}
           onUpgrade={handleUpgrade}
+          onEquipSkin={handleEquipSkin}
+          onUnlockSkin={handleUnlockSkin}
         />
 
         {/* ===== ACHIEVEMENTS ===== */}

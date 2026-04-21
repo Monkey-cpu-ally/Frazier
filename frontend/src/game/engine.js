@@ -2,7 +2,7 @@ import { W, H, C } from './constants';
 import { Input } from './input';
 import { Camera } from './camera';
 import { Player } from './player';
-import { GameState, PowerManager, FlightLog } from './systems';
+import { GameState, PowerManager, FlightLog, AchievementTracker } from './systems';
 import { createEnemy } from './enemies';
 import { createPickup, Breakable } from './pickups';
 import { getLevels } from './levels';
@@ -47,6 +47,17 @@ export class Engine {
     this.powerManager = new PowerManager();
     this.flightLog = new FlightLog();
     this.hud = new HUD();
+    this.achievements = new AchievementTracker((id) => {
+      if (this.onAchievementUnlock) this.onAchievementUnlock(id);
+    });
+    this.onAchievementUnlock = null;
+    // Speedrun timer (ms since start)
+    this.runTimerMs = 0;
+    this.speedrunMode = false;
+    this.runStartMs = null;
+    this.runFinalMs = null;
+    this.levelsCompleted = 0;
+    this.equippedSkin = 'standard';
 
     // Preload background image
     this.bgImage = new Image();
@@ -101,7 +112,12 @@ export class Engine {
     this.secretEndingTriggered = false;
     this.levels = getLevels(this.newGamePlus);
     this.totalFragments = this.newGamePlus ? 5 : 4;
+    this.levelsCompleted = 0;
+    this.runStartMs = performance.now();
+    this.runFinalMs = null;
+    this.runTimerMs = 0;
     this.loadLevel(Math.max(0, Math.min(startLevel, this.levels.length - 1)));
+    this.achievements.onLevelStart(Math.max(0, Math.min(startLevel, this.levels.length - 1)));
     this.running = true;
     this.lastTime = performance.now();
     this.flightLog.add('System boot. Scanning sector...', 'system');
@@ -141,6 +157,18 @@ export class Engine {
 
   loadLevel(index) {
     if (index >= this.levels.length) {
+      // Freeze run timer
+      if (this.runFinalMs === null && this.runStartMs !== null) {
+        this.runFinalMs = performance.now() - this.runStartMs;
+      }
+      // Mark levels completed total
+      this.levelsCompleted = this.levels.length;
+      if (this.achievements) {
+        this.achievements.syncTotals({
+          levelsCompleted: this.levelsCompleted,
+          score: this.gameState.score,
+        });
+      }
       // Check if secret ending should play
       if (this.mirrorFragments >= this.totalFragments && !this.secretEndingTriggered) {
         this.secretEndingTriggered = true;
@@ -166,6 +194,12 @@ export class Engine {
     this.bossActivated = false;
 
     this.player = new Player(lv.playerSpawn.x, lv.playerSpawn.y);
+    // Apply equipped wrench skin color
+    const SKIN_COLORS = {
+      standard: '#A0A8B0', rusty: '#8B6B4A', golden: '#FFD700', neon: '#00FFB3',
+      ember: '#FF5533', frost: '#88DDFF', shadow: '#8B5CF6', scrap_special: '#7DA5BD',
+    };
+    this.player.skinColor = SKIN_COLORS[this.equippedSkin] || SKIN_COLORS.standard;
     this.enemies = (lv.enemies || []).map(e => {
       const enemy = createEnemy(e);
       if (this.newGamePlus) {
@@ -281,6 +315,9 @@ export class Engine {
 
   _update(dt) {
     this.levelTimer += dt;
+    if (this.runStartMs !== null && this.runFinalMs === null) {
+      this.runTimerMs = performance.now() - this.runStartMs;
+    }
     this.gameState.update(dt);
     this.powerManager.update(dt);
 
@@ -365,6 +402,7 @@ export class Engine {
         this.dialogue.trigger('mirror_fragment');
         this.camera.shake(6, 0.3);
         this.addParticles(mf.x, mf.y, 15, '#AADDFF');
+        if (this.achievements) this.achievements.onMirrorFragment(this.mirrorFragments, this.totalFragments);
         if (this.mirrorFragments >= this.totalFragments) {
           setTimeout(() => this.dialogue.trigger('all_fragments'), 3000);
         }
@@ -390,7 +428,19 @@ export class Engine {
       const bossCleared = !this.boss || this.boss.defeated;
       if ((!this.currentLevel.isBoss || (allDead && bossCleared))) {
         sfx.levelComplete();
-        this.loadLevel(this.currentLevelIndex + 1);
+        // Achievement hooks: boss defeated, level completed (no-dmg, speed_run)
+        if (this.currentLevel.isBoss && this.achievements) {
+          this.achievements.onBossDefeated();
+        }
+        if (this.achievements) {
+          this.achievements.onLevelCompleted(this.currentLevelIndex);
+        }
+        this.levelsCompleted = Math.max(this.levelsCompleted, this.currentLevelIndex + 1);
+        const nextIdx = this.currentLevelIndex + 1;
+        this.loadLevel(nextIdx);
+        if (this.achievements && nextIdx < this.levels.length) {
+          this.achievements.onLevelStart(nextIdx);
+        }
       }
     }
   }
@@ -453,6 +503,13 @@ export class Engine {
           return;
         }
         p.collect(this);
+        // Achievement sync after a collect — thresholds use this-run + persisted totals
+        if (this.achievements) {
+          this.achievements.syncTotals({
+            totalCoins: (this.persistentTotalCoins || 0) + this.gameState.coins,
+            totalScrap: (this.persistentTotalScrap || 0) + this.gameState.scrapParts,
+          });
+        }
       }
     });
 

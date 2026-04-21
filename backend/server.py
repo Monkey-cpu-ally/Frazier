@@ -49,9 +49,12 @@ class GameProgress(BaseModel):
     total_scrap: int = 0
     achievements: List[str] = []
     wrench_skin: str = "standard"
+    unlocked_skins: List[str] = ["standard"]
     high_score: int = 0
     assist_damage_level: int = 0
     assist_stabilizer_level: int = 0
+    best_run_time_ms: int = 0
+    best_l1_time_ms: int = 0
 
 class ProgressUpdate(BaseModel):
     player_id: str = "default"
@@ -61,9 +64,12 @@ class ProgressUpdate(BaseModel):
     total_scrap: int = 0
     achievements: List[str] = []
     wrench_skin: str = "standard"
+    unlocked_skins: List[str] = ["standard"]
     high_score: int = 0
     assist_damage_level: int = 0
     assist_stabilizer_level: int = 0
+    best_run_time_ms: int = 0
+    best_l1_time_ms: int = 0
 
 # Routes
 @api_router.get("/")

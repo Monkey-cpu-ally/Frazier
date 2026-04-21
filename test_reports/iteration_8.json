@@ -1,0 +1,51 @@
+{
+  "summary": "Iteration 8 bundle testing complete. All 4 features verified: (1) Speedrun timer HUD renders yellow MM:SS.cc box top-right in-game with 'SPEEDRUN' label and level name; menu toggle highlights yellow when on. (2) Workshop SKINS tab (data-testid=workshop-tab-skins, visible label 'WRENCHES') renders 8 skin cards, equipped 'Standard Wrench' shows yellow EQUIP badge + EQUIPPED label, clicking a locked skin (e.g. Rusty Iron) reveals 'UNLOCK (50 SCRAP)' button (data-testid=workshop-unlock-btn). (3) Achievements modal lists all 15 achievements with '0/15 Unlocked' counter. (4) Claymation enemy sprite (beige clay root_crawler) visible in Level 1 instead of procedural polygons. Backend persistence fields (unlocked_skins, best_run_time_ms, best_l1_time_ms) round-trip correctly via POST /api/progress + GET /api/progress/{id}.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Workshop", "issues": ["Skins tab button visible label is 'WRENCHES' while the testing request and data-testid use 'skins' — not a bug, just naming inconsistency; consider aligning label to 'SKINS' or documenting as 'WRENCHES = skins'."]}
+    ]
+  },
+  "passed_tests": [
+    "Backend pytest 8/8 passed (test_progress_iter8.py): health, root, achievements list has all 15 ids, progress default returns new fields (unlocked_skins=[standard], best_run_time_ms=0, best_l1_time_ms=0), POST+GET round-trip persists wrench_skin=neon, unlocked_skins, best_run_time_ms=185450, best_l1_time_ms=27300, update overwrites previous values, scores endpoint unaffected, enemy sprite files exist (root_crawler.png, gear_bug.png, heavy.png) and flicker.png intentionally absent",
+    "Title -> PLAY -> MORE tab -> WORKSHOP opens modal with WRENCHES tab preselected",
+    "Workshop 'skins' tab (data-testid=workshop-tab-skins) renders 8 cards: standard, rusty, golden, neon, ember, frost, shadow, scrap_special",
+    "Standard Wrench card shows yellow 'EQUIP' badge on thumbnail + 'EQUIPPED' label at bottom",
+    "Clicking locked 'Rusty Iron' card reveals 'UNLOCK (50 SCRAP)' button with data-testid=workshop-unlock-btn",
+    "Menu MORE -> ACHIEVEMENTS opens modal listing all 15 achievements with 0/15 Unlocked counter (matches progress.achievements)",
+    "Play tab SPEEDRUN MODE toggle (data-testid=menu-speedrun-toggle) highlights yellow when enabled (border #FFD60A, text color #FFD60A)",
+    "Starting mission with speedrun ON renders yellow timer box top-right showing MM:SS.cc format ticking upward (e.g. 00:03.17), 'SPEEDRUN' label visible, current level name 'Overgrown Outskirts' visible above timer",
+    "Level 1 renders claymation-style root_crawler PNG sprite (beige clay creature) instead of procedural red polygons — sprite visible bottom-right of screenshot",
+    "Player WASD + SPACE + X controls functional, ESC pauses and shows pause overlay with 'RESUME/PAUSED' text",
+    "Zero JavaScript console errors, zero page errors during full session"
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py: GameProgress and ProgressUpdate models correctly extend with unlocked_skins (default ['standard']), best_run_time_ms and best_l1_time_ms (default 0). Upsert via update_one $set is idempotent. _id is excluded from GET via projection.",
+    "Sonner Toaster element (data-sonner-toaster) was NOT found in DOM at inspection time because sonner mounts its ol lazily on first toast — acceptable behavior, not a bug. Toasts will appear when achievements unlock; visual unlock verification requires defeating an enemy in-canvas which cannot be asserted from DOM.",
+    "Default-no-achievements state shows '0/15 Unlocked' even though there's no persisted unlock yet — correct; fragment_1 and other condition-triggered toasts will re-seed from progress.achievements to avoid re-firing on reload per the engine.achievements seed path.",
+    "Workshop skins tab label renders 'WRENCHES' in UI but data-testid=workshop-tab-skins — cosmetic naming mismatch; consider unifying naming for future test clarity.",
+    "HUD timer top-right does not overlap with Score or hearts/scrap meter at 1920x1080 — layout is clean."
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_progress_iter8.py",
+    "/app/test_reports/pytest/iter8_results.xml"
+  ],
+  "action_items": [
+    "Optional: rename Workshop 'WRENCHES' tab label to 'SKINS' to match testing spec and data-testid.",
+    "Optional: when speedrun best-time is set, verify 'Best run: MM:SS.cc • L1: MM:SS.cc' line appears under toggle on Play tab (could not trigger a victory in automated test; needs manual playthrough or seeded progress).",
+    "Optional manual verification: defeat first root_crawler in Level 1 to confirm achievement toast pops with gold border top-right (sonner container mounts lazily; DOM check confirms no blocking integration issues)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_progress_iter8.py (new)"
+  ],
+  "success_rate": {"backend": "100% (8/8 pytest)", "frontend": "100% (all checked flows pass, zero errors)"},
+  "seed_data_creation": "Backend tests create TEST_-prefixed progress docs (TEST_default_*, TEST_iter8_*, TEST_update_*) — safe to leave; does not affect 'default' player.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 8 adds: speedrun timer (menu toggle + in-game HUD), achievement toasts (sonner, top-right), wrench skin equip+persistence (Workshop SKINS tab → backend unlocked_skins/wrench_skin fields), claymation enemy PNG sprites (3 of 4; flicker.png intentionally missing, falls back to procedural). All data-testids: menu-speedrun-toggle, open-workshop-btn (on MORE tab), workshop-tab-skins, skin-{id}, workshop-equip-btn, workshop-unlock-btn, menu-achievements-btn. Enter flow: title -> start-game-button -> menu -> MORE tab for Workshop/Achievements, PLAY tab for speedrun toggle and start-mission. Sonner Toaster mounts its container lazily on first toast; absence of [data-sonner-toaster] before any toast fires is normal. Backend tests: /app/backend/tests/test_progress_iter8.py (pytest, 8 tests, all passing)."
+}

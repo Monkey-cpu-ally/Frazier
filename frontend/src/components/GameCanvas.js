@@ -3,9 +3,25 @@ import { Engine } from '../game/engine';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
+const SKIN_COLORS = {
+  standard: '#A0A8B0',
+  rusty: '#8B6B4A',
+  golden: '#FFD700',
+  neon: '#00FFB3',
+  ember: '#FF5533',
+  frost: '#88DDFF',
+  shadow: '#8B5CF6',
+  scrap_special: '#7DA5BD',
+};
+
 const GameCanvas = forwardRef(({
-  onStateChange, onScrapEarned, startLevel = 0, paused = false, settings,
+  onStateChange, onScrapEarned, onAchievement, onRunComplete,
+  startLevel = 0, paused = false, settings,
   assistDamageLevel = 0, assistStabilizerLevel = 0,
+  equippedSkin = 'standard',
+  speedrunMode = false,
+  persistentTotalCoins = 0, persistentTotalScrap = 0,
+  unlockedAchievements = [],
 }, ref) => {
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
@@ -14,13 +30,11 @@ const GameCanvas = forwardRef(({
     if (onStateChange) onStateChange(state);
   }, [onStateChange]);
 
-  // Expose engine instance to parent
   useImperativeHandle(ref, () => ({
     get engine() { return engineRef.current; },
     get camera() { return engineRef.current?.camera; },
   }), []);
 
-  // Initialize engine ONCE
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -28,14 +42,19 @@ const GameCanvas = forwardRef(({
     const engine = new Engine(canvas, handleStateChange);
     engineRef.current = engine;
 
-    // Apply initial settings before start
+    // Initial settings + persistence-derived flags before start
     if (settings) {
       engine.camera.shakeEnabled = settings.screenShake !== false;
     }
+    engine.speedrunMode = !!speedrunMode;
+    engine.equippedSkin = equippedSkin;
+    engine.persistentTotalCoins = persistentTotalCoins;
+    engine.persistentTotalScrap = persistentTotalScrap;
+    // Seed the achievement tracker with already-unlocked ids so we don't re-fire toasts
+    unlockedAchievements.forEach(id => engine.achievements.unlocked.add(id));
+    engine.onAchievementUnlock = (id) => { if (onAchievement) onAchievement(id); };
 
-    engine.start(startLevel);
-
-    // Save score on game over / victory
+    // Save score + run stats on game over / victory
     const origOnState = engine.onStateChange;
     engine.onStateChange = (state) => {
       origOnState(state);
@@ -48,9 +67,17 @@ const GameCanvas = forwardRef(({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ score, coins, level: engine.currentLevelIndex }),
         }).catch(() => {});
-        if (scrapParts > 0 && onScrapEarned) onScrapEarned(scrapParts, score);
+        if (scrapParts > 0 && onScrapEarned) onScrapEarned(scrapParts, score, coins);
+        if (state === 'victory' && onRunComplete) {
+          onRunComplete({
+            finalMs: engine.runFinalMs || engine.runTimerMs || 0,
+            level1Ms: engine.achievements?.level1TimeMs || 0,
+          });
+        }
       }
     };
+
+    engine.start(startLevel);
 
     return () => {
       engine.stop();
@@ -61,12 +88,10 @@ const GameCanvas = forwardRef(({
 
   // Propagate pause to engine
   useEffect(() => {
-    if (engineRef.current) {
-      engineRef.current.paused = paused;
-    }
+    if (engineRef.current) engineRef.current.paused = paused;
   }, [paused]);
 
-  // Propagate settings changes to engine
+  // Propagate settings changes
   useEffect(() => {
     if (engineRef.current && settings) {
       engineRef.current.camera.shakeEnabled = settings.screenShake !== false;
@@ -74,15 +99,27 @@ const GameCanvas = forwardRef(({
     }
   }, [settings]);
 
-  // Propagate assist upgrade levels to engine
+  // Propagate assist upgrade levels
   useEffect(() => {
     if (!engineRef.current) return;
-    // Mirror Godot tiers: 5% / 10% / 15% damage bonus; 5% / 10% / 15% malfunction reduction
     const dmgMap = [0, 0.05, 0.10, 0.15];
     const redMap = [0, 0.05, 0.10, 0.15];
     engineRef.current.assistUpgradeBonus = dmgMap[Math.max(0, Math.min(3, assistDamageLevel))];
     engineRef.current.assistMalfunctionReduction = redMap[Math.max(0, Math.min(3, assistStabilizerLevel))];
   }, [assistDamageLevel, assistStabilizerLevel]);
+
+  // Propagate equipped skin → player color
+  useEffect(() => {
+    if (!engineRef.current || !engineRef.current.player) return;
+    engineRef.current.equippedSkin = equippedSkin;
+    engineRef.current.player.skinColor = SKIN_COLORS[equippedSkin] || SKIN_COLORS.standard;
+  }, [equippedSkin]);
+
+  // Propagate speedrun flag
+  useEffect(() => {
+    if (!engineRef.current) return;
+    engineRef.current.speedrunMode = !!speedrunMode;
+  }, [speedrunMode]);
 
   return (
     <canvas
