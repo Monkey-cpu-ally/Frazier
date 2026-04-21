@@ -177,3 +177,25 @@ User pasted 6 new GDScript snippets describing a huge new gameplay loop: City Hu
 ### Verified
 iteration_10.json: 100% frontend reachability + 16/18 backend (the 2 stale assertions then fixed → 18/18 after update). No JS errors on boot.
 
+
+
+## Unity 6 URP 2D Export (Feb 21, 2026)
+
+User pivoted the project to Unity to finish visuals/graphics. Shipped a complete Unity 6 URP 2D starter project at `/app/unity_export/HyperAxelUnity/` and packaged it as a downloadable zip.
+
+### Included in export
+- **Scripts (C#)**: `AxelController` (physics port w/ coyote + buffer + wall slide), `GameManager`, `AssistManager` (4-tier scrap), `PowerManager` (7 powers), `AchievementTracker` (15 unlocks), `EnemyBase` (armor/flicker/percent-damage), `Interactable` (hub kiosks), `LevelData` (ScriptableObject), `HUDController`.
+- **Workshop upgrade tree**: `WorkshopUpgradeTree.cs` (ScriptableObject, 3 damage + 3 stabilizer tiers) and `WorkshopController.cs` (PlayerPrefs persistence).
+- **Daily Challenge**: `DailyChallenge.cs` — same MD5→seed algorithm as `backend/server.py`, identical 6-modifier pool.
+- **Input**: `PlayerControls.inputactions` with WASD + arrows + gamepad bindings; `InputBridge.cs` adapter. `AxelController` uses KeyCode fallback so it plays without InputManager setup.
+- **One-click starter**: `Assets/Editor/StarterSceneBuilder.cs` — `HyperAxel > Create Starter Scene` menu generates URP asset, sample scene, camera, tilemap+CompositeCollider2D ground, player + ground/wall checks, managers, HUD canvas.
+- **Sprites**: `Heavy.png`, `GearBug.png`, `RootCrawler.png`, `Flicker.png` (Gemini claymation).
+- **README.md**: physics tuning table, first-run instructions, porting guide.
+- **Package manifest**: Unity 6.0 URP 17.0.3, Cinemachine 3.1.2, Input System 1.11.2, TextMeshPro, 2D Tilemap.
+
+### Delivery
+- Zip (2.0 MB) served at: `{REACT_APP_BACKEND_URL}/HyperAxelUnity.zip`
+- User opens Unity Hub → Add project → select extracted folder → requires Unity 6000.0.30f1+.
+
+### Status
+- Export complete and downloadable. User now continues visual/graphics work inside Unity.

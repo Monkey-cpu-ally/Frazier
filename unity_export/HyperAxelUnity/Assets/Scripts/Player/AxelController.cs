@@ -81,11 +81,17 @@ namespace HyperAxel
 
             if (grounded) { coyoteT = coyoteTime; canDash = true; }
 
-            // Input
-            float moveDir = Input.GetAxisRaw("Horizontal");
-            if (Input.GetButtonDown("Jump")) jumpBufT = jumpBuffer;
-            if (Input.GetButtonDown("Dash") && !noDashModifier) TryDash(moveDir);
-            if (Input.GetButtonDown("Attack")) DoAttack();
+            // Input (KeyCode-based so it works without editing InputManager.asset;
+            // swap for InputBridge when you want gamepad + rebinding support).
+            float moveDir = (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) ? -1f
+                          : (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) ?  1f : 0f;
+            bool jumpPressed = Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow);
+            bool jumpHeld    = Input.GetKey(KeyCode.Space)     || Input.GetKey(KeyCode.W)     || Input.GetKey(KeyCode.UpArrow);
+            bool dashPressed = Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift);
+            bool attackPressed = Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0);
+            if (jumpPressed) jumpBufT = jumpBuffer;
+            if (dashPressed && !noDashModifier) TryDash(moveDir);
+            if (attackPressed) DoAttack();
 
             // Horizontal move
             if (!isDashing)
@@ -104,7 +110,7 @@ namespace HyperAxel
             }
 
             // Wall jump
-            if (!grounded && (onWallL || onWallR) && Input.GetButtonDown("Jump"))
+            if (!grounded && (onWallL || onWallR) && jumpPressed)
             {
                 int wallDir = onWallL ? 1 : -1;
                 rb.linearVelocity = new Vector2(wallDir * wallJump.x, wallJump.y);
@@ -113,7 +119,7 @@ namespace HyperAxel
 
             // Variable gravity for that crisp Godot jump feel
             float envMul = waterfallActive ? 2.5f : gravityMul;
-            if (rb.linearVelocity.y > 0 && !Input.GetButton("Jump"))
+            if (rb.linearVelocity.y > 0 && !jumpHeld)
                 rb.gravityScale = gravityScale * lowJumpGravityMul * envMul;
             else if (rb.linearVelocity.y < 0)
                 rb.gravityScale = gravityScale * fallGravityMul * envMul;

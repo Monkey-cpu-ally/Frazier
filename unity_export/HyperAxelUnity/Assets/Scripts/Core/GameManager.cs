@@ -27,6 +27,7 @@ namespace HyperAxel
         public float runFinalMs;
         public bool speedrunMode;
         public bool dailyMode;
+        [HideInInspector] public DailyChallenge.DailyModifier activeDaily;
 
         void Awake() { if (I != null && I != this) { Destroy(gameObject); return; } I = this; }
 
