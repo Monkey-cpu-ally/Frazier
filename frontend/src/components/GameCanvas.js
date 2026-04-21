@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { Engine } from '../game/engine';
+import { generateDreamWorld, getFantasyBiome } from '../game/biomes';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -18,6 +19,7 @@ const GameCanvas = forwardRef(({
   onStateChange, onScrapEarned, onAchievement, onRunComplete, onHubInteract,
   startLevel = 0, paused = false, settings,
   hubMode = false,
+  biomeChoice = null,
   assistDamageLevel = 0, assistStabilizerLevel = 0,
   equippedSkin = 'standard',
   speedrunMode = false,
@@ -84,6 +86,11 @@ const GameCanvas = forwardRef(({
 
     if (hubMode) {
       engine.startHub();
+    } else if (biomeChoice) {
+      const level = biomeChoice === 'dream'
+        ? generateDreamWorld(Date.now())
+        : getFantasyBiome(biomeChoice);
+      engine.startBiome(level);
     } else {
       engine.start(startLevel);
     }

@@ -54,6 +54,7 @@ export const POWERS = {
   super_mode:      { name: 'Super Mode',      color: '#FF4444', dur: 15, letter: 'M' },
   specter_mode:    { name: 'Specter Mode',    color: '#88DDFF', dur: 15, letter: 'P' },
   fighter_plane:   { name: 'Fighter Plane',   color: '#44BB44', dur: 15, letter: 'F' },
+  hyper_mode:      { name: 'Hyper Mode',      color: '#FF2ED5', dur: 12, letter: 'H' },
 };
 
 export const C = {

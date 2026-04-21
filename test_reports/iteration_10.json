@@ -1,0 +1,59 @@
+{
+  "summary": "Iteration 10 testing: City Hub + WorldPicker + Biomes (dream/lava/sky/forest) + Hyper Mode + Waterfall + Boss Arena prototypes. Backend regression: 16/18 pytest pass — 2 failures are STALE assertions in pre-existing tests (NOT iter10 regressions): (a) test_speedrun_invalid_zero_ms expected 200 with status:invalid but server now correctly returns 400 (per iter9 recommendation); (b) test_enemy_sprites_available expects flicker.png to NOT exist but file exists (unrelated, pre-iter10). Frontend: City Hub loads cleanly with urban_overgrowth bg, 3 kiosks at correct positions (SHOP @300 yellow $, UPGRADE @500 teal ↑, MISSION @800 red ▶) each with [E] prompt. Walking + E hold opens Workshop from shop/upgrade kiosks and WorldPicker (data-testid=world-picker-overlay) from mission kiosk. WorldPicker renders all 5 expected world cards with deploy buttons (world-story-btn, world-dream-btn, world-lava-btn, world-sky-btn, world-forest-btn) — names confirmed: Story Campaign, Dream World, Emberfall, Cloudspire, Verdanthold. Clicking world-dream-btn closes the picker. Zero JS console errors (only benign WebSocket dev-server warnings on localhost:443). 'Walk around with A/D. Press E at kiosks.' hint banner shows on hub entry. Did NOT visually drill into deep biome behavior (waterfall trigger, hyper-mode collection, boss-after-clear barrier) — those render inside canvas and require longer scripted gameplay; iter10 spec explicitly calls those a 'playable rough'.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/leaderboard/speedrun POST (total_ms=0)", "issue": "Server now returns 400 (correct REST), but pre-iter9 test_speedrun_invalid_zero_ms still asserts 200 — STALE TEST, not a server bug. Update test to assert 400."},
+      {"endpoint": "test_enemy_sprites_available", "issue": "Test asserts /app/frontend/public/enemies/flicker.png does NOT exist, but it does. Pre-existing stale test. Update or remove."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Hub kiosk E-hold latch", "issue": "When holding E continuously and walking from spawn (x=100) past SHOP (x=300) → UPGRADE (x=500) → MISSION (x=800), Workshop modal opens (from shop/upgrade) and remains open underneath WorldPicker after MISSION fires. Both modals stack. Functional — close Workshop with ESC after picking world. Consider auto-closing workshop when entering a different kiosk zone, or only fire interactable on FRESH E-press (not continuous hold) once player has moved out of previous zone.", "affected_selectors": ["world-picker-overlay", "Scrap's Workshop modal"]}
+    ],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Backend pytest 16/18: all iter9 (9/10) + iter8 (7/8) endpoints still healthy. 2 failures are stale test assertions, NOT iter10 server bugs.",
+    "menu-hub-btn renders in Play tab with '🌿 GO TO CITY HUB' label",
+    "Clicking menu-hub-btn loads City Hub: urban_overgrowth gradient bg, mossy skyscrapers, 3 kiosks visible (SHOP yellow, UPGRADE teal, MISSION red), 'City Hub' label top-right, [E] prompts under each kiosk",
+    "'Walk around with A/D. Press E at kiosks.' hint banner shows on entry",
+    "Walking into SHOP kiosk while holding E opens Scrap's Workshop modal",
+    "Walking into MISSION kiosk while holding E opens WorldPicker (data-testid=world-picker-overlay)",
+    "WorldPicker renders 5 cards: Story Campaign / Dream World / Emberfall / Cloudspire / Verdanthold with correct accent colors and DEPLOY buttons",
+    "All 5 deploy testids present: world-story-btn, world-dream-btn, world-lava-btn, world-sky-btn, world-forest-btn",
+    "Clicking world-dream-btn closes the picker and triggers biome load",
+    "'BACK TO HUB' button (world-picker-close-btn) renders",
+    "Zero JS console errors during full hub→kiosk→worldpicker→deploy flow (excluding benign WebSocket dev-server logs)",
+    "REGRESSION: menu-start-btn still renders, daily-challenge-card still on Play tab, speedrun-leaderboard still on Scores tab"
+  ],
+  "critical_code_review_comments": [
+    "App.js handleHubInteract: opens workshop OR worldpicker but doesn't close the OTHER if user walks through multiple kiosks with E held. UX: player crossing UPGRADE then MISSION sees Workshop stuck behind WorldPicker. Recommend resetting modal stack on new interactable, or check `showWorkshop`/`showWorldPicker` and ignore subsequent interactable kinds while a modal is open.",
+    "WorldPicker.js: clickable card div uses onClick={() => onChoose(w.id)}, but DEPLOY button inside also has data-testid=world-<id>-btn. Clicking the button bubbles to the card's onClick — works fine but double-fires onChoose handler (idempotent so no bug). Add e.stopPropagation on button onClick or remove redundant card onClick for clarity.",
+    "Backend test test_speedrun_invalid_zero_ms is stale (server returns 400, test expects 200). Update assertion to status_code == 400.",
+    "Backend test test_enemy_sprites_available is stale (asserts flicker.png absent, but it exists). Likely pre-iter10 sprite was added later. Update test.",
+    "Hub level uses urban_overgrowth env — biomes/levels.js should ensure hub:true skips combat HUD elements like 'Score: 0' & 'Lives' if intended as pure non-combat zone (currently hearts+score render at top of hub, see screenshot). Minor.",
+    "Dream World 'Dream' string is rendered to canvas only (not DOM) so automated DOM assertion can't verify level name; suggest also setting document.title or a hidden data-testid='current-level-name' span for better testability.",
+    "Iteration 10 ships 6 new gameplay systems in one pass — hyper_mode pickup, waterfall trigger, bossAfterClear barrier, biome tints, etc — none of which are reachable via DOM assertions. Recommend adding minimal data-testid badges (e.g., 'WATERFALL DESCENT' banner as DOM toast or hidden marker) so future automated tests can validate biome events fired."
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_iter9_daily_speedrun.py",
+    "/app/backend/tests/test_progress_iter8.py",
+    "/app/test_reports/pytest/iter10_results.xml"
+  ],
+  "action_items": [
+    "Decide: should Workshop auto-close when WorldPicker opens (and vice-versa) so user isn't stuck with stacked modals after walking through multiple hub kiosks with E held?",
+    "Update stale backend tests: test_speedrun_invalid_zero_ms (assert 400 not 200) and test_enemy_sprites_available (sprite file now exists).",
+    "Optional: add data-testid='current-level-name' hidden DOM marker reflecting engine.currentLevel.name so automated tests can verify Dream World / Emberfall / Cloudspire / Verdanthold load without canvas inspection.",
+    "Optional: add DOM toast/banner data-testids for in-game events (waterfall fire, boss-arena raise, hyper-mode active) to enable automated validation of biome systems shipped in iter10."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "89% (16/18 — 2 stale, no real regressions)", "frontend": "100% on automated reachability checks (hub, kiosks, workshop, worldpicker, all 5 worlds, deploy click, regression)"},
+  "test_credentials": "/app/memory/test_credentials.md not present — no auth in this app",
+  "seed_data_creation": "Backend tests reuse iter9 TEST_-prefixed seed data; no new seed data this iteration.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iter 10 adds City Hub (data-testid=menu-hub-btn) entry to the Play tab. Hub has 3 kiosks: SHOP (x=300) → Workshop, UPGRADE (x=500) → Workshop, MISSION (x=800) → WorldPicker (data-testid=world-picker-overlay) with 5 world cards (data-testid=world-{story|dream|lava|sky|forest}-btn). Player spawns at x=100, walks ~250px/s; reach mission gate by holding D for ~2.8-3s. Hold E throughout walk to latch interactables. KNOWN UX QUIRK: holding E across multiple kiosks stacks modals (Workshop opens first from upgrade then WorldPicker layers on top from mission) — close inner with ESC. Biome rendering (Dream/Lava/Sky/Forest), Hyper Mode pickup, waterfall event, boss-after-clear barrier all render inside canvas only — no DOM hooks for automated verification. Backend has NO new endpoints for iter10. Pytest 16/18 — 2 failures are stale pre-iter10 tests (speedrun zero_ms expected 200 but is now 400; flicker.png assertion). Iter10 backend regression: GREEN. Run via: pytest backend/tests/ -v",
+  "rca of the issue": "No iter10-introduced regressions. Stacked modals from continuous E-hold across multiple kiosks is a UX quirk, not a functional bug — both modals work independently. Stale backend tests are documentation drift, not server defects."
+}

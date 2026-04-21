@@ -88,6 +88,21 @@ export class Player {
     this.shadows.forEach(s => { s.alpha -= dt * 1.5; });
     this.shadows = this.shadows.filter(s => s.alpha > 0);
 
+    // Hyper Mode trail — emit magenta ghosts while moving fast
+    if (engine.powerManager.isHyperMode && Math.abs(this.vx) > 40) {
+      this.hyperTrailT = (this.hyperTrailT || 0) - dt;
+      if (this.hyperTrailT <= 0) {
+        this.hyperTrailT = 0.03;
+        this.hyperTrail = this.hyperTrail || [];
+        this.hyperTrail.push({ x: this.x, y: this.y, facing: this.facing, alpha: 0.65 });
+        if (this.hyperTrail.length > 12) this.hyperTrail.shift();
+      }
+    }
+    if (this.hyperTrail) {
+      this.hyperTrail.forEach(t => { t.alpha -= dt * 2.5; });
+      this.hyperTrail = this.hyperTrail.filter(t => t.alpha > 0);
+    }
+
     // Dash ghosts
     this.dashGhosts.forEach(g => { g.alpha -= dt * 4; });
     this.dashGhosts = this.dashGhosts.filter(g => g.alpha > 0);
@@ -135,7 +150,7 @@ export class Player {
     if (inp.right) moveDir = 1;
 
     // Horizontal movement (Godot-style move_toward)
-    const spdMul = pm.isSuperMode ? 1.4 : 1;
+    const spdMul = pm.isHyperMode ? 1.5 : pm.isSuperMode ? 1.4 : 1;
     const targetSpeed = moveDir * PL.speed * spdMul;
     if (Math.abs(targetSpeed) > 0.01) {
       this.vx = this._moveToward(this.vx, targetSpeed, PL.accel * dt);
@@ -152,13 +167,17 @@ export class Player {
       } else if (this.vy < 0 && !inp.jumpHeld) {
         grav *= PL.lowJumpGravMul;
       }
+      // Biome / event gravity modifier (dream = 0.6, waterfall = 2.5)
+      const envMul = engine.waterfallActive ? 2.5 : (engine.gravityMul || 1);
+      grav *= envMul;
       this.vy += grav * dt;
       this.vy = Math.min(this.vy, PL.maxFall);
     }
 
     // Jump
     if (this.jumpBufT > 0 && (this.grounded || this.coyoteT > 0)) {
-      this.vy = PL.jumpV * (pm.isSuperMode ? 1.15 : 1);
+      const jumpMul = engine.waterfallActive ? 0.5 : (pm.isSuperMode ? 1.15 : 1);
+      this.vy = PL.jumpV * jumpMul;
       this.grounded = false;
       this.coyoteT = 0;
       this.jumpBufT = 0;
@@ -377,6 +396,19 @@ export class Player {
       this._drawBody(ctx, g.x, g.y, g.facing);
       ctx.globalAlpha = 1;
     });
+
+    // Hyper Mode magenta trail
+    if (this.hyperTrail) {
+      this.hyperTrail.forEach(t => {
+        ctx.save();
+        ctx.globalAlpha = t.alpha * 0.7;
+        ctx.globalCompositeOperation = 'screen';
+        ctx.filter = 'hue-rotate(300deg) saturate(2) brightness(1.2)';
+        this._drawBody(ctx, t.x, t.y, t.facing);
+        ctx.filter = 'none';
+        ctx.restore();
+      });
+    }
 
     // Shadow tag shadows
     this.shadows.forEach(s => {

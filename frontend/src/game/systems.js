@@ -90,6 +90,7 @@ export class PowerManager {
   get isSpecterMode() { return this.id === 'specter_mode'; }
   get isShadowTag() { return this.id === 'shadow_tag'; }
   get isFighterPlane() { return this.id === 'fighter_plane'; }
+  get isHyperMode() { return this.id === 'hyper_mode'; }
 }
 
 export class FlightLog {

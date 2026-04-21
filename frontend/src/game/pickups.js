@@ -165,6 +165,7 @@ export class PowerPickup extends PickupBase {
     const letters = {
       burning_buffalo: 'B', shadow_tag: 'S', golden_gloves: 'G',
       super_mode: 'M', specter_mode: 'P', fighter_plane: 'F',
+      hyper_mode: 'H',
     };
     ctx.fillText(letters[this.powerId] || '?', x, y + 1);
   }

@@ -11,6 +11,7 @@ import TouchControls from '@/components/TouchControls';
 import Workshop from '@/components/Workshop';
 import Achievements from '@/components/Achievements';
 import MirrorGallery from '@/components/MirrorGallery';
+import WorldPicker from '@/components/WorldPicker';
 import { sfx } from '@/game/sfx';
 import { music } from '@/game/music';
 
@@ -75,6 +76,8 @@ function App() {
   const [dailyMode, setDailyMode] = useState(false);
   const [dailyModifier, setDailyModifier] = useState(null);
   const [hubMode, setHubMode] = useState(false);
+  const [showWorldPicker, setShowWorldPicker] = useState(false);
+  const [biomeChoice, setBiomeChoice] = useState(null);
 
   // Fetch daily modifier on mount
   React.useEffect(() => {
@@ -246,12 +249,25 @@ function App() {
       setShowWorkshop(true);
       sfx.uiClick();
     } else if (kind === 'mission_gate') {
-      // Leave the hub and start a fresh mission
+      setShowWorldPicker(true);
+      sfx.uiClick();
+    }
+  }, []);
+
+  const handleChooseWorld = useCallback((worldId) => {
+    setShowWorldPicker(false);
+    sfx.uiStart();
+    if (worldId === 'story') {
       setHubMode(false);
+      setBiomeChoice(null);
       setStartLevel(0);
       setRestartKey(k => k + 1);
-      sfx.uiStart();
+      return;
     }
+    // Biome deployment — set biomeChoice, leave hub mode
+    setHubMode(false);
+    setBiomeChoice(worldId);
+    setRestartKey(k => k + 1);
   }, []);
 
   const handleEquipSkin = useCallback((skinId) => {
@@ -440,6 +456,7 @@ function App() {
               startLevel={startLevel}
               paused={paused}
               hubMode={hubMode}
+              biomeChoice={biomeChoice}
               settings={settings}
               assistDamageLevel={progress.assist_damage_level || 0}
               assistStabilizerLevel={progress.assist_stabilizer_level || 0}
@@ -481,6 +498,13 @@ function App() {
           onUpgrade={handleUpgrade}
           onEquipSkin={handleEquipSkin}
           onUnlockSkin={handleUnlockSkin}
+        />
+
+        {/* ===== WORLD PICKER ===== */}
+        <WorldPicker
+          open={showWorldPicker}
+          onClose={() => setShowWorldPicker(false)}
+          onChoose={handleChooseWorld}
         />
 
         {/* ===== ACHIEVEMENTS ===== */}

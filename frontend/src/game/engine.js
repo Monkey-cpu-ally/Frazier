@@ -6,6 +6,7 @@ import { GameState, PowerManager, FlightLog, AchievementTracker } from './system
 import { createEnemy } from './enemies';
 import { createPickup, Breakable } from './pickups';
 import { getLevels, getCityHub } from './levels';
+import { generateDreamWorld, getFantasyBiome } from './biomes';
 import { HUD } from './hud';
 import { Boss, FoxSpirit } from './boss';
 import { sfx } from './sfx';
@@ -148,6 +149,26 @@ export class Engine {
     this._loop();
   }
 
+  startBiome(biomeLevel) {
+    this.gameState.reset();
+    this.powerManager.reset();
+    this.flightLog.entries = [];
+    this.dialogue.reset();
+    this.mirrorFragments = 0;
+    this.secretEndingTriggered = false;
+    this.levels = [biomeLevel];
+    this.totalFragments = 4;
+    this.levelsCompleted = 0;
+    this.runStartMs = performance.now();
+    this.runFinalMs = null;
+    this.runTimerMs = 0;
+    this.loadLevel(0);
+    this.running = true;
+    this.lastTime = performance.now();
+    this.flightLog.add(`Deploying to ${biomeLevel.name}.`, 'system');
+    this._loop();
+  }
+
   restart(levelIndex = 0) {
     this.gameState.reset();
     this.powerManager.reset();
@@ -178,6 +199,28 @@ export class Engine {
   }
 
   stop() { this.running = false; this.input.destroy(); }
+
+  _spawnBiomeBossWave() {
+    // Spawn a stronger wave of 3 biome-tinted enemies as a "boss stand-in"
+    const tint = this.biome === 'lava' ? '#FF5533'
+               : this.biome === 'sky' ? '#88DDFF'
+               : this.biome === 'forest' ? '#AADDFF'
+               : '#FF2ED5';
+    const baseX = this.player.x + 220;
+    const baseY = this.player.y - 20;
+    const mix = this.biome === 'sky' ? ['flicker', 'flicker', 'heavy']
+              : this.biome === 'lava' ? ['gear_bug', 'heavy', 'heavy']
+              : ['root_crawler', 'flicker', 'heavy'];
+    mix.forEach((type, i) => {
+      const e = createEnemy({ type, x: baseX + i * 90, y: baseY });
+      e.tintColor = tint;
+      e.hp *= 2; e.maxHp = e.hp;
+      e.speed *= 1.25;
+      this.enemies.push(e);
+    });
+    // Flag the arena barrier — render at camera right edge
+    this.bossArenaActive = true;
+  }
 
   loadLevel(index) {
     if (index >= this.levels.length) {
@@ -226,6 +269,11 @@ export class Engine {
     this.player.skinColor = SKIN_COLORS[this.equippedSkin] || SKIN_COLORS.standard;
     this.enemies = (lv.enemies || []).map(e => {
       const enemy = createEnemy(e);
+      // Biome tint — color-wash applied in enemy render path via tintColor
+      if (e.lava) enemy.tintColor = '#FF5533';
+      else if (e.sky) enemy.tintColor = '#88DDFF';
+      else if (e.forest) enemy.tintColor = '#AADDFF';
+      else if (e.dream) enemy.tintColor = '#FFB3FF';
       if (this.newGamePlus) {
         enemy.speed *= this.ngPlusMultiplier;
         enemy.hp = Math.ceil(enemy.hp * 1.3);
@@ -243,6 +291,15 @@ export class Engine {
       new Breakable(b.x, b.y, b.w, b.h, b.btype, b.smashOnly)
     );
     this.assists = [];
+    // Biome / event modifiers
+    this.gravityMul = lv.gravityMul || 1;
+    this.waterfallActive = false;
+    this.waterfallTimer = 0;
+    this.waterfallEventFired = false;
+    this.waterfallConfig = lv.waterfallEvent || null;
+    this.fallingRocks = [];
+    this.bossAfterClear = !!lv.bossAfterClear;
+    this.biome = lv.biome || null;
     // Hint prompt triggers — fire once when Axel walks into the area
     this.hintTriggers = (lv.hintTriggers || []).map(h => ({
       x: h.x, y: h.y, w: h.w || 80, h: h.h || 120,
@@ -457,12 +514,31 @@ export class Engine {
       sfx.playerDeath();
     }
 
+    // Boss arena auto-clear: if active and all enemies dead, unlock and advance
+    if (this.bossArenaActive && this.enemies.every(e => !e.alive)) {
+      this.bossArenaActive = false;
+      this.gameState.showPickup('Barrier down. Arena cleared!');
+      this.flightLog.add('Boss arena cleared.', 'event');
+      if (this.achievements) this.achievements.onBossDefeated();
+      sfx.levelComplete();
+    }
+
     // Level exit (skip in hub — hub is non-linear, player leaves via Mission Gate)
     if (this.currentLevel && !this.currentLevel.hub && this.player.x >= this.currentLevel.exitX) {
       const allDead = this.enemies.every(e => !e.alive);
       const bossCleared = !this.boss || this.boss.defeated;
       if ((!this.currentLevel.isBoss || (allDead && bossCleared))) {
         sfx.levelComplete();
+        // Biome levels flagged bossAfterClear get a mini boss arena flash
+        if (this.currentLevel.bossAfterClear && !this.bossArenaShown) {
+          this.bossArenaShown = true;
+          this.gameState.showPickup('⚔ BOSS ARENA — barrier raised');
+          this.camera.shake(8, 0.5);
+          this.flightLog.add('Boss arena sealed. Survive and ascend.', 'event');
+          // Spawn a quick boss-minion wave using the biome's enemies palette
+          this._spawnBiomeBossWave();
+          return; // don't advance until the wave is cleared
+        }
         // Achievement hooks: boss defeated, level completed (no-dmg, speed_run)
         if (this.currentLevel.isBoss && this.achievements) {
           this.achievements.onBossDefeated();
@@ -493,10 +569,21 @@ export class Engine {
       }
     });
 
+    // Boss Arena: clamp player inside barrier
+    if (this.bossArenaActive) {
+      const barrierX = this.camera.x + W - 40;
+      if (pl.x > barrierX) {
+        pl.x = barrierX;
+        if (pl.vx > 0) pl.vx = 0;
+      }
+    }
+
     // Player attack vs enemies
     if (pl.atkTimer > 0) {
       const ab = pl.getAtkBox();
-      let dmgMul = this.powerManager.isGoldenGloves ? 2 : (this.powerManager.isSuperMode ? 1.5 : 1);
+      let dmgMul = this.powerManager.isGoldenGloves ? 2
+                : this.powerManager.isHyperMode ? 2
+                : this.powerManager.isSuperMode ? 1.5 : 1;
       // Daily: dmg_mul
       if (this.dailyMode && this.dailyModifier && this.dailyModifier.dmg_mul) {
         dmgMul *= this.dailyModifier.dmg_mul;
@@ -533,10 +620,12 @@ export class Engine {
     this.pickups.forEach(p => {
       if (p.collected) return;
       const hb = p.hitbox;
-      if (this._aabb(pl.left, pl.top, pl.w, pl.h, hb.x, hb.y, hb.w, hb.h)) {
-        // Fox Statue + Interactables require E-key interact
+      const inRange = this._aabb(pl.left, pl.top, pl.w, pl.h, hb.x, hb.y, hb.w, hb.h);
+      if (inRange) {
+        // Fox Statue + Interactables require E — latch so it only fires once per entry
         if (p.type === 'foxstatue' || p.type === 'interactable') {
-          if (this.input.interact) {
+          if (this.input.down('KeyE') && !p._interactLatch) {
+            p._interactLatch = true;
             p.collect(this);
           }
           return;
@@ -549,6 +638,9 @@ export class Engine {
             totalScrap: (this.persistentTotalScrap || 0) + this.gameState.scrapParts,
           });
         }
+      } else if (p.type === 'foxstatue' || p.type === 'interactable') {
+        // Reset latch when player leaves the zone
+        p._interactLatch = false;
       }
     });
 
@@ -564,6 +656,47 @@ export class Engine {
       });
     }
 
+    // Waterfall event — trigger once at triggerX, lasts `duration` seconds
+    if (this.waterfallConfig && !this.waterfallEventFired && pl.x >= this.waterfallConfig.triggerX) {
+      this.waterfallEventFired = true;
+      this.waterfallActive = true;
+      this.waterfallTimer = this.waterfallConfig.duration || 5;
+      this.gameState.showPickup('⬇ WATERFALL DESCENT');
+      this.flightLog.add('Waterfall descent — gravity surge!', 'event');
+      this.camera.shake(6, 0.5);
+    }
+    if (this.waterfallActive) {
+      this.waterfallTimer -= dt;
+      // Force downward velocity bias
+      if (!pl.grounded && pl.vy < 50) pl.vy = 50;
+      // Spawn a falling rock every ~0.3s
+      this._waterfallSpawnT = (this._waterfallSpawnT || 0) - dt;
+      if (this._waterfallSpawnT <= 0) {
+        this._waterfallSpawnT = 0.25 + Math.random() * 0.3;
+        this.fallingRocks.push({
+          x: pl.x - 150 + Math.random() * 300,
+          y: this.camera.y - 20,
+          vy: 220 + Math.random() * 120,
+          r: 6 + Math.random() * 6,
+          hit: false,
+        });
+      }
+      if (this.waterfallTimer <= 0) {
+        this.waterfallActive = false;
+        this.fallingRocks = [];
+        this.gameState.showPickup('Descent cleared.');
+      }
+    }
+    // Update + collide falling rocks
+    this.fallingRocks.forEach(r => {
+      r.y += r.vy * dt;
+      if (!r.hit && this._aabb(pl.left, pl.top, pl.w, pl.h, r.x - r.r, r.y - r.r, r.r * 2, r.r * 2)) {
+        r.hit = true;
+        pl.takeDamage(1, r.x, this);
+      }
+    });
+    this.fallingRocks = this.fallingRocks.filter(r => !r.hit && r.y < this.camera.y + H + 80);
+
     // Boss collision
     if (this.boss && this.boss.alive && this.bossActivated) {
       const bh = this.boss.getHitbox();
@@ -577,7 +710,9 @@ export class Engine {
       if (pl.atkTimer > 0) {
         const ab = pl.getAtkBox();
         if (this._aabb(ab.x, ab.y, ab.w, ab.h, bh.x, bh.y, bh.w, bh.h)) {
-          const dmgMul = this.powerManager.isGoldenGloves ? 2 : (this.powerManager.isSuperMode ? 1.5 : 1);
+          const dmgMul = this.powerManager.isGoldenGloves ? 2
+                      : this.powerManager.isHyperMode ? 2
+                      : this.powerManager.isSuperMode ? 1.5 : 1;
           this.boss.takeDamage(Math.ceil(dmgMul), pl.x, this);
         }
       }
@@ -682,6 +817,49 @@ export class Engine {
 
     // Scrap Assists (above everything — planes, drops, actors)
     this.assists.forEach(a => a.render(ctx));
+
+    // Boss Arena barrier — energy wall at camera right edge
+    if (this.bossArenaActive) {
+      const barrierX = this.camera.x + W - 20;
+      const t = performance.now() * 0.005;
+      ctx.save();
+      ctx.globalAlpha = 0.7;
+      const grad = ctx.createLinearGradient(barrierX - 14, 0, barrierX + 14, 0);
+      grad.addColorStop(0, 'rgba(255,90,90,0)');
+      grad.addColorStop(0.5, 'rgba(255,90,90,0.85)');
+      grad.addColorStop(1, 'rgba(255,90,90,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(barrierX - 14, this.camera.y - 100, 28, H + 200);
+      // Crackle lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 3; i++) {
+        const y1 = this.camera.y + (i * 240 + Math.sin(t + i) * 40);
+        ctx.beginPath();
+        ctx.moveTo(barrierX - 10, y1);
+        ctx.lineTo(barrierX + 10, y1 + 60);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Waterfall event — blue sheet + falling rocks
+    if (this.waterfallActive) {
+      ctx.save();
+      const alpha = 0.10 + Math.sin(performance.now() * 0.02) * 0.05;
+      ctx.fillStyle = `rgba(88, 200, 255, ${alpha})`;
+      ctx.fillRect(-500, -500, 2800, 2000);
+      ctx.restore();
+      this.fallingRocks.forEach(r => {
+        ctx.fillStyle = '#4A4038';
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#0A0A0A';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+    }
 
     // Particles
     this.particles.forEach(p => p.render(ctx));
@@ -814,8 +992,96 @@ export class Engine {
   }
 
   _renderBg(ctx) {
+    const env = this.currentLevel.environment;
+
+    // DREAM WORLD — pink-purple gradient with soft orbs
+    if (env === 'dream_world') {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#3A2450'); g.addColorStop(0.5, '#7A4A8A'); g.addColorStop(1, '#D8A0C8');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      // Floaty orbs
+      const t = performance.now() * 0.0005;
+      for (let i = 0; i < 18; i++) {
+        const x = ((i * 83 + t * 40) % (W + 60)) - 30;
+        const y = 100 + (i % 5) * 80 + Math.sin(t * 2 + i) * 20;
+        const r = 20 + (i % 4) * 8;
+        ctx.fillStyle = `rgba(255,200,255,${0.04 + (i % 3) * 0.02})`;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      }
+      return;
+    }
+
+    // LAVA — deep red-orange with heat shimmer
+    if (env === 'lava_world') {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#2A0A0A'); g.addColorStop(0.7, '#6A1A0A'); g.addColorStop(1, '#D85018');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      // Ember dots
+      const t = performance.now() * 0.001;
+      for (let i = 0; i < 25; i++) {
+        const x = (i * 61 + t * 20) % W;
+        const y = (H - ((i * 37 + t * 60) % H));
+        ctx.fillStyle = 'rgba(255,150,80,0.6)';
+        ctx.fillRect(x, y, 2, 2);
+      }
+      // Far lava silhouette
+      ctx.fillStyle = '#3A1008';
+      ctx.fillRect(0, H * 0.6, W, H * 0.4);
+      return;
+    }
+
+    // SKY — pastel blue with distant floating islands
+    if (env === 'floating_islands') {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#88C8FF'); g.addColorStop(1, '#FFDCC8');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      const px = -this.camera.x * 0.3;
+      ctx.save(); ctx.translate(px, 0);
+      for (let i = 0; i < 8; i++) {
+        const x = i * 240 + 100;
+        const y = 120 + Math.sin(i * 1.7) * 30;
+        ctx.fillStyle = '#8B6344';
+        ctx.fillRect(x, y, 90, 24);
+        ctx.fillStyle = '#4A7A3A';
+        ctx.fillRect(x, y - 6, 90, 10);
+        ctx.strokeStyle = '#0A0A0A';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y - 6, 90, 30);
+      }
+      ctx.restore();
+      return;
+    }
+
+    // MYSTIC FOREST — deep teal with light rays
+    if (env === 'mystic_forest') {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#0E2A2A'); g.addColorStop(1, '#1E4A3A');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      for (let i = 0; i < 6; i++) {
+        const x = 120 + i * 220;
+        ctx.fillStyle = '#C8E088';
+        ctx.beginPath();
+        ctx.moveTo(x, 0); ctx.lineTo(x + 80, 0); ctx.lineTo(x + 140, H); ctx.lineTo(x + 60, H);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+      // Tree silhouettes
+      const px = -this.camera.x * 0.3;
+      ctx.save(); ctx.translate(px, 0);
+      for (let i = 0; i < 10; i++) {
+        const x = i * 180 + 50;
+        ctx.fillStyle = '#1A2A1E';
+        ctx.fillRect(x, 120, 12, H - 120);
+        ctx.beginPath(); ctx.arc(x + 6, 120, 40, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+      return;
+    }
+
     // Urban Overgrowth hub — stylized concrete city block with mossy tint
-    if (this.currentLevel.environment === 'urban_overgrowth') {
+    if (env === 'urban_overgrowth') {
       // Sky: muted grey-green gradient
       const sky = ctx.createLinearGradient(0, 0, 0, H);
       sky.addColorStop(0, '#2B3A3A');

@@ -216,7 +216,18 @@ class EnemyBase {
       ctx.save();
       ctx.globalCompositeOperation = 'source-atop';
     }
-    if (!this._drawSprite(ctx)) this._draw(ctx);
+    // Biome tint overlay — drawn as composited color wash
+    if (this.tintColor) {
+      ctx.save();
+      if (!this._drawSprite(ctx)) this._draw(ctx);
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.fillStyle = this.tintColor;
+      ctx.globalAlpha = 0.35;
+      ctx.fillRect(this.x - this.w, this.y - this.h * 1.6, this.w * 2.2, this.h * 1.8);
+      ctx.restore();
+    } else {
+      if (!this._drawSprite(ctx)) this._draw(ctx);
+    }
     if (this.flashTimer > 0) ctx.restore();
     if (this.hasFlicker && !this.flickerOpen) {
       ctx.globalAlpha = savedAlpha;
