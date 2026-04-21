@@ -36,21 +36,33 @@ const MainMenu = ({
   dailyMode = false, onToggleDaily,
   dailyModifier = null,
   onPlayDaily,
+  playerName = '', playerId = 'default', onSetPlayerName,
 }) => {
   const [tab, setTab] = useState('play');
   const [scores, setScores] = useState([]);
   const [speedrunBoard, setSpeedrunBoard] = useState([]);
   const [dailyCompleted, setDailyCompleted] = useState(false);
+  const [dailyStreak, setDailyStreak] = useState(0);
   const [selectedLevel, setSelectedLevel] = useState(0);
+  const [nameInput, setNameInput] = useState(playerName);
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/scores/top`)
       .then(r => r.json()).then(setScores).catch(() => {});
     fetch(`${BACKEND_URL}/api/leaderboard/speedrun?limit=10`)
       .then(r => r.json()).then(setSpeedrunBoard).catch(() => {});
-    fetch(`${BACKEND_URL}/api/daily-challenge/completed/default`)
+    fetch(`${BACKEND_URL}/api/daily-challenge/completed/${playerId}`)
       .then(r => r.json()).then(d => setDailyCompleted(!!d.completed)).catch(() => {});
-  }, []);
+    fetch(`${BACKEND_URL}/api/daily-challenge/streak/${playerId}`)
+      .then(r => r.json()).then(d => setDailyStreak(d.streak || 0)).catch(() => {});
+  }, [playerId]);
+
+  useEffect(() => { setNameInput(playerName); }, [playerName]);
+
+  const commitName = () => {
+    const clean = (nameInput || '').trim();
+    if (clean && onSetPlayerName) onSetPlayerName(clean);
+  };
 
   const tabs = [
     { id: 'play', label: 'Play' },
@@ -71,6 +83,32 @@ const MainMenu = ({
         <PanelHeader
           title="COMMAND TERMINAL"
           subtitle="[ Scrap OS v1.2 — All Systems Nominal ]"
+          right={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.7rem', color: '#8AA89A' }}>PILOT:</span>
+              <input
+                data-testid="player-name-input"
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value.slice(0, 24))}
+                onBlur={commitName}
+                onKeyDown={e => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
+                placeholder="Axel"
+                style={{
+                  background: 'rgba(0,0,0,0.45)',
+                  border: '2px solid var(--gui-border)',
+                  borderRadius: 8,
+                  padding: '6px 10px',
+                  color: '#E8F0EC',
+                  fontFamily: 'Fredoka',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  width: 140,
+                  outline: 'none',
+                }}
+                maxLength={24}
+              />
+            </div>
+          }
         />
 
         <PanelBody>
@@ -80,11 +118,103 @@ const MainMenu = ({
             {/* PLAY TAB */}
             {tab === 'play' && (
               <div className="menu-play-tab">
-                <div className="menu-play-hero">
-                  <h3 className="menu-play-title">Ready to deploy, Axel?</h3>
-                  <TerminalText>Last checkpoint: Level 1 — Overgrown Outskirts</TerminalText>
+                {/* Premium Pilot Status Hero */}
+                <div
+                  className="pilot-status-hero"
+                  data-testid="pilot-status-hero"
+                  style={{
+                    position: 'relative',
+                    padding: '18px 22px',
+                    background: 'linear-gradient(135deg, rgba(10,22,28,0.95) 0%, rgba(18,38,48,0.85) 100%)',
+                    border: '2px solid rgba(0,199,190,0.3)',
+                    borderRadius: 14,
+                    overflow: 'hidden',
+                    marginBottom: 18,
+                  }}
+                >
+                  {/* Scanline overlay */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundImage: 'repeating-linear-gradient(0deg, rgba(127,255,232,0.025) 0px, rgba(127,255,232,0.025) 1px, transparent 1px, transparent 3px)',
+                    pointerEvents: 'none',
+                  }} />
+                  {/* Corner brackets */}
+                  {[['tl', 'top-left'], ['tr', 'top-right'], ['bl', 'bottom-left'], ['br', 'bottom-right']].map(([id]) => (
+                    <div key={id} style={{
+                      position: 'absolute',
+                      width: 14, height: 14,
+                      borderColor: 'var(--gui-accent)',
+                      borderStyle: 'solid',
+                      borderWidth: 0,
+                      ...(id === 'tl' && { top: 8, left: 8, borderTopWidth: 2, borderLeftWidth: 2 }),
+                      ...(id === 'tr' && { top: 8, right: 8, borderTopWidth: 2, borderRightWidth: 2 }),
+                      ...(id === 'bl' && { bottom: 8, left: 8, borderBottomWidth: 2, borderLeftWidth: 2 }),
+                      ...(id === 'br' && { bottom: 8, right: 8, borderBottomWidth: 2, borderRightWidth: 2 }),
+                    }} />
+                  ))}
+
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'baseline', gap: 10,
+                      fontFamily: 'JetBrains Mono, monospace',
+                      fontSize: '0.68rem', color: '#00C7BE', letterSpacing: 2, marginBottom: 6,
+                    }}>
+                      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#7FE08A', boxShadow: '0 0 8px #7FE08A' }} />
+                      PILOT STATUS · ONLINE
+                    </div>
+                    <h3 style={{
+                      fontFamily: 'Anton, sans-serif',
+                      fontSize: '1.9rem', letterSpacing: 1,
+                      color: '#E8F0EC',
+                      margin: '2px 0 4px',
+                      textTransform: 'uppercase',
+                      textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                    }}>
+                      Ready to deploy, {playerName || 'Axel'}
+                    </h3>
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+                      gap: 10, marginTop: 12,
+                    }}>
+                      {[
+                        { label: 'COINS', value: progress?.total_coins || 0, color: '#FFD60A' },
+                        { label: 'SCRAP', value: progress?.total_scrap || 0, color: '#00C7BE' },
+                        { label: 'MIRRORS', value: `${progress?.mirror_fragments || 0}/4`, color: '#AADDFF' },
+                        { label: 'HI-SCORE', value: progress?.high_score || 0, color: '#FF9F43' },
+                      ].map(s => (
+                        <div key={s.label} style={{
+                          padding: '6px 8px',
+                          background: 'rgba(0,0,0,0.35)',
+                          borderLeft: `2px solid ${s.color}`,
+                          borderRadius: 4,
+                        }}>
+                          <div style={{
+                            fontFamily: 'JetBrains Mono, monospace',
+                            fontSize: '0.58rem', color: '#8AA89A', letterSpacing: 1.2,
+                          }}>{s.label}</div>
+                          <div style={{
+                            fontFamily: 'Anton', fontSize: '1.15rem',
+                            color: s.color, lineHeight: 1.1,
+                            textShadow: `0 0 12px ${s.color}40`,
+                          }}>{s.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{
+                      marginTop: 12,
+                      display: 'flex', justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontFamily: 'JetBrains Mono, monospace',
+                      fontSize: '0.72rem', color: '#8AA89A',
+                    }}>
+                      <span>▸ Last checkpoint: <span style={{ color: '#E8F0EC' }}>Overgrown Outskirts</span></span>
+                      {progress?.best_run_time_ms > 0 && (
+                        <span>BEST: <span style={{ color: '#FFD60A' }}>{formatMs(progress.best_run_time_ms)}</span></span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <Divider />
+
                 <GameButton
                   variant="primary"
                   size="lg"

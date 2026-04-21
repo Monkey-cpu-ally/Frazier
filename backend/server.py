@@ -219,6 +219,55 @@ async def get_completed_daily(player_id: str):
     doc = await db.daily_completions.find_one({"key": key}, {"_id": 0})
     return {"completed": bool(doc), "record": doc}
 
+@api_router.get("/daily-challenge/streak/{player_id}")
+async def get_daily_streak(player_id: str):
+    """Return consecutive-day completion streak ending today (or yesterday)."""
+    from datetime import timedelta
+    cursor = db.daily_completions.find(
+        {"player_id": player_id}, {"_id": 0, "date": 1}
+    )
+    dates = sorted({d["date"] async for d in cursor}, reverse=True)
+    if not dates:
+        return {"streak": 0, "longest": 0}
+    today = datetime.now(timezone.utc).date()
+    streak = 0
+    # Streak counts from today backwards; if today missing, check yesterday (grace).
+    first = datetime.strptime(dates[0], "%Y-%m-%d").date()
+    if (today - first).days > 1:
+        return {"streak": 0, "longest": _longest_streak(dates)}
+    cur = first
+    for d in dates:
+        dd = datetime.strptime(d, "%Y-%m-%d").date()
+        if dd == cur:
+            streak += 1
+            cur = cur - timedelta(days=1)
+        elif dd == cur + timedelta(days=1):
+            # duplicate of prior day; skip
+            continue
+        else:
+            break
+    return {"streak": streak, "longest": _longest_streak(dates)}
+
+
+def _longest_streak(dates_desc):
+    """Compute the longest ever consecutive-day completion streak."""
+    from datetime import timedelta
+    if not dates_desc:
+        return 0
+    asc = sorted({d for d in dates_desc})
+    best = 1
+    cur = 1
+    prev = datetime.strptime(asc[0], "%Y-%m-%d").date()
+    for ds in asc[1:]:
+        d = datetime.strptime(ds, "%Y-%m-%d").date()
+        if (d - prev).days == 1:
+            cur += 1
+            best = max(best, cur)
+        else:
+            cur = 1
+        prev = d
+    return best
+
 app.include_router(api_router)
 
 app.add_middleware(

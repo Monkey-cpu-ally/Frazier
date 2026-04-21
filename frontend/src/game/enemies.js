@@ -12,6 +12,7 @@ const SPRITE_FILES = {
   root_crawler: '/enemies/root_crawler.png',
   gear_bug: '/enemies/gear_bug.png',
   heavy: '/enemies/heavy.png',
+  flicker: '/enemies/flicker.png',
 };
 if (typeof window !== 'undefined') {
   Object.entries(SPRITE_FILES).forEach(([k, src]) => {

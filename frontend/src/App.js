@@ -49,6 +49,11 @@ const DEFAULT_SETTINGS = {
 function App() {
   // Screen states: intro -> title -> menu -> playing
   const [screen, setScreen] = useState('intro');
+  const [playerName, setPlayerName] = useState(() => {
+    const saved = (typeof window !== 'undefined' && window.localStorage.getItem('hyperaxel_player_name')) || '';
+    return saved.trim().slice(0, 24);
+  });
+  const playerId = playerName.toLowerCase().replace(/[^a-z0-9_-]/g, '_') || 'default';
   const [showControls, setShowControls] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showWorkshop, setShowWorkshop] = useState(false);
@@ -81,11 +86,11 @@ function App() {
 
   // Load progress on mount
   React.useEffect(() => {
-    fetch(`${BACKEND_URL}/api/progress/default`)
+    fetch(`${BACKEND_URL}/api/progress/${playerId}`)
       .then(r => r.json())
       .then(data => setProgress(prev => ({ ...prev, ...data })))
       .catch(() => {});
-  }, []);
+  }, [playerId]);
 
   // Apply settings
   const handleSettingsChange = useCallback((newSettings) => {
@@ -113,7 +118,7 @@ function App() {
       fetch(`${BACKEND_URL}/api/progress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...next, player_id: 'default' }),
+        body: JSON.stringify({ ...next, player_id: playerId }),
       }).catch(() => {});
       sfx.uiStart();
       return next;
@@ -131,7 +136,7 @@ function App() {
       fetch(`${BACKEND_URL}/api/progress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...next, player_id: 'default' }),
+        body: JSON.stringify({ ...next, player_id: playerId }),
       }).catch(() => {});
       return next;
     });
@@ -144,7 +149,7 @@ function App() {
       fetch(`${BACKEND_URL}/api/progress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...next, player_id: 'default' }),
+        body: JSON.stringify({ ...next, player_id: playerId }),
       }).catch(() => {});
       return next;
     });
@@ -175,7 +180,7 @@ function App() {
       fetch(`${BACKEND_URL}/api/progress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...next, player_id: 'default' }),
+        body: JSON.stringify({ ...next, player_id: playerId }),
       }).catch(() => {});
       return next;
     });
@@ -199,7 +204,7 @@ function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          player_id: 'default',
+          player_id: playerId,
           date: today,
           total_ms: Math.floor(finalMs),
         }),
@@ -232,7 +237,7 @@ function App() {
       fetch(`${BACKEND_URL}/api/progress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...next, player_id: 'default' }),
+        body: JSON.stringify({ ...next, player_id: playerId }),
       }).catch(() => {});
       return next;
     });
@@ -252,7 +257,7 @@ function App() {
       fetch(`${BACKEND_URL}/api/progress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...next, player_id: 'default' }),
+        body: JSON.stringify({ ...next, player_id: playerId }),
       }).catch(() => {});
       return next;
     });
@@ -385,6 +390,13 @@ function App() {
                 onToggleDaily={setDailyMode}
                 dailyModifier={dailyModifier}
                 onPlayDaily={handlePlayDaily}
+                playerName={playerName}
+                playerId={playerId}
+                onSetPlayerName={(name) => {
+                  const trimmed = (name || '').trim().slice(0, 24);
+                  setPlayerName(trimmed);
+                  try { window.localStorage.setItem('hyperaxel_player_name', trimmed); } catch (e) {}
+                }}
               />
             </div>
           </div>
