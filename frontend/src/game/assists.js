@@ -252,6 +252,24 @@ export function triggerScrapAssist(engine) {
   return true;
 }
 
+const SUPPLY_ASSIST_POWER_POOL = [
+  'burning_buffalo',
+  'shadow_tag',
+  'golden_gloves',
+  'super_mode',
+  'specter_mode',
+  'fighter_plane',
+];
+
+const POWER_DISPLAY = {
+  burning_buffalo: { name: 'Burning Buffalo', color: '#FF5533' },
+  shadow_tag:      { name: 'Shadow Tag',      color: '#8B5CF6' },
+  golden_gloves:   { name: 'Golden Gloves',   color: '#FFD700' },
+  super_mode:      { name: 'Super Mode',      color: '#00C7BE' },
+  specter_mode:    { name: 'Specter Mode',    color: '#AADDFF' },
+  fighter_plane:   { name: 'Fighter Plane',   color: '#4A5868' },
+};
+
 function _doGreenAssist(engine, pl) {
   engine.gameState.showPickup('Supply Drop incoming!');
   // Snap groundY to nearest platform top directly under the player, else fall to player's y.
@@ -267,10 +285,26 @@ function _doGreenAssist(engine, pl) {
     if (Math.random() < 0.5) {
       engine.gameState.healSticker();
       engine.gameState.showPickup('Medical Drop!');
+      return;
+    }
+    // Stored Power Supply — refresh active power OR grant a random one (ported from PR #9)
+    const pm = engine.powerManager;
+    const durationBonus = Math.max(0, 4 + (engine.assistDurationBonus || 0));
+    if (pm.isActive && pm.id) {
+      const baseDur = engine.powerManager.active?.dur || 12;
+      const refreshedDur = Math.max(baseDur, pm.timer) + durationBonus;
+      pm.activate(pm.id, refreshedDur);
+      const meta = POWER_DISPLAY[pm.id] || { name: pm.id, color: '#7FE08A' };
+      engine.gameState.showPickup(`Stored Supply: ${meta.name} refreshed`);
+      engine.flightLog.add(`Green Supply refreshed ${meta.name} (+${durationBonus.toFixed(0)}s)`, 'power');
     } else {
-      engine.gameState.addScore(100);
-      engine.gameState.scrapParts += 10;
-      engine.gameState.showPickup('Stored Supply Delivered');
+      const pickId = SUPPLY_ASSIST_POWER_POOL[Math.floor(Math.random() * SUPPLY_ASSIST_POWER_POOL.length)];
+      const baseDur = 12; // POWERS[pickId].dur is ~12s in our game
+      pm.activate(pickId, baseDur + durationBonus);
+      const meta = POWER_DISPLAY[pickId] || { name: pickId, color: '#7FE08A' };
+      engine.gameState.showPickup(`Stored Supply: ${meta.name}`);
+      engine.flightLog.add(`Green Supply granted ${meta.name}`, 'power');
+      if (engine.achievements) engine.achievements.onPowerActivated(pickId);
     }
   });
   engine.assists.push(drop);

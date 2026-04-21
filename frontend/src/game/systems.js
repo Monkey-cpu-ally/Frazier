@@ -68,12 +68,12 @@ export class PowerManager {
     this.id = null;
   }
 
-  activate(powerId) {
+  activate(powerId, overrideDur = null) {
     const p = POWERS[powerId];
     if (!p) return;
     this.active = p;
     this.id = powerId;
-    this.timer = p.dur;
+    this.timer = overrideDur !== null ? overrideDur : p.dur;
   }
 
   update(dt) {
