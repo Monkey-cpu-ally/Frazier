@@ -74,6 +74,7 @@ function App() {
   const [speedrunMode, setSpeedrunMode] = useState(false);
   const [dailyMode, setDailyMode] = useState(false);
   const [dailyModifier, setDailyModifier] = useState(null);
+  const [hubMode, setHubMode] = useState(false);
 
   // Fetch daily modifier on mount
   React.useEffect(() => {
@@ -225,9 +226,32 @@ function App() {
     setDailyMode(true);
     setSpeedrunMode(true); // daily implies speedrun tracking
     setStartLevel(0);
+    setHubMode(false);
     setRestartKey(k => k + 1);
     setScreen('playing');
     sfx.uiStart();
+  }, []);
+
+  const handleGoToHub = useCallback(() => {
+    setHubMode(true);
+    setDailyMode(false);
+    setSpeedrunMode(false);
+    setRestartKey(k => k + 1);
+    setScreen('playing');
+    sfx.uiStart();
+  }, []);
+
+  const handleHubInteract = useCallback((kind) => {
+    if (kind === 'shop' || kind === 'upgrade_station') {
+      setShowWorkshop(true);
+      sfx.uiClick();
+    } else if (kind === 'mission_gate') {
+      // Leave the hub and start a fresh mission
+      setHubMode(false);
+      setStartLevel(0);
+      setRestartKey(k => k + 1);
+      sfx.uiStart();
+    }
   }, []);
 
   const handleEquipSkin = useCallback((skinId) => {
@@ -390,6 +414,7 @@ function App() {
                 onToggleDaily={setDailyMode}
                 dailyModifier={dailyModifier}
                 onPlayDaily={handlePlayDaily}
+                onGoToHub={handleGoToHub}
                 playerName={playerName}
                 playerId={playerId}
                 onSetPlayerName={(name) => {
@@ -411,8 +436,10 @@ function App() {
               onScrapEarned={handleScrapEarned}
               onAchievement={handleAchievement}
               onRunComplete={handleRunComplete}
+              onHubInteract={handleHubInteract}
               startLevel={startLevel}
               paused={paused}
+              hubMode={hubMode}
               settings={settings}
               assistDamageLevel={progress.assist_damage_level || 0}
               assistStabilizerLevel={progress.assist_stabilizer_level || 0}

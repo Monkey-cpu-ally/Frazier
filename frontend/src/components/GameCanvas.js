@@ -15,8 +15,9 @@ const SKIN_COLORS = {
 };
 
 const GameCanvas = forwardRef(({
-  onStateChange, onScrapEarned, onAchievement, onRunComplete,
+  onStateChange, onScrapEarned, onAchievement, onRunComplete, onHubInteract,
   startLevel = 0, paused = false, settings,
+  hubMode = false,
   assistDamageLevel = 0, assistStabilizerLevel = 0,
   equippedSkin = 'standard',
   speedrunMode = false,
@@ -56,6 +57,7 @@ const GameCanvas = forwardRef(({
     // Seed the achievement tracker with already-unlocked ids so we don't re-fire toasts
     unlockedAchievements.forEach(id => engine.achievements.unlocked.add(id));
     engine.onAchievementUnlock = (id) => { if (onAchievement) onAchievement(id); };
+    engine.onHubInteract = (kind) => { if (onHubInteract) onHubInteract(kind); };
 
     // Save score + run stats on game over / victory
     const origOnState = engine.onStateChange;
@@ -80,7 +82,11 @@ const GameCanvas = forwardRef(({
       }
     };
 
-    engine.start(startLevel);
+    if (hubMode) {
+      engine.startHub();
+    } else {
+      engine.start(startLevel);
+    }
 
     return () => {
       engine.stop();

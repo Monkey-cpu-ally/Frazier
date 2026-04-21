@@ -565,3 +565,47 @@ export function getLevels(newGamePlus = false) {
 
   return levels;
 }
+
+// ===== CITY HUB =====
+// Urban overgrowth hub world — spawned when player chooses "GO TO HUB".
+// Non-combat, 3 interactables: shop, upgrade_station, mission_gate.
+// Ports the Godot load_city_hub() snippet into our HTML5 port.
+export function getCityHub() {
+  return {
+    hub: true,
+    name: 'City Hub',
+    environment: 'urban_overgrowth',
+    playerSpawn: { x: 100, y: 200 },
+    worldBounds: { left: -200, top: -600, right: 1400, bottom: 800 },
+    camera: { smooth: 8 },
+    platforms: [
+      // Ground
+      { x: -200, y: 340, w: 1800, h: 80 },
+      // Awning platforms over interactables for a bit of verticality
+      { x: 260, y: 240, w: 80, h: 12 },
+      { x: 460, y: 260, w: 80, h: 12 },
+      { x: 760, y: 220, w: 100, h: 12 },
+      // Rooftop vine platforms (decorative + walkable)
+      { x: 180, y: 180, w: 120, h: 10 },
+      { x: 580, y: 150, w: 140, h: 10 },
+      { x: 950, y: 180, w: 120, h: 10 },
+    ],
+    enemies: [],
+    pickups: [
+      // Welcome coin nudge
+      { type: 'coin', x: 180, y: 170 },
+      { type: 'coin', x: 580, y: 140 },
+      // Three interactables matching your GDScript
+      { type: 'interactable', x: 300, y: 340, kind: 'shop' },
+      { type: 'interactable', x: 500, y: 340, kind: 'upgrade_station' },
+      { type: 'interactable', x: 800, y: 340, kind: 'mission_gate' },
+    ],
+    breakables: [],
+    exitX: 999999, // effectively disabled — hub uses mission_gate to leave
+    message: 'Welcome to the Overgrowth. [E] to interact.',
+    hintTriggers: [
+      { x: 40, y: 260, w: 140, h: 100, text: 'Walk around with A/D. Press E at kiosks.', color: '#7FE08A' },
+      { x: 780, y: 260, w: 120, h: 100, text: 'MISSION GATE — starts your next run', color: '#FF5A5A' },
+    ],
+  };
+}

@@ -344,6 +344,93 @@ export class FoxStatuePickup extends PickupBase {
   }
 }
 
+export class InteractablePickup extends PickupBase {
+  constructor(x, y, kind) {
+    super(x, y, 'interactable');
+    this.kind = kind; // 'shop' | 'upgrade_station' | 'mission_gate'
+    this.w = 48; this.h = 72;
+    this.glowT = 0;
+  }
+  get hitbox() {
+    return { x: this.x - 34, y: this.y - 72, w: 68, h: 80 };
+  }
+  update(dt) { this.glowT += dt; }
+
+  // Override — Interactable requires E press, doesn't consume itself
+  collect(engine) {
+    // Delegate to engine callback — does NOT mark collected
+    if (engine.onHubInteract) engine.onHubInteract(this.kind);
+  }
+
+  render(ctx) {
+    const x = Math.round(this.x), y = Math.round(this.y);
+    // Kind-specific palette + icon
+    const style = this.kind === 'shop'            ? { accent: '#FFD60A', label: 'SHOP',    icon: '$' }
+                : this.kind === 'upgrade_station' ? { accent: '#00C7BE', label: 'UPGRADE', icon: '↑' }
+                :                                   { accent: '#FF5A5A', label: 'MISSION', icon: '▶' };
+
+    // Glow halo
+    const pulse = 0.25 + Math.sin(this.glowT * 2.2) * 0.12;
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = style.accent;
+    ctx.beginPath();
+    ctx.arc(x, y - 44, 48, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Pedestal base
+    ctx.fillStyle = '#2C3540';
+    ctx.fillRect(x - 26, y - 10, 52, 10);
+    ctx.strokeStyle = '#0A0A0A';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 26, y - 10, 52, 10);
+
+    // Monolith / kiosk body
+    ctx.fillStyle = '#3A4858';
+    ctx.fillRect(x - 20, y - 70, 40, 60);
+    // Accent side stripe
+    ctx.fillStyle = style.accent;
+    ctx.fillRect(x - 20, y - 70, 4, 60);
+    ctx.fillRect(x + 16, y - 70, 4, 60);
+    // Outline
+    ctx.strokeStyle = '#0A0A0A';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 20, y - 70, 40, 60);
+
+    // Screen panel (flicker animated)
+    const flick = Math.sin(this.glowT * 8) * 0.1 + 0.9;
+    ctx.fillStyle = '#0A141C';
+    ctx.fillRect(x - 14, y - 62, 28, 34);
+    ctx.globalAlpha = flick;
+    ctx.fillStyle = style.accent;
+    ctx.font = 'bold 22px "Anton", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(style.icon, x, y - 44);
+    ctx.globalAlpha = 1;
+
+    // Label
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.beginPath();
+    ctx.roundRect(x - 30, y - 94, 60, 18, 6);
+    ctx.fill();
+    ctx.fillStyle = style.accent;
+    ctx.font = 'bold 10px "Nunito", sans-serif';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(style.label, x, y - 82);
+
+    // [E] prompt (only when player is close — engine handles proximity by firing collect)
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.beginPath();
+    ctx.roundRect(x - 16, y + 2, 32, 14, 5);
+    ctx.fill();
+    ctx.fillStyle = style.accent;
+    ctx.font = 'bold 9px "Nunito", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('[E]', x, y + 12);
+  }
+}
+
 export function createPickup(data) {
   switch (data.type) {
     case 'coin': return new CoinPickup(data.x, data.y);
@@ -351,6 +438,7 @@ export function createPickup(data) {
     case 'food': return new FoodPickup(data.x, data.y);
     case 'power': return new PowerPickup(data.x, data.y, data.powerId);
     case 'foxstatue': return new FoxStatuePickup(data.x, data.y);
+    case 'interactable': return new InteractablePickup(data.x, data.y, data.kind);
     default: return new CoinPickup(data.x, data.y);
   }
 }

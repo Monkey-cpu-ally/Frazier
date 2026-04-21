@@ -5,7 +5,7 @@ import { Player } from './player';
 import { GameState, PowerManager, FlightLog, AchievementTracker } from './systems';
 import { createEnemy } from './enemies';
 import { createPickup, Breakable } from './pickups';
-import { getLevels } from './levels';
+import { getLevels, getCityHub } from './levels';
 import { HUD } from './hud';
 import { Boss, FoxSpirit } from './boss';
 import { sfx } from './sfx';
@@ -124,6 +124,27 @@ export class Engine {
     this.running = true;
     this.lastTime = performance.now();
     this.flightLog.add('System boot. Scanning sector...', 'system');
+    this._loop();
+  }
+
+  startHub() {
+    this.gameState.reset();
+    this.powerManager.reset();
+    this.flightLog.entries = [];
+    this.dialogue.reset();
+    this.mirrorFragments = 0;
+    this.secretEndingTriggered = false;
+    // Build a one-level "hub mode" so the existing loadLevel path works.
+    this.levels = [getCityHub()];
+    this.totalFragments = 4;
+    this.levelsCompleted = 0;
+    this.runStartMs = null;
+    this.runFinalMs = null;
+    this.runTimerMs = 0;
+    this.loadLevel(0);
+    this.running = true;
+    this.lastTime = performance.now();
+    this.flightLog.add('Welcome to the Overgrowth.', 'system');
     this._loop();
   }
 
@@ -436,8 +457,8 @@ export class Engine {
       sfx.playerDeath();
     }
 
-    // Level exit
-    if (this.currentLevel && this.player.x >= this.currentLevel.exitX) {
+    // Level exit (skip in hub — hub is non-linear, player leaves via Mission Gate)
+    if (this.currentLevel && !this.currentLevel.hub && this.player.x >= this.currentLevel.exitX) {
       const allDead = this.enemies.every(e => !e.alive);
       const bossCleared = !this.boss || this.boss.defeated;
       if ((!this.currentLevel.isBoss || (allDead && bossCleared))) {
@@ -513,8 +534,8 @@ export class Engine {
       if (p.collected) return;
       const hb = p.hitbox;
       if (this._aabb(pl.left, pl.top, pl.w, pl.h, hb.x, hb.y, hb.w, hb.h)) {
-        // Fox Statue requires E-key interact
-        if (p.type === 'foxstatue') {
+        // Fox Statue + Interactables require E-key interact
+        if (p.type === 'foxstatue' || p.type === 'interactable') {
           if (this.input.interact) {
             p.collect(this);
           }
@@ -793,6 +814,84 @@ export class Engine {
   }
 
   _renderBg(ctx) {
+    // Urban Overgrowth hub — stylized concrete city block with mossy tint
+    if (this.currentLevel.environment === 'urban_overgrowth') {
+      // Sky: muted grey-green gradient
+      const sky = ctx.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, '#2B3A3A');
+      sky.addColorStop(0.6, '#374A48');
+      sky.addColorStop(1, '#4A5F45');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, H);
+
+      // Distant city silhouette (parallax 0.25)
+      ctx.save();
+      const px = -this.camera.x * 0.25;
+      ctx.translate(px, 0);
+      const buildings = [
+        { x: 0,   h: 260, w: 90  }, { x: 110, h: 320, w: 70 },
+        { x: 200, h: 230, w: 110 }, { x: 330, h: 380, w: 60 },
+        { x: 410, h: 280, w: 90  }, { x: 520, h: 340, w: 100 },
+        { x: 640, h: 220, w: 80  }, { x: 740, h: 360, w: 90 },
+        { x: 850, h: 270, w: 70  }, { x: 940, h: 310, w: 100 },
+      ];
+      const groundY = 340;
+      buildings.forEach((b, i) => {
+        // Base color — overgrown tint = green-washed grey (Color(0.7, 1.0, 0.7))
+        const base = i % 2 === 0 ? '#3E4F4A' : '#4A5A50';
+        ctx.fillStyle = base;
+        ctx.fillRect(b.x, groundY - b.h, b.w, b.h);
+        // Window grid
+        ctx.fillStyle = 'rgba(180,210,140,0.18)';
+        for (let y = groundY - b.h + 20; y < groundY - 30; y += 24) {
+          for (let x = b.x + 8; x < b.x + b.w - 10; x += 14) {
+            ctx.fillRect(x, y, 6, 10);
+          }
+        }
+        // Overgrowth tint strip along the top (vines)
+        ctx.fillStyle = 'rgba(127,220,140,0.35)';
+        ctx.fillRect(b.x, groundY - b.h, b.w, 8);
+        // Dangling vines
+        for (let v = 0; v < 3; v++) {
+          const vx = b.x + 12 + v * (b.w / 3);
+          const vlen = 20 + (i * 7 + v * 11) % 30;
+          ctx.fillRect(vx, groundY - b.h + 6, 2, vlen);
+        }
+        // Outline
+        ctx.strokeStyle = '#0A0A0A';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(b.x, groundY - b.h, b.w, b.h);
+      });
+      ctx.restore();
+
+      // Mid-ground smaller buildings (parallax 0.5)
+      ctx.save();
+      ctx.translate(-this.camera.x * 0.5, 0);
+      ctx.fillStyle = '#2F3F38';
+      ctx.fillRect(200, 200, 140, 140);
+      ctx.fillRect(520, 170, 180, 170);
+      ctx.fillRect(900, 190, 160, 150);
+      // Overgrowth on mid
+      ctx.fillStyle = 'rgba(127,220,140,0.28)';
+      ctx.fillRect(200, 200, 140, 12);
+      ctx.fillRect(520, 170, 180, 12);
+      ctx.fillRect(900, 190, 160, 12);
+      ctx.strokeStyle = '#0A0A0A';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(200, 200, 140, 140);
+      ctx.strokeRect(520, 170, 180, 170);
+      ctx.strokeRect(900, 190, 160, 150);
+      ctx.restore();
+
+      // Mossy ground overlay (hub only)
+      ctx.save();
+      this.camera.apply(ctx);
+      ctx.fillStyle = 'rgba(100,160,80,0.25)';
+      ctx.fillRect(-300, 340, 1800, 6);
+      ctx.restore();
+      return;
+    }
+
     const bgs = this.currentLevel.backgrounds || [];
     bgs.forEach(bg => {
       if (bg.type === 'sky') {

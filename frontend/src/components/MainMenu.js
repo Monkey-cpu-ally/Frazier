@@ -36,6 +36,7 @@ const MainMenu = ({
   dailyMode = false, onToggleDaily,
   dailyModifier = null,
   onPlayDaily,
+  onGoToHub,
   playerName = '', playerId = 'default', onSetPlayerName,
 }) => {
   const [tab, setTab] = useState('play');
@@ -227,6 +228,17 @@ const MainMenu = ({
                 <div style={{ marginTop: 10 }}>
                   <GameButton variant="ghost" full onClick={() => setTab('levels')}>
                     SELECT LEVEL
+                  </GameButton>
+                </div>
+                {/* City Hub entry */}
+                <div style={{ marginTop: 8 }}>
+                  <GameButton
+                    variant="secondary"
+                    full
+                    onClick={() => onGoToHub && onGoToHub()}
+                    data-testid="menu-hub-btn"
+                  >
+                    🌿 GO TO CITY HUB
                   </GameButton>
                 </div>
                 {/* Speedrun Mode toggle */}
