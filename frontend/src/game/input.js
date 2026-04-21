@@ -40,4 +40,5 @@ export class Input {
   get special() { return this.just('KeyK') || this.just('KeyZ'); }
   get interact() { return this.just('KeyE'); }
   get dash() { return this.just('ShiftLeft') || this.just('ShiftRight'); }
+  get assist() { return this.just('KeyQ'); }
 }

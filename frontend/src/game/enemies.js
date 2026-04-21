@@ -15,6 +15,12 @@ class EnemyBase {
     this.patrol = cfg.patrol; this.score = cfg.score;
     this.scrapDrop = cfg.scrap;
     this.type = type;
+    this.family = cfg.family || 'machine';
+    this.sizeClass = cfg.sizeClass || 'weak';
+    this.armored = !!cfg.armored;
+    this.hasFlicker = !!cfg.flicker;
+    this.flickerOpen = true;
+    this.flickerT = 0.95;
     this.originX = x;
     this.dir = 1;
     this.state = 'patrol';
@@ -25,6 +31,9 @@ class EnemyBase {
     this.animT = 0;
     this.deathTimer = 0;
   }
+
+  isWeak()  { return this.sizeClass === 'weak'; }
+  isLarge() { return this.sizeClass === 'large'; }
 
   get left() { return this.x - this.w / 2; }
   get right() { return this.x + this.w / 2; }
@@ -123,7 +132,22 @@ class EnemyBase {
     }
   }
 
-  takeDamage(amount, fromX, engine) {
+  takeDamage(amount, fromX, engine, opts = {}) {
+    // Flicker invuln: must be "open" (blink window) unless opts.percent bypass
+    if (this.hasFlicker && !this.flickerOpen && !opts.bypassFlicker) {
+      engine.gameState.showPickup('Flicker shell sealed!');
+      return;
+    }
+    // Heavy armor: requires empowered attack (Golden Gloves / Burning Buffalo) or smash or assist
+    if (this.armored && !opts.bypassArmor) {
+      const pm = engine.powerManager;
+      const empowered = pm.isGoldenGloves || pm.isBurningBuffalo || opts.smash;
+      if (!empowered) {
+        engine.gameState.showPickup('Heavy shell shrugged it off!');
+        return;
+      }
+      amount += 1; // bonus damage when empowered
+    }
     this.hp -= amount;
     this.hurtTimer = 0.12;
     this.flashTimer = 0.12;
@@ -141,9 +165,14 @@ class EnemyBase {
         engine.gameState.scrapMeter + this.scrapDrop * 8
       );
       engine.addParticles(this.cx, this.cy, 10, this._getColor());
-      engine.flightLog.add(`Defeated ${this.type.replace('_', ' ')}`, 'combat');
+      engine.flightLog.add(`Defeated ${this.type.replace('_', ' ')} [${this.family}]`, 'combat');
       sfx.enemyDeath();
     }
+  }
+
+  takePercentDamage(percent, fromX, engine) {
+    const dmg = Math.max(1, Math.ceil(this.maxHp * percent));
+    this.takeDamage(dmg, fromX, engine, { bypassArmor: true, bypassFlicker: true });
   }
 
   _getColor() { return C.white; }
@@ -157,12 +186,21 @@ class EnemyBase {
       }
       return;
     }
+    // Flicker: dim when sealed/closed
+    let savedAlpha = 1;
+    if (this.hasFlicker && !this.flickerOpen) {
+      savedAlpha = ctx.globalAlpha;
+      ctx.globalAlpha = savedAlpha * 0.32;
+    }
     if (this.flashTimer > 0) {
       ctx.save();
       ctx.globalCompositeOperation = 'source-atop';
     }
     this._draw(ctx);
     if (this.flashTimer > 0) ctx.restore();
+    if (this.hasFlicker && !this.flickerOpen) {
+      ctx.globalAlpha = savedAlpha;
+    }
   }
 
   _draw(ctx) {}
@@ -241,6 +279,12 @@ export class FlickerEnemy extends EnemyBase {
       return;
     }
     this.animT += dt;
+    // Blink cycle — toggle every 0.95s
+    this.flickerT -= dt;
+    if (this.flickerT <= 0) {
+      this.flickerT = 0.95;
+      this.flickerOpen = !this.flickerOpen;
+    }
     if (this.hurtTimer > 0) { this.hurtTimer -= dt; return; }
     if (this.flashTimer > 0) this.flashTimer -= dt;
 

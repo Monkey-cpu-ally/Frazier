@@ -11,6 +11,7 @@ import { Boss, FoxSpirit } from './boss';
 import { sfx } from './sfx';
 import { DialogueManager } from './dialogue';
 import { SecretEnding } from './secretEnding';
+import { triggerScrapAssist } from './assists';
 
 export class Engine {
   constructor(canvas, onStateChange) {
@@ -59,6 +60,9 @@ export class Engine {
     this.breakables = [];
     this.platforms = [];
     this.particles = [];
+    this.assists = [];
+    this.assistUpgradeBonus = 0;
+    this.assistMalfunctionReduction = 0;
     this.ambientParticles = this._initAmbient();
     this.boss = null;
     this.foxSpirit = null;
@@ -175,6 +179,7 @@ export class Engine {
     this.breakables = (lv.breakables || []).map(b =>
       new Breakable(b.x, b.y, b.w, b.h, b.btype, b.smashOnly)
     );
+    this.assists = [];
 
     // Boss setup
     if (lv.isBoss && lv.boss) {
@@ -297,7 +302,14 @@ export class Engine {
     this.breakables.forEach(b => b.update(dt));
     this.particles.forEach(p => p.update(dt));
     this.particles = this.particles.filter(p => p.life > 0);
+    this.assists.forEach(a => a.update(dt));
+    this.assists = this.assists.filter(a => !a.done);
     this._updateAmbient(dt);
+
+    // Scrap Assist trigger (Q key)
+    if (this.input.assist) {
+      triggerScrapAssist(this);
+    }
 
     // Boss update
     if (this.boss) {
@@ -404,7 +416,7 @@ export class Engine {
         if (!e.alive || e.hurtTimer > 0) return;
         const hb = e.getHitbox();
         if (this._aabb(ab.x, ab.y, ab.w, ab.h, hb.x, hb.y, hb.w, hb.h)) {
-          e.takeDamage(Math.ceil(dmgMul), pl.x, this);
+          e.takeDamage(Math.ceil(dmgMul), pl.x, this, { smash: pl.smashing });
         }
       });
 
@@ -433,6 +445,13 @@ export class Engine {
       if (p.collected) return;
       const hb = p.hitbox;
       if (this._aabb(pl.left, pl.top, pl.w, pl.h, hb.x, hb.y, hb.w, hb.h)) {
+        // Fox Statue requires E-key interact
+        if (p.type === 'foxstatue') {
+          if (this.input.interact) {
+            p.collect(this);
+          }
+          return;
+        }
         p.collect(this);
       }
     });
@@ -552,6 +571,9 @@ export class Engine {
 
     // Player
     if (this.player) this.player.render(ctx);
+
+    // Scrap Assists (above everything — planes, drops, actors)
+    this.assists.forEach(a => a.render(ctx));
 
     // Particles
     this.particles.forEach(p => p.render(ctx));

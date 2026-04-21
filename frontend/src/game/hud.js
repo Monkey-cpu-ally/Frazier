@@ -160,6 +160,16 @@ export class HUD {
 
   _drawScrapMeter(ctx, x, y, meter, max) {
     const w = 180, h = 24;
+    const ratio = meter / max;
+    // Determine tier color
+    const tierColor = ratio < 0.25 ? '#7FE08A'
+                    : ratio < 0.50 ? '#FFD447'
+                    : ratio < 0.75 ? '#FF9F43'
+                    : '#FF5A5A';
+    const tierName = ratio < 0.25 ? 'GREEN'
+                   : ratio < 0.50 ? 'YELLOW'
+                   : ratio < 0.75 ? 'ORANGE'
+                   : 'RED';
     // Background
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.beginPath();
@@ -171,19 +181,36 @@ export class HUD {
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, h / 2);
     ctx.stroke();
+    // Tier threshold marks (at 25%, 50%, 75%)
+    [0.25, 0.50, 0.75].forEach(p => {
+      const tx = x + 3 + p * (w - 6);
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(tx, y + 4);
+      ctx.lineTo(tx, y + h - 4);
+      ctx.stroke();
+    });
     // Fill
-    const fill = (meter / max) * (w - 6);
+    const fill = ratio * (w - 6);
     if (fill > 0) {
-      ctx.fillStyle = C.teal;
+      ctx.fillStyle = tierColor;
       ctx.beginPath();
       ctx.roundRect(x + 3, y + 3, fill, h - 6, (h - 6) / 2);
       ctx.fill();
     }
     // Label
-    ctx.fillStyle = C.white;
+    ctx.fillStyle = meter > 20 ? '#0A0A0A' : C.white;
     ctx.font = 'bold 11px "Nunito", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('SCRAP', x + w / 2, y + 16);
+    ctx.fillText(`SCRAP • ${tierName}`, x + w / 2, y + 16);
+    // Assist key hint if meter is usable
+    if (meter >= 20) {
+      ctx.fillStyle = tierColor;
+      ctx.font = 'bold 9px "Nunito", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('[Q] ASSIST', x + w / 2, y + h + 12);
+    }
   }
 
   _drawPower(ctx, x, y, pm) {

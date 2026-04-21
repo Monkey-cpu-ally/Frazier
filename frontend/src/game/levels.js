@@ -395,6 +395,7 @@ export function getLevels(newGamePlus = false) {
         { type: 'coin', x: 700, y: 136 },
         { type: 'food', x: 1000, y: 260 },
         { type: 'scrap', x: 1350, y: 116 },
+        { type: 'foxstatue', x: 1100, y: 288 },
       ],
       breakables: [
         { x: 700, y: 280, w: 90, h: 18, btype: 'floor', smashOnly: true },

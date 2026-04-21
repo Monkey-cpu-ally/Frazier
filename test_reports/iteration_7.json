@@ -1,0 +1,66 @@
+{
+  "summary": "Frontend QA pass for atlas-core PR #7 port (Scrap Assist system, enemy taxonomy, defensive mechanics, Fox Statue) into Hyper Axel: Wrenchbound. Verified module wiring, HUD redesign, Q-key assist trigger, taxonomy in flight log, and controls overlay updates. No JS runtime errors. Deeper canvas-side verification (Flicker blink, Heavy armor 'shrugged it off' text, Fox Statue heal) limited by canvas opacity but code paths reviewed line-by-line.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Title -> PLAY -> START MISSION boots into Level 0 (Overgrown Outskirts) without errors",
+    "HUD top-bar Scrap Meter renders new design: 'SCRAP • GREEN' label visible with green fill, threshold tick marks present (verified via screenshot)",
+    "Pressing Q with empty meter does not crash the game (no page/console errors)",
+    "Killing a root_crawler produced flight log entry 'Defeated root_crawler [dinosaur]' — enemy taxonomy family suffix wired correctly",
+    "Pause menu CONTROLS overlay lists 'Q Scrap Assist (call-in)' and 'E Interact (Fox Statue)' (text-content verified in DOM)",
+    "ESC opens pause menu, CONTROLS opens overlay, ESC closes overlay back to pause (no regression)",
+    "TouchControls.js exposes new ASSIST button bound to KeyQ (code review)",
+    "Engine constructor initializes this.assists=[], assistUpgradeBonus=0, assistMalfunctionReduction=0; loadLevel resets this.assists=[]",
+    "Engine._update calls triggerScrapAssist(this) when input.assist is just-pressed; _update also runs assists.forEach(a=>a.update(dt)) and filters done; _render draws assists after player",
+    "Player attack vs enemies passes { smash: pl.smashing } in opts to e.takeDamage — heavy-armor smash bypass is wired",
+    "Pickup collision special-cases p.type === 'foxstatue' to require input.interact (E key) before collect()",
+    "Level 8 (Mirror Vault) levels.js confirms { type: 'foxstatue', x: 1100, y: 288 } entry",
+    "FoxStatuePickup class exists in pickups.js and is registered in createPickup factory",
+    "EnemyBase exposes isWeak()/isLarge()/takePercentDamage(); FlickerEnemy.update toggles flickerOpen every 0.95s; render() applies 0.32 alpha when sealed",
+    "EnemyBase.takeDamage early-returns with 'Flicker shell sealed!' toast when hasFlicker && !flickerOpen && !bypassFlicker",
+    "EnemyBase.takeDamage early-returns with 'Heavy shell shrugged it off!' toast when armored && !empowered (empowered = isGoldenGloves || isBurningBuffalo || opts.smash); +1 bonus damage when empowered",
+    "triggerScrapAssist() correctly tiers by ratio (<0.25 green, <0.50 yellow, <0.75 orange, else red), drains meter to 0, logs 'Scrap Assist: <TIER> call-in', and shows correct banner text per tier",
+    "SupplyDrop / GroundAssistActor / FighterPlaneAssist classes have .done flag and update/render methods compatible with engine assist loop",
+    "No JavaScript page errors and no console errors/warnings during the entire test session"
+  ],
+  "not_deep_tested_due_to_canvas_limitations": [
+    "Visual confirmation of parachute crate landing + heal/scrap reward (Green assist) - code path verified",
+    "Visual confirmation of GroundAssistActor charging in from left and striking (Yellow/Orange assists) - code path verified",
+    "Visual confirmation of FighterPlaneAssist flyby + bullets/bomb (Red assist) - code path verified",
+    "In-game verification of Heavy enemy 'shrugged it off' banner on Level 4 (requires reaching boss level)",
+    "In-game verification of Flicker 'shell sealed' banner on Level 2 with timed attack during dim phase",
+    "In-game verification of Fox Statue heal on Level 8 (requires beating 7 levels or NG+ entry)",
+    "Mobile touch ASSIST button click on actual touch device (button presence in JSX confirmed)"
+  ],
+  "critical_code_review_comments": [
+    "engine.js line 317: boss trigger reads this.currentLevel.boss?.triggerX — fine. New assist code is well isolated; no regressions to existing systems.",
+    "assists.js _doGreenAssist passes pl.y as groundY. If the player is mid-air when Q is pressed, the SupplyDrop will land at the player's current Y coordinate (not the actual ground). Minor visual oddity; consider casting to nearest platform top under pl.x for polish.",
+    "assists.js _doOrangeAssist malfunction calls pl.takeDamage(1, pl.x - 8, engine) — relies on player.takeDamage signature accepting (amount, fromX, engine). Verified Player class supports this (used elsewhere in collisions). OK.",
+    "enemies.js takePercentDamage uses bypassArmor & bypassFlicker — meaning Yellow/Orange assists damage Heavies and sealed Flickers. This matches PR #7 design (call-ins ignore both defenses).",
+    "hud.js _drawScrapMeter label color flips to dark (#0A0A0A) when meter > 20 — readable on green/yellow/orange fills but slightly low contrast on red fill. Cosmetic only.",
+    "engine.js Tab key for flight log uses this.input.just('Tab') — Input class preventDefault includes 'Tab' so browser focus is held. Good.",
+    "Fox Statue visual dimming after use depends on FoxStatuePickup internal state — visually unverifiable from DOM but code path present.",
+    "No file exceeds the 700-line guidance for new code (assists.js ~333 lines, focused). enemies.js ~378 lines, still acceptable; consider splitting per-enemy classes if more variants are added."
+  ],
+  "test_report_links": [
+    "/app/test_reports/iteration_7.json"
+  ],
+  "action_items": [
+    "Optional polish: SupplyDrop should snap groundY to nearest platform top under player rather than using pl.y, so crate doesn't land mid-air if Q is pressed while jumping.",
+    "Optional polish: scrap meter label uses #0A0A0A on the RED tier fill — slightly lower contrast than other tiers; consider using #200000 or keeping white.",
+    "Recommend main agent perform a manual playthrough of Level 4 (Heavy shrugged-off banner), Level 2 (Flicker sealed banner), and Level 8 (Fox Statue heal) for visual confirmation. All code paths and wiring are verified clean."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only iteration)", "frontend": "100%"},
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 7 ports Scrap Assist + enemy defenses + Fox Statue from Godot PR #7. New module: /app/frontend/src/game/assists.js. Engine wires triggerScrapAssist on input.assist (KeyQ). HUD shows 'SCRAP • <TIER>' and '[Q] ASSIST' hint when meter>=20. Enemy flight log entries now include family in brackets, e.g. 'Defeated root_crawler [dinosaur]'. To trigger assists for testing: defeat 5-6 root_crawlers in level 0 to fill meter to ~25%+ (each enemy.scrapDrop * 8 added on death), then press Q. Confirmed no JS errors, HUD redesign visible, controls overlay updated, taxonomy in flight log working. Canvas-internal visual mechanics (Flicker alpha 0.32 dim, Heavy shrug banner, Fox Statue glow dim) are wired correctly per code review but cannot be DOM-asserted."
+}

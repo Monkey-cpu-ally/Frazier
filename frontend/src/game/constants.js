@@ -30,10 +30,21 @@ export const PL = {
 };
 
 export const EN = {
-  root_crawler: { hp: 2, spd: 65, dmg: 1, patrol: 110, w: 34, h: 24, score: 50, scrap: 1 },
-  gear_bug:     { hp: 2, spd: 95, dmg: 1, patrol: 140, w: 30, h: 22, score: 75, scrap: 1 },
-  flicker:      { hp: 3, spd: 55, dmg: 2, patrol: 90,  w: 32, h: 24, score: 100, scrap: 2 },
-  heavy:        { hp: 5, spd: 35, dmg: 2, patrol: 70,  w: 46, h: 34, score: 200, scrap: 3 },
+  root_crawler: { hp: 2, spd: 65, dmg: 1, patrol: 110, w: 34, h: 24, score: 50, scrap: 1, family: 'dinosaur', sizeClass: 'weak' },
+  gear_bug:     { hp: 2, spd: 95, dmg: 1, patrol: 140, w: 30, h: 22, score: 75, scrap: 1, family: 'machine',  sizeClass: 'weak' },
+  flicker:      { hp: 3, spd: 55, dmg: 2, patrol: 90,  w: 32, h: 24, score: 100, scrap: 2, family: 'element',  sizeClass: 'weak',  flicker: true },
+  heavy:        { hp: 12, spd: 35, dmg: 2, patrol: 70,  w: 46, h: 34, score: 200, scrap: 3, family: 'machine',  sizeClass: 'large', armored: true },
+};
+
+export const ASSIST = {
+  max: 100, useCost: 100, // full meter per call (drains all)
+  thresholds: [0.25, 0.50, 0.75], // < = GREEN, YELLOW, ORANGE, else RED
+  levels: {
+    green:  { name: 'GREEN',  color: '#7FE08A', label: 'Supply Drop' },
+    yellow: { name: 'YELLOW', color: '#FFD447', label: 'Shotgun Entry' },
+    orange: { name: 'ORANGE', color: '#FF9F43', label: 'Burn Smoke' },
+    red:    { name: 'RED',    color: '#FF5A5A', label: 'Air Strike' },
+  },
 };
 
 export const POWERS = {

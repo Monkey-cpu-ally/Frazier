@@ -261,8 +261,9 @@ function App() {
                 <ControlRow keys={['X', 'J']} action="Swing Wrench" />
                 <ControlRow keys={['S', '+', 'X']} action="Downward Smash (in air)" />
                 <ControlRow keys={['SHIFT']} action="Dash" />
+                <ControlRow keys={['Q']} action="Scrap Assist (call-in)" />
                 <ControlRow keys={['K', 'Z']} action="Special / Use Power" />
-                <ControlRow keys={['E']} action="Interact" />
+                <ControlRow keys={['E']} action="Interact (Fox Statue)" />
                 <ControlRow keys={['TAB']} action="Flight Log" />
                 <ControlRow keys={['ESC']} action="Pause" />
               </div>
@@ -273,6 +274,9 @@ function App() {
                   <li>Use downward smash to break cracked floors</li>
                   <li>Collect power orbs for 15-second abilities</li>
                   <li>Burning Buffalo lets you charge through walls</li>
+                  <li>Heavy enemies need Golden Gloves or Burning Buffalo to damage</li>
+                  <li>Flicker enemies are only vulnerable when blinking open</li>
+                  <li>Scrap meter powers call-ins: Green (heal) → Yellow → Orange → Red (airstrike)</li>
                   <li>Hit the boss during its vulnerable phase</li>
                 </ul>
               </div>

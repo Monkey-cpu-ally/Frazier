@@ -50,6 +50,7 @@ const TouchControls = ({ visible }) => {
         <Btn code="Space" label="JUMP" className="touch-jump" />
         <Btn code="KeyX" label="ATK" className="touch-attack" />
         <Btn code="KeyK" label="PWR" className="touch-special" />
+        <Btn code="KeyQ" label="ASSIST" className="touch-assist" />
       </div>
 
       {/* Top buttons */}

@@ -231,12 +231,101 @@ export class Breakable {
   }
 }
 
+export class FoxStatuePickup extends PickupBase {
+  constructor(x, y) {
+    super(x, y, 'foxstatue');
+    this.w = 40; this.h = 56;
+    this.used = false;
+    this.glowT = 0;
+  }
+  get hitbox() {
+    return { x: this.x - 24, y: this.y - 56, w: 48, h: 64 };
+  }
+  update(dt) {
+    this.bobT += dt * 2;
+    this.glowT += dt;
+  }
+  // Override — Fox Statue only activates on E interact, not contact
+  collect(engine) {
+    if (this.used) return;
+    this.used = true;
+    this.collected = true;
+    engine.gameState.healSticker();
+    engine.gameState.healSticker();
+    engine.gameState.showPickup('Fox Statue restored your strength');
+    engine.flightLog.add('Fox Statue: +2 stickers restored', 'spirit');
+    engine.camera.shake(4, 0.2);
+    engine.addParticles(this.x, this.y - 24, 20, '#88CCFF');
+    sfx.powerPickup();
+  }
+  render(ctx) {
+    if (this.collected && !this.used) return;
+    const x = Math.round(this.x), y = Math.round(this.y);
+    // Glow (only while active)
+    if (!this.used) {
+      const pulse = 0.3 + Math.sin(this.glowT * 2) * 0.15;
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = '#88CCFF';
+      ctx.beginPath();
+      ctx.arc(x, y - 28, 32, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    // Pedestal
+    ctx.fillStyle = '#3A3040';
+    ctx.fillRect(x - 20, y - 10, 40, 10);
+    ctx.strokeStyle = '#0A0A0A';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 20, y - 10, 40, 10);
+    // Statue body
+    ctx.fillStyle = this.used ? '#6A6080' : '#B8AAC8';
+    ctx.fillRect(x - 12, y - 42, 24, 32);
+    // Fox head (stylized triangle ears)
+    ctx.fillStyle = this.used ? '#7A7090' : '#C8BAD8';
+    ctx.beginPath();
+    ctx.moveTo(x - 14, y - 42);
+    ctx.lineTo(x - 8, y - 54);
+    ctx.lineTo(x - 2, y - 44);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x + 2, y - 44);
+    ctx.lineTo(x + 8, y - 54);
+    ctx.lineTo(x + 14, y - 42);
+    ctx.closePath();
+    ctx.fill();
+    // Face
+    ctx.fillStyle = this.used ? '#6A6080' : '#B8AAC8';
+    ctx.fillRect(x - 10, y - 42, 20, 10);
+    // Eyes (glow if active)
+    ctx.fillStyle = this.used ? '#3A3040' : '#88CCFF';
+    ctx.fillRect(x - 6, y - 38, 3, 3);
+    ctx.fillRect(x + 3, y - 38, 3, 3);
+    // Outline
+    ctx.strokeStyle = '#0A0A0A';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 12, y - 42, 24, 32);
+    // Interact prompt
+    if (!this.used) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.beginPath();
+      ctx.roundRect(x - 22, y - 74, 44, 16, 6);
+      ctx.fill();
+      ctx.fillStyle = '#88CCFF';
+      ctx.font = 'bold 10px "Nunito", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('[E] HEAL', x, y - 62);
+    }
+  }
+}
+
 export function createPickup(data) {
   switch (data.type) {
     case 'coin': return new CoinPickup(data.x, data.y);
     case 'scrap': return new ScrapPickup(data.x, data.y);
     case 'food': return new FoodPickup(data.x, data.y);
     case 'power': return new PowerPickup(data.x, data.y, data.powerId);
+    case 'foxstatue': return new FoxStatuePickup(data.x, data.y);
     default: return new CoinPickup(data.x, data.y);
   }
 }
