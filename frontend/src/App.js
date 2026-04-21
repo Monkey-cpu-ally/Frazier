@@ -43,6 +43,7 @@ function App() {
   const [progress, setProgress] = useState({
     levels_completed: [], mirror_fragments: 0, achievements: [],
     total_coins: 0, total_scrap: 0, high_score: 0,
+    assist_damage_level: 0, assist_stabilizer_level: 0,
   });
   const engineRef = useRef(null);
 
@@ -68,6 +69,39 @@ function App() {
 
   const handleGameState = useCallback((state) => {
     // Game engine state changes
+  }, []);
+
+  const handleUpgrade = useCallback(async (kind, level, cost) => {
+    // Validate and spend scrap, bump level, persist
+    setProgress(prev => {
+      if (prev.total_scrap < cost) return prev;
+      const field = kind === 'damage' ? 'assist_damage_level' : 'assist_stabilizer_level';
+      if (level !== (prev[field] || 0) + 1) return prev;
+      const next = { ...prev, total_scrap: prev.total_scrap - cost, [field]: level };
+      fetch(`${BACKEND_URL}/api/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...next, player_id: 'default' }),
+      }).catch(() => {});
+      sfx.uiStart();
+      return next;
+    });
+  }, []);
+
+  const handleScrapEarned = useCallback((earned, finalScore) => {
+    setProgress(prev => {
+      const next = {
+        ...prev,
+        total_scrap: (prev.total_scrap || 0) + earned,
+        high_score: Math.max(prev.high_score || 0, finalScore || 0),
+      };
+      fetch(`${BACKEND_URL}/api/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...next, player_id: 'default' }),
+      }).catch(() => {});
+      return next;
+    });
   }, []);
 
   const goToMenu = () => {
@@ -199,9 +233,12 @@ function App() {
             <GameCanvas
               key={restartKey}
               onStateChange={handleGameState}
+              onScrapEarned={handleScrapEarned}
               startLevel={startLevel}
               paused={paused}
               settings={settings}
+              assistDamageLevel={progress.assist_damage_level || 0}
+              assistStabilizerLevel={progress.assist_stabilizer_level || 0}
               ref={engineRef}
             />
 
@@ -226,6 +263,9 @@ function App() {
           open={showWorkshop}
           onClose={() => setShowWorkshop(false)}
           scrapParts={progress.total_scrap}
+          damageLevel={progress.assist_damage_level || 0}
+          stabilizerLevel={progress.assist_stabilizer_level || 0}
+          onUpgrade={handleUpgrade}
         />
 
         {/* ===== ACHIEVEMENTS ===== */}

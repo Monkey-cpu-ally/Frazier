@@ -82,3 +82,14 @@ User shared their Godot repo `github.com/Monkey-cpu-ally/atlas-core` PR #7. Main
 
 ### Verified
 iteration_7.json — 100% frontend pass. No JS errors. All code paths reviewed.
+
+## Scrap Assist Upgrade Tree (Feb 20, 2026)
+
+Added to Scrap's Workshop a new "ASSIST UPGRADES" tab with two paths (mirrors Godot `upgrade_scrap_damage` + malfunction reduction hooks):
+- **Strike Damage Core** — Tier 1/2/3: +5% / +10% / +15% bonus to Yellow/Orange/Red assist damage (costs 30/80/180 scrap).
+- **Stabilizer Module** — Tier 1/2/3: -5% / -10% / -15% Orange malfunction chance (costs 25/75/150 scrap).
+
+Tiers must be purchased in order. Progress persists to backend via `POST /api/progress` with new fields `assist_damage_level` and `assist_stabilizer_level`. Scrap earned per run is accumulated on gameover/victory into `progress.total_scrap` and persisted. `GameCanvas` maps the stored tier levels into engine runtime values (`engine.assistUpgradeBonus`, `engine.assistMalfunctionReduction`).
+
+Backend: `GameProgress` / `ProgressUpdate` pydantic models extended with two new int fields. Curl-verified save/load round-trip.
+

@@ -50,6 +50,8 @@ class GameProgress(BaseModel):
     achievements: List[str] = []
     wrench_skin: str = "standard"
     high_score: int = 0
+    assist_damage_level: int = 0
+    assist_stabilizer_level: int = 0
 
 class ProgressUpdate(BaseModel):
     player_id: str = "default"
@@ -60,6 +62,8 @@ class ProgressUpdate(BaseModel):
     achievements: List[str] = []
     wrench_skin: str = "standard"
     high_score: int = 0
+    assist_damage_level: int = 0
+    assist_stabilizer_level: int = 0
 
 # Routes
 @api_router.get("/")
