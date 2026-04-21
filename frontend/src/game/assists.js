@@ -254,7 +254,16 @@ export function triggerScrapAssist(engine) {
 
 function _doGreenAssist(engine, pl) {
   engine.gameState.showPickup('Supply Drop incoming!');
-  const drop = new SupplyDrop(pl.x, pl.y, () => {
+  // Snap groundY to nearest platform top directly under the player, else fall to player's y.
+  let groundY = pl.y;
+  let bestY = Infinity;
+  for (const p of engine.platforms) {
+    if (pl.x >= p.x && pl.x <= p.x + p.w && p.y >= pl.y - 40 && p.y < bestY) {
+      bestY = p.y;
+    }
+  }
+  if (bestY !== Infinity) groundY = bestY;
+  const drop = new SupplyDrop(pl.x, groundY, () => {
     if (Math.random() < 0.5) {
       engine.gameState.healSticker();
       engine.gameState.showPickup('Medical Drop!');

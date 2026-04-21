@@ -54,3 +54,31 @@ User requested "LETS LOOK FOR PROBLEMS IN THIS DEMO". Audited codebase and fixed
 
 ### Verified
 iteration_6.json — 100% pass on frontend + backend. No blocking issues remaining.
+
+
+## Godot PR #7 Port (Feb 20, 2026)
+
+User shared their Godot repo `github.com/Monkey-cpu-ally/atlas-core` PR #7. Main agent ported the new systems into the HTML5 game and fixed the 4 bugs Cursor Bugbot flagged in the original GDScript.
+
+### New systems added to HTML5 port
+- **Scrap Assist System** (NEW FILE `assists.js`) — meter-driven call-in system with 4 tiers:
+  - Green (<25%): SupplyDrop parachutes crate -> heal 1 sticker or +10 scrap (50/50)
+  - Yellow (25-49%): GroundAssistActor charges from left; weak enemies in 180px die, large take 10% dmg
+  - Orange (50-74%): same actor; 15%/10% dmg, ~30% malfunction self-damage
+  - Red (75%+): FighterPlaneAssist airstrike (machine-gun OR bomb, 20%/30% dmg in 220/180px radius)
+  - Q key triggers; full meter drained per call-in; upgrade bonus hooks in place
+- **Enemy taxonomy** — `family` (dinosaur/machine/element) + `sizeClass` (weak/large) on every enemy. Flight log shows family. `isWeak()`/`isLarge()` predicates.
+- **Heavy Chassis armor** — HP 5 -> 12; normal attacks show "Heavy shell shrugged it off!"; only Golden Gloves, Burning Buffalo, or downward smash damages them; empowered hits deal +1 bonus.
+- **Flicker blink invuln** — Flickers cycle open/closed every 0.95s; attacks during closed phase show "Flicker shell sealed!" and deal no damage; visually dim to 0.32 alpha when sealed.
+- **Fox Statue** — Level 8 Mirror Vault; E-key interact, heals 2 stickers, visually dims after use, glowing blue eyes.
+- **Assist tiered HUD meter** — 4-color fill with threshold ticks at 25/50/75%, label `SCRAP • <TIER>`, `[Q] ASSIST` hint when >=20.
+- **Touch ASSIST button** for mobile.
+
+### Godot PR #7 bugs fixed (not carried over into JS port)
+1. Heavy category string mismatch — we use a boolean `armored` flag instead.
+2. Flicker category string mismatch — we use a boolean `flicker` flag instead.
+3. `receive_contact_hit` missing arg — N/A in JS port (we use engine-level collision).
+4. `restore_hits` accidentally damaged — our `healSticker()` is direct and correct.
+
+### Verified
+iteration_7.json — 100% frontend pass. No JS errors. All code paths reviewed.
