@@ -150,3 +150,30 @@ Backend `/api/leaderboard/speedrun` (POST + GET top 10 ASC). Auto-submits on vic
 ### Verified
 iteration_9.json — 100% pass: 10/10 new pytest + 8/8 iter8 regression + full UI flows (daily card, in-game banner, leaderboard, regular start-mission regression). Zero JS errors.
 
+
+## Iteration 10 — Full New Gameplay Loop (Feb 20, 2026)
+
+User pasted 6 new GDScript snippets describing a huge new gameplay loop: City Hub, Dream World (procedural), Waterfall Descent, Fantasy Biomes (lava/sky/forest), Boss Encounter system, Hyper Mode power. Said "I don't know you pick" — agent chose playable-rough prototype of everything in one pass, additive to (not replacing) the 10 story levels.
+
+### Shipped
+- **City Hub** (`getCityHub()` in levels.js) — urban_overgrowth level with 3 `InteractablePickup` kiosks (SHOP/UPGRADE/MISSION). Walking into a kiosk + holding E latches on entry, fires once per entry, resets on exit. Shop/Upgrade open the Workshop modal; Mission opens the new WorldPicker modal.
+- **WorldPicker modal** — 5 biome cards (Story / Dream / Lava / Sky / Forest) with hover glow and DEPLOY buttons. Each card routes to `engine.startBiome()` or back to the classic story campaign.
+- **biomes.js** — new file with `generateDreamWorld(seed)` (mulberry32 PRNG, 10-25 random platforms, floaty gravity 0.6x, dream_creature flickers tinted pink, guaranteed Hyper Mode orb spawn) + `getFantasyBiome('lava'|'sky'|'forest')` each with themed enemies, bossAfterClear flag, forest has waterfallEvent.
+- **Hyper Mode power** (constants.js + systems.js + player.js + engine.js) — 1.5x speed, 2x damage, magenta hue-rotated trail ghosts, 12s duration. Letter 'H' in the power pickup pool.
+- **Waterfall Descent event** — engine-level trigger at `waterfallEvent.triggerX` → `waterfallActive=true` for duration seconds. Gravity × 2.5, jump × 0.5, forced downward vy bias, falling rocks spawn every ~0.25s, blue sheet overlay flashes. Implemented as HUD-less environmental event.
+- **Boss Arena system** (prototype stand-in) — biome levels with `bossAfterClear:true` spawn 3 reinforced biome-tinted enemies on "completion"; red energy-wall barrier renders at camera right edge preventing exit; player clamped inside; auto-clears when all wave enemies dead.
+- **Biome backgrounds** in engine._renderBg — lava (red/ember dots), sky (pastel + floating islands parallax), forest (teal + light rays + tree silhouettes), dream (pink-purple + floaty orbs), urban_overgrowth (concrete city with vine drips).
+- **Enemy biome tinting** via `enemy.tintColor` — composite overlay applied in render() per biome.
+
+### Engine API additions
+- `engine.startHub()` — boot into City Hub as single-level mode.
+- `engine.startBiome(levelObj)` — boot into any biome level (procedural or static).
+- `engine.waterfallActive` / `engine.bossArenaActive` / `engine.gravityMul` / `engine.biome` / `engine.powerManager.isHyperMode`.
+
+### Testability
+- New `EngineStateProbe` hidden DOM component exposes engine state as testid spans: `current-level-name`, `current-biome`, `waterfall-active`, `boss-arena-active`, `hyper-mode-active`, `daily-active`.
+- Fixed 2 stale pytest assertions (speedrun zero_ms now returns 400; flicker.png now exists).
+
+### Verified
+iteration_10.json: 100% frontend reachability + 16/18 backend (the 2 stale assertions then fixed → 18/18 after update). No JS errors on boot.
+

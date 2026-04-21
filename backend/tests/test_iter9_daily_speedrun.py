@@ -147,8 +147,9 @@ def test_speedrun_invalid_zero_ms(client):
     r = client.post(f"{API}/leaderboard/speedrun", json={
         "player_name": "TEST_zero", "total_ms": 0, "l1_ms": 0,
     }, timeout=10)
-    assert r.status_code == 200
-    assert r.json().get('status') == 'invalid'
+    # iter9 hardened: server now rejects total_ms<=0 with HTTP 400 (FastAPI HTTPException).
+    assert r.status_code == 400
+    assert "total_ms" in r.json().get('detail', '').lower()
 
 
 def test_speedrun_limit(client):

@@ -59,20 +59,20 @@ const WorldPicker = ({ open, onClose, onChoose }) => {
             gap: 14, marginTop: 14,
           }}>
             {WORLDS.map(w => (
-              <div
-                key={w.id}
-                data-testid={`world-${w.id}`}
-                onClick={() => onChoose && onChoose(w.id)}
-                style={{
-                  padding: 16,
-                  background: 'rgba(12,18,24,0.6)',
-                  border: `2px solid ${w.color}55`,
-                  borderRadius: 12,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
+                <div
+                  key={w.id}
+                  data-testid={`world-${w.id}`}
+                  onClick={() => onChoose && onChoose(w.id)}
+                  style={{
+                    padding: 16,
+                    background: 'rgba(12,18,24,0.6)',
+                    border: `2px solid ${w.color}55`,
+                    borderRadius: 12,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
                 onMouseEnter={e => {
                   e.currentTarget.style.borderColor = w.color;
                   e.currentTarget.style.background = 'rgba(12,18,24,0.85)';
@@ -105,7 +105,12 @@ const WorldPicker = ({ open, onClose, onChoose }) => {
                   color: '#C5D5CC', lineHeight: 1.4,
                 }}>{w.desc}</div>
                 <div style={{ marginTop: 10 }}>
-                  <GameButton variant="secondary" full data-testid={`world-${w.id}-btn`}>
+                  <GameButton
+                    variant="secondary"
+                    full
+                    data-testid={`world-${w.id}-btn`}
+                    onClick={(e) => { e && e.stopPropagation && e.stopPropagation(); onChoose && onChoose(w.id); }}
+                  >
                     DEPLOY
                   </GameButton>
                 </div>

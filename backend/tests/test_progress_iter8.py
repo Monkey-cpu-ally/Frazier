@@ -145,8 +145,8 @@ def test_score_submit(client):
 def test_enemy_sprites_available(client):
     # These are served by frontend; we verify they exist on disk since
     # the public /enemies path is served under the frontend origin.
-    for name in ("root_crawler.png", "gear_bug.png", "heavy.png"):
+    # As of iteration-10 all 4 sprites are generated (flicker was added when
+    # Gemini budget refreshed).
+    for name in ("root_crawler.png", "gear_bug.png", "heavy.png", "flicker.png"):
         p = f"/app/frontend/public/enemies/{name}"
         assert os.path.exists(p), f"Missing expected sprite: {p}"
-    # flicker.png is intentionally absent per iteration-8 notes.
-    assert not os.path.exists("/app/frontend/public/enemies/flicker.png")

@@ -12,6 +12,7 @@ import Workshop from '@/components/Workshop';
 import Achievements from '@/components/Achievements';
 import MirrorGallery from '@/components/MirrorGallery';
 import WorldPicker from '@/components/WorldPicker';
+import EngineStateProbe from '@/components/EngineStateProbe';
 import { sfx } from '@/game/sfx';
 import { music } from '@/game/music';
 
@@ -246,13 +247,18 @@ function App() {
 
   const handleHubInteract = useCallback((kind) => {
     if (kind === 'shop' || kind === 'upgrade_station') {
+      // If WorldPicker is already open (player walked through kiosks with E held),
+      // don't stack a second modal — prefer the destination they already opened.
+      if (showWorldPicker) return;
       setShowWorkshop(true);
       sfx.uiClick();
     } else if (kind === 'mission_gate') {
+      // MISSION wins over a stuck Workshop if player keeps holding E into it.
+      setShowWorkshop(false);
       setShowWorldPicker(true);
       sfx.uiClick();
     }
-  }, []);
+  }, [showWorldPicker]);
 
   const handleChooseWorld = useCallback((worldId) => {
     setShowWorldPicker(false);
@@ -469,6 +475,7 @@ function App() {
               unlockedAchievements={progress.achievements || []}
               ref={engineRef}
             />
+            <EngineStateProbe engineRef={engineRef} />
 
             {/* Pause Menu Overlay */}
             {paused && (
