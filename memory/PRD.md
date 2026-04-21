@@ -125,3 +125,28 @@ User said "All" to a plan bundling 4 features. All landed green via testing agen
 ### Backend schema extended
 `GameProgress` + `ProgressUpdate`: new fields `unlocked_skins: List[str] = ["standard"]`, `best_run_time_ms: int = 0`, `best_l1_time_ms: int = 0`. Pytest 8/8 in `/app/backend/tests/test_progress_iter8.py`.
 
+
+## Iteration 9 — PR Continuation + Daily Challenge + Global Leaderboard (Feb 20, 2026)
+
+User said "All but first keep pulling from pr" — meaning skip the manual-playthrough item, pull more from PR first, then do the rest (leaderboard + daily challenge).
+
+### Pulled from PR #7 (atlas-core)
+Re-audited the Godot repo. Everything substantive was already ported (3-phase boss, Fox Spirit, Scrap Assist system, Fox Statue, enemy taxonomy/armor/blink, etc). The last missing piece was **Hint Prompt Triggers** — `hint_prompt_trigger.gd` area-based banners. Ported as `hintTriggers` array on level configs with once-fire AABB check in `engine._update`. Added triggers to levels 0, 1, 2, 3, 4, 8 covering: move/attack guidance, wall-slide tip, dash tip, smash tip, boss vulnerability hint, fox statue E-key hint, hidden fragment hint.
+
+### New: Daily Seeded Challenge
+Backend `/api/daily-challenge` (GET) returns `{date, modifier, seed}`. Seed is md5-hashed UTC date → picks 1 of 6 modifiers (glass_cannon, no_heal, scrap_famine, mirror_mania, iron_fist, golden_hour). Each modifier applies to engine: dmg_mul, dmg_taken_mul, no_heal (food/fox-statue blocked), scrap_mul, enemy_speed_mul, no_dash, coin_mul, score_mul.
+
+Main Menu Play tab shows **Daily Challenge Card** (orange border, modifier name + desc + PLAY CHALLENGE button). Clicking auto-enables speedrunMode + dailyMode. When victory fires, POST `/api/daily-challenge/complete` records completion (keyed by `player_id:YYYY-MM-DD`). Card shows green "CLEARED TODAY" badge + "REPLAY CHALLENGE" button after.
+
+In-game: orange "DAILY CHALLENGE / <MODIFIER NAME>" banner top-left. Toast "🎯 Daily Challenge cleared!" on completion.
+
+### New: Global Speedrun Leaderboard
+Backend `/api/leaderboard/speedrun` (POST + GET top 10 ASC). Auto-submits on victory when speedrunMode is on (player_name from localStorage fallback "Axel"). Main Menu Scores tab now renders two sections — classic Top Scores + new Speedrun Leaderboard (`data-testid=speedrun-leaderboard`) with rank/name/MM:SS.cc, #1 highlighted gold.
+
+### Backend polish
+- Daily seed upgraded from `sum(ord())` to `md5()` for even distribution across adjacent dates.
+- POST `/api/leaderboard/speedrun` returns HTTP 400 (not 200) on `total_ms <= 0`.
+
+### Verified
+iteration_9.json — 100% pass: 10/10 new pytest + 8/8 iter8 regression + full UI flows (daily card, in-game banner, leaderboard, regular start-mission regression). Zero JS errors.
+

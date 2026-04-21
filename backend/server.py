@@ -1,9 +1,10 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import hashlib
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
@@ -160,7 +161,7 @@ class SpeedrunSubmit(BaseModel):
 @api_router.post("/leaderboard/speedrun")
 async def submit_speedrun(data: SpeedrunSubmit):
     if data.total_ms <= 0:
-        return {"status": "invalid"}
+        raise HTTPException(status_code=400, detail="total_ms must be > 0")
     entry = SpeedrunEntry(**data.model_dump())
     await db.speedrun_leaderboard.insert_one(entry.model_dump())
     return {"status": "submitted", "id": entry.id}
@@ -183,10 +184,10 @@ DAILY_MODIFIERS = [
 
 @api_router.get("/daily-challenge")
 async def get_daily_challenge():
-    # Deterministic seed from today's UTC date
+    # Deterministic seed from today's UTC date — md5 for even distribution
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    # Simple hash → mod index
-    seed = sum(ord(c) for c in today)
+    digest = hashlib.md5(today.encode()).digest()
+    seed = int.from_bytes(digest[:4], "big")
     modifier = DAILY_MODIFIERS[seed % len(DAILY_MODIFIERS)]
     return {"date": today, "modifier": modifier, "seed": seed}
 
