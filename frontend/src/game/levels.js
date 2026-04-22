@@ -75,6 +75,9 @@ export function getLevels(newGamePlus = false) {
         { type: 'root_crawler', x: -170, y: 148 },
         { type: 'gear_bug', x: 220, y: 286 },
         { type: 'root_crawler', x: 420, y: 286 },
+        { type: 'wispling', x: 700, y: 180 },
+        { type: 'candle_skull', x: 1050, y: 286 },
+        { type: 'moss_golem', x: 1300, y: 286 },
       ],
       pickups: [
         { type: 'coin', x: 560, y: 260 },

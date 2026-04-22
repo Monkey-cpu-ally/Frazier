@@ -34,6 +34,14 @@ export const EN = {
   gear_bug:     { hp: 2, spd: 95, dmg: 1, patrol: 140, w: 30, h: 22, score: 75, scrap: 1, family: 'machine',  sizeClass: 'weak' },
   flicker:      { hp: 3, spd: 55, dmg: 2, patrol: 90,  w: 32, h: 24, score: 100, scrap: 2, family: 'element',  sizeClass: 'weak',  flicker: true },
   heavy:        { hp: 12, spd: 35, dmg: 2, patrol: 70,  w: 46, h: 34, score: 200, scrap: 3, family: 'machine',  sizeClass: 'large', armored: true },
+
+  /* ── New minor enemies (varied sizes) ───────────────────────── */
+  // 3ft tiny ghost — weak, fast, float-hops toward Axel.
+  wispling:     { hp: 1, spd: 120, dmg: 1, patrol: 160, w: 22, h: 20, score: 60, scrap: 1, family: 'spirit',   sizeClass: 'weak' },
+  // 5ft skull-with-candle — mid-tier, tosses flame sparks while patrolling.
+  candle_skull: { hp: 4, spd: 55,  dmg: 2, patrol: 130, w: 32, h: 42, score: 140, scrap: 2, family: 'spirit',   sizeClass: 'medium' },
+  // 6ft moss-golem — heavy-class tank (not armored, just high HP), slow ground pounds.
+  moss_golem:   { hp: 10, spd: 30, dmg: 3, patrol: 100, w: 50, h: 52, score: 220, scrap: 3, family: 'nature',   sizeClass: 'large' },
 };
 
 export const ASSIST = {
@@ -74,6 +82,10 @@ export const C = {
   gbBody: '#4AA8B0', gbInner: '#3A8890',
   flBody: '#946BC7', flGlow: '#B088E0',
   hvBody: '#6682A1', hvAccent: '#A3C766', hvPlate: '#566E88',
+  // New minor enemies
+  wpBody: '#E4F2FF', wpShade: '#B8D5F0', wpEye: '#4FB8FF',
+  csBone: '#F4ECD8', csShade: '#C9BFA0', csFlame: '#FF9E3B', csFlameHi: '#FFE46B',
+  mgBody: '#4E7A3A', mgMoss: '#89C65C', mgShade: '#345A26', mgEye: '#F7D75F',
   coin: '#F7D75F', coinShine: '#FFFACD',
   scrapC: '#7DA5BD', scrapDk: '#5A8098',
   food: '#73C46A', foodStem: '#3D7A35',
