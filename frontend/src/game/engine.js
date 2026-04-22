@@ -109,6 +109,8 @@ export class Engine {
     this.deathY = 800;
     this.levelTimer = 0;
     this.bossActivated = false;
+    // Biome weather particles — populated on level load via _initWeather().
+    this.weatherParticles = [];
 
     this.state = 'playing';
     this.transitionTimer = 0;
@@ -331,6 +333,10 @@ export class Engine {
     } else {
       this.boss = null;
     }
+
+    // Seed biome weather particles for this level.
+    this._weatherKey = null; // force reseed on next _updateWeather tick
+    this._initWeather();
 
     // Fox Spirit setup
     if (lv.foxSpirit) {
@@ -825,6 +831,10 @@ export class Engine {
     // Background
     if (this.currentLevel) {
       this._renderBg(ctx);
+      // Weather particles — drawn in screen space, behind gameplay. Updated
+      // in lockstep with render to stay smooth with whatever dt produced the frame.
+      this._updateWeather(1 / 60);
+      this._renderWeather(ctx);
     }
 
     ctx.save();
@@ -1656,6 +1666,151 @@ export class Engine {
       const ny = top + 20 + rng() * (bot - top - 40);
       const sz = 4 + Math.floor(rng() * 6);
       ctx.fillRect(Math.round(nx), Math.round(ny), sz, Math.max(3, sz - 2));
+    }
+    ctx.restore();
+  }
+
+  // ── Biome-aware weather particles ─────────────────────────────
+  // Called on level load (via loadLevel) — seeds the particle pool for the
+  // current biome. Each biome has its own "shape" of particle motion:
+  //   forest → diagonal rain drops
+  //   lava   → rising embers with jitter
+  //   sky    → lazy snowflakes
+  //   dream  → floating pastel sparkles
+  //   city   → light rain + occasional pulse
+  _initWeather() {
+    const key = this._resolveBiomeKey();
+    this.weatherParticles = [];
+    this._weatherKey = key;
+    const config = this._weatherConfig(key);
+    if (!config) return;
+    for (let i = 0; i < config.count; i++) {
+      this.weatherParticles.push(this._spawnWeatherParticle(config, true));
+    }
+  }
+
+  _weatherConfig(key) {
+    if (key === 'forest') return { kind: 'rain',  count: 80, color: 'rgba(160,200,220,0.55)', accent: '#88BFE8' };
+    if (key === 'lava')   return { kind: 'ember', count: 55, color: '#FFB048', accent: '#FF6B1C' };
+    if (key === 'sky')    return { kind: 'snow',  count: 70, color: '#FFFFFF', accent: '#CFE6F5' };
+    if (key === 'dream')  return { kind: 'wisp',  count: 45, color: '#FFB0F0', accent: '#FFE8FF' };
+    if (key === 'city')   return { kind: 'rain',  count: 60, color: 'rgba(150,170,200,0.45)', accent: '#88A0C0' };
+    return null;
+  }
+
+  _spawnWeatherParticle(cfg, initial) {
+    const camL = this.camera.x - W / 2;
+    const camT = this.camera.y - H / 2;
+    const p = { kind: cfg.kind, color: cfg.color, accent: cfg.accent };
+    if (cfg.kind === 'rain') {
+      p.x = camL + Math.random() * (W + 200) - 100;
+      p.y = camT + (initial ? Math.random() * H : -40 - Math.random() * 60);
+      p.vx = -80;
+      p.vy = 520 + Math.random() * 120;
+      p.len = 10 + Math.random() * 8;
+      p.life = 1;
+    } else if (cfg.kind === 'ember') {
+      p.x = camL + Math.random() * W;
+      p.y = camT + (initial ? Math.random() * H : H + 10);
+      p.vx = (Math.random() - 0.5) * 30;
+      p.vy = -40 - Math.random() * 80;
+      p.size = 2 + Math.floor(Math.random() * 2);
+      p.phase = Math.random() * Math.PI * 2;
+      p.life = 1;
+    } else if (cfg.kind === 'snow') {
+      p.x = camL + Math.random() * (W + 100) - 50;
+      p.y = camT + (initial ? Math.random() * H : -20);
+      p.vx = (Math.random() - 0.5) * 30;
+      p.vy = 40 + Math.random() * 60;
+      p.size = 2 + Math.floor(Math.random() * 2);
+      p.phase = Math.random() * Math.PI * 2;
+      p.life = 1;
+    } else if (cfg.kind === 'wisp') {
+      p.x = camL + Math.random() * W;
+      p.y = camT + Math.random() * H;
+      p.vx = (Math.random() - 0.5) * 20;
+      p.vy = (Math.random() - 0.5) * 20 - 10;
+      p.size = 3 + Math.floor(Math.random() * 3);
+      p.phase = Math.random() * Math.PI * 2;
+      p.life = 0.5 + Math.random() * 0.5;
+      p.pulse = 0.5 + Math.random() * 2;
+    }
+    return p;
+  }
+
+  _updateWeather(dt) {
+    const key = this._resolveBiomeKey();
+    // If biome changed (level swap), reseed.
+    if (key !== this._weatherKey) this._initWeather();
+    const cfg = this._weatherConfig(key);
+    if (!cfg || !this.weatherParticles.length) return;
+    const camL = this.camera.x - W / 2;
+    const camR = this.camera.x + W / 2;
+    const camT = this.camera.y - H / 2;
+    const camB = this.camera.y + H / 2;
+    for (let i = 0; i < this.weatherParticles.length; i++) {
+      const p = this.weatherParticles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      if (p.kind === 'ember') {
+        p.phase += dt * 6;
+        p.x += Math.sin(p.phase) * 18 * dt;
+      } else if (p.kind === 'snow') {
+        p.phase += dt * 2;
+        p.x += Math.sin(p.phase) * 25 * dt;
+      } else if (p.kind === 'wisp') {
+        p.phase += dt * (p.pulse || 1);
+        p.x += Math.sin(p.phase) * 12 * dt;
+        p.y += Math.cos(p.phase * 0.7) * 10 * dt;
+      }
+      // Recycle when off-screen.
+      const off = p.x < camL - 80 || p.x > camR + 80 || p.y > camB + 80 || p.y < camT - 120;
+      if (off) this.weatherParticles[i] = this._spawnWeatherParticle(cfg, false);
+    }
+  }
+
+  _renderWeather(ctx) {
+    if (!this.weatherParticles.length) return;
+    ctx.save();
+    this.camera.apply(ctx);
+    for (const p of this.weatherParticles) {
+      if (p.kind === 'rain') {
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(Math.round(p.x), Math.round(p.y));
+        ctx.lineTo(Math.round(p.x - 2), Math.round(p.y + p.len));
+        ctx.stroke();
+      } else if (p.kind === 'ember') {
+        const pulse = 0.6 + 0.4 * Math.sin(p.phase);
+        // Bright core
+        ctx.globalAlpha = pulse;
+        ctx.fillStyle = p.accent;
+        ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+        // Halo glow
+        ctx.globalAlpha = 0.3 * pulse;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(Math.round(p.x - 1), Math.round(p.y - 1), p.size + 2, p.size + 2);
+        ctx.globalAlpha = 1;
+      } else if (p.kind === 'snow') {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+        // Cross-pixel flake detail on larger flakes
+        if (p.size >= 3) {
+          ctx.fillStyle = p.accent;
+          ctx.fillRect(Math.round(p.x + 1), Math.round(p.y - 1), 1, 1);
+          ctx.fillRect(Math.round(p.x - 1), Math.round(p.y + 1), 1, 1);
+        }
+      } else if (p.kind === 'wisp') {
+        const pulse = 0.5 + 0.5 * Math.sin(p.phase * 1.3);
+        ctx.globalAlpha = pulse;
+        ctx.fillStyle = p.accent;
+        ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+        ctx.globalAlpha = 0.35 * pulse;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(Math.round(p.x - 1), Math.round(p.y - 1), p.size + 2, p.size + 2);
+        ctx.globalAlpha = 1;
+      }
     }
     ctx.restore();
   }
