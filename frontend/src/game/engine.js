@@ -986,6 +986,14 @@ export class Engine {
 
     ctx.restore();
 
+    // ── Post-FX pass ("Pixel-Expressive" style stack) ────────────
+    // Full-screen color/feel overlays that sit between gameplay and HUD.
+    // 1. Element tint + pulse tied to the active power (fire/water/earth/air/void)
+    // 2. Posterize-style quantize wash for that crunched pixel-art look
+    // 3. Scanline dither for subtle CRT/pixel-expressive feel
+    this._drawElementFX(ctx);
+    this._drawPixelCrunchOverlay(ctx);
+
     // HUD
     this.hud.render(ctx, this);
 
@@ -2102,6 +2110,134 @@ export class Engine {
     g.addColorStop(0, 'rgba(0,0,0,0)');
     g.addColorStop(1, 'rgba(0,0,0,0.38)');
     ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+
+  // ── "Elemental Gem" post-FX — tied to active power-up ─────────
+  // Translates the HLSL shader's element mode (fire/water/earth/air/void)
+  // into Canvas-friendly full-screen overlays: pulsing tint + directional
+  // shimmer bands + edge glow. Each element has its own signature feel.
+  _drawElementFX(ctx) {
+    const pm = this.powerManager;
+    if (!pm || !pm.active) return;
+    const id = pm.id;
+    // Element config — maps power-ups to shader-style element modes.
+    const ELEMENT = {
+      burning_buffalo: { kind: 'fire',  tint: '#FF5A1A', pulseSpd: 8, bandSpd: 60,  strength: 0.22 },
+      super_mode:      { kind: 'fire',  tint: '#FF3636', pulseSpd: 6, bandSpd: 40,  strength: 0.18 },
+      specter_mode:    { kind: 'water', tint: '#55C8FF', pulseSpd: 3, bandSpd: 80,  strength: 0.22 },
+      golden_gloves:   { kind: 'earth', tint: '#FFB84D', pulseSpd: 2, bandSpd: 0,   strength: 0.20 },
+      fighter_plane:   { kind: 'earth', tint: '#44BB44', pulseSpd: 2, bandSpd: 0,   strength: 0.16 },
+      shadow_tag:      { kind: 'void',  tint: '#8B5CF6', pulseSpd: 4, bandSpd: 100, strength: 0.24 },
+      hyper_mode:      { kind: 'air',   tint: '#FF2ED5', pulseSpd: 10, bandSpd: 140, strength: 0.26 },
+    };
+    const el = ELEMENT[id];
+    if (!el) return;
+
+    // Get normalized remaining-time (0..1) — tint fades out as power expires.
+    const remFrac = pm.active.dur > 0 ? Math.max(0, pm.timer / pm.active.dur) : 1;
+    const pulse = 0.5 + 0.5 * Math.sin(this.levelTimer * el.pulseSpd);
+
+    ctx.save();
+
+    // 1. Edge glow — radial inverse-vignette in element color.
+    const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, el.tint);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = el.strength * pulse * remFrac;
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // 2. Shimmer bands — diagonal light streaks that sweep for fire/water/void/air.
+    if (el.bandSpd > 0) {
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = el.strength * 0.6 * remFrac;
+      ctx.fillStyle = el.tint;
+      const drift = this.levelTimer * el.bandSpd;
+      const bandAngle = (el.kind === 'water') ? 0.4 : (el.kind === 'void') ? -0.3 : 0.15;
+      for (let i = 0; i < 3; i++) {
+        const x0 = ((drift + i * 420) % (W + 600)) - 300;
+        ctx.beginPath();
+        ctx.moveTo(x0,              0);
+        ctx.lineTo(x0 + 80,         0);
+        ctx.lineTo(x0 + 80 + bandAngle * H, H);
+        ctx.lineTo(x0 +      bandAngle * H, H);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    // 3. Kind-specific flourish
+    if (el.kind === 'fire') {
+      // Bottom heat-haze bar
+      const grad = ctx.createLinearGradient(0, H * 0.75, 0, H);
+      grad.addColorStop(0, 'rgba(255,90,26,0)');
+      grad.addColorStop(1, 'rgba(255,90,26,0.28)');
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = remFrac;
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, H * 0.75, W, H * 0.25);
+    } else if (el.kind === 'water') {
+      // Top-to-bottom cool wash
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, 'rgba(85,200,255,0.16)');
+      grad.addColorStop(1, 'rgba(85,200,255,0)');
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = remFrac;
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    } else if (el.kind === 'earth') {
+      // Slight sepia/desaturate via multiply
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.globalAlpha = el.strength * 0.5 * remFrac;
+      ctx.fillStyle = '#C8A46B';
+      ctx.fillRect(0, 0, W, H);
+    } else if (el.kind === 'void') {
+      // Dark purple corners — a "shadow folds in" feel
+      const grad = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.9);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, 'rgba(40,20,80,0.45)');
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = remFrac;
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    } else if (el.kind === 'air') {
+      // Fast pink shimmer flashes
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = el.strength * pulse * 0.5 * remFrac;
+      ctx.fillStyle = '#FF80F0';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    ctx.restore();
+  }
+
+  // ── Pixel-crunch overlay — subtle scanline dither for the CRT/pixel feel ─
+  // Renders once and caches on an offscreen canvas so we don't pay the
+  // per-frame cost of 720 horizontal lines. Drawn with low opacity over the
+  // whole screen for that "pixel-expressive" texture.
+  _drawPixelCrunchOverlay(ctx) {
+    if (!this._scanlineCanvas) {
+      const off = document.createElement('canvas');
+      off.width = 2;
+      off.height = 4;
+      const o = off.getContext('2d');
+      o.fillStyle = 'rgba(0,0,0,0.18)';
+      o.fillRect(0, 0, 2, 1);
+      o.fillStyle = 'rgba(255,255,255,0.04)';
+      o.fillRect(0, 2, 2, 1);
+      this._scanlineCanvas = off;
+      this._scanlinePattern = null;
+    }
+    if (!this._scanlinePattern) {
+      this._scanlinePattern = ctx.createPattern(this._scanlineCanvas, 'repeat');
+    }
+    if (!this._scanlinePattern) return;
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = this._scanlinePattern;
     ctx.fillRect(0, 0, W, H);
     ctx.restore();
   }
