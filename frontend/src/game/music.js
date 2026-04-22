@@ -151,64 +151,85 @@ class MusicEngine {
     return bars * 4 * beatLen;
   }
 
-  // Start ambient exploration track
+  // Start ambient exploration track — chiptune platformer version.
+  // Driving 8th-note square lead + triangle bass at 128 bpm.
   playExploration() {
-    if (!this.enabled || this.playing) return;
+    if (!this.enabled) return;
+    if (this.playing && this.currentTrack === 'explore') return;
+    this.stop();
     this._ensure();
     this.playing = true;
     this.currentTrack = 'explore';
-    this._playDrone(65.4, 8); // Low C drone
     this._loopPhrase();
   }
 
-  // Start boss battle track
+  // Start boss battle track — tense descending minor-key chiptune at 160 bpm.
   playBoss() {
     if (!this.enabled) return;
+    if (this.playing && this.currentTrack === 'boss') return;
     this.stop();
     this._ensure();
     this.playing = true;
     this.currentTrack = 'boss';
-    this._playDrone(55, 6); // Low A drone (darker)
     this._loopBoss();
   }
 
   _loopPhrase() {
     if (!this.playing || this.currentTrack !== 'explore') return;
     const ctx = this._ensure();
-    const dur = this._generatePhrase(ctx.currentTime + 0.1, 85, 4);
-    // Drone renewal
-    this._playDrone(65.4, dur + 2);
-    this._phraseTimeout = setTimeout(() => this._loopPhrase(), (dur - 0.5) * 1000);
+    const bpm = 128;
+    const beat = 60 / bpm / 2;  // 8th notes
+    let t = ctx.currentTime + 0.1;
+    // A-minor pentatonic arc, 32 notes = 4 bars of 8.
+    const mel = [
+      440, 523, 659, 880, 784, 659, 523, 440,
+      494, 587, 740, 988, 880, 740, 587, 494,
+      392, 494, 587, 784, 659, 494, 392, 330,
+      440, 523, 659, 880, 784, 659, 587, 523,
+    ];
+    const bas = [
+      220, 220, 330, 330, 220, 220, 330, 330,
+      247, 247, 370, 370, 247, 247, 370, 370,
+      196, 196, 294, 294, 196, 196, 294, 294,
+      220, 220, 330, 330, 220, 220, 330, 330,
+    ];
+    for (let i = 0; i < 32; i++) {
+      this._playNote(mel[i], t + i * beat, beat * 0.9, 'square', 0.055);
+      this._playNote(bas[i], t + i * beat, beat * 0.95, 'triangle', 0.045);
+      if (i % 4 === 0) this._playTick(t + i * beat, 0.05);
+      if (i % 2 === 1) this._playHat(t + i * beat, 0.02);
+    }
+    const dur = 32 * beat;
+    this._phraseTimeout = setTimeout(() => this._loopPhrase(), (dur - 0.05) * 1000);
   }
 
   _loopBoss() {
     if (!this.playing || this.currentTrack !== 'boss') return;
     const ctx = this._ensure();
-    const beatLen = 60 / 120; // Faster BPM for boss
+    const bpm = 160;
+    const beat = 60 / bpm / 2;
     let t = ctx.currentTime + 0.1;
-
-    // More aggressive pattern
-    for (let bar = 0; bar < 4; bar++) {
-      for (let beat = 0; beat < 4; beat++) {
-        const bt = t + (bar * 4 + beat) * beatLen;
-        // Heavy kick on 1 and 3
-        if (beat === 0 || beat === 2) this._playTick(bt, 0.07);
-        // Hat on every beat
-        this._playHat(bt, 0.03);
-        // Aggressive melody
-        if (Math.random() < 0.5) {
-          const deg = Math.floor(Math.random() * 3);
-          this._playNote(this._scale(deg), bt, beatLen * 0.4, 'sawtooth', 0.05);
-        }
-        // Tension notes
-        if (beat === 3 && bar % 2 === 1) {
-          this._playNote(this._scale(5), bt, beatLen * 0.6, 'square', 0.04);
-        }
-      }
+    // D-minor tension — heavier hits on the downbeats, more chromatic lead.
+    const mel = [
+      294, 349, 440, 587, 523, 440, 349, 294,
+      262, 330, 392, 523, 440, 392, 330, 262,
+      233, 294, 370, 494, 440, 370, 294, 233,
+      294, 440, 587, 880, 740, 587, 440, 294,
+    ];
+    const bas = [
+      147, 147, 147, 147, 175, 175, 175, 175,
+      131, 131, 131, 131, 165, 165, 165, 165,
+      117, 117, 117, 117, 147, 147, 147, 147,
+      147, 147, 175, 175, 220, 220, 294, 294,
+    ];
+    for (let i = 0; i < 32; i++) {
+      this._playNote(mel[i], t + i * beat, beat * 0.9, 'square', 0.07);
+      this._playNote(bas[i], t + i * beat, beat * 0.95, 'sawtooth', 0.055);
+      if (i % 4 === 0 || i % 4 === 2) this._playTick(t + i * beat, 0.08);
+      this._playHat(t + i * beat, 0.03);
     }
-    const dur = 4 * 4 * beatLen;
-    this._playDrone(55, dur + 1);
-    this._phraseTimeout = setTimeout(() => this._loopBoss(), (dur - 0.3) * 1000);
+    const dur = 32 * beat;
+    this._phraseTimeout = setTimeout(() => this._loopBoss(), (dur - 0.05) * 1000);
   }
 
   stop() {
@@ -312,9 +333,11 @@ class MusicEngine {
     this._titleTimeout = setTimeout(() => this._loopTitle(), (dur - 0.05) * 1000);
   }
 
-  // Menu ambient (very sparse)
+  // Menu chiptune — calmer than title, still melodic. 100 bpm, softer.
   playMenu() {
-    if (!this.enabled || this.playing) return;
+    if (!this.enabled) return;
+    if (this.playing && this.currentTrack === 'menu') return;
+    this.stop();
     this._ensure();
     this.playing = true;
     this.currentTrack = 'menu';
@@ -324,14 +347,29 @@ class MusicEngine {
   _loopMenu() {
     if (!this.playing || this.currentTrack !== 'menu') return;
     const ctx = this._ensure();
-    this._playDrone(65.4, 10);
-    // Sparse ambient notes
-    for (let i = 0; i < 3; i++) {
-      const t = ctx.currentTime + 1 + Math.random() * 7;
-      const deg = Math.floor(Math.random() * 5);
-      this._playNote(this._scale(deg + 3), t, 2 + Math.random() * 2, 'sine', 0.035);
+    const bpm = 100;
+    const beat = 60 / bpm / 2;
+    let t = ctx.currentTime + 0.1;
+    // 32-note C-major gentle arc, space for the title's attention.
+    const mel = [
+      523, null, 659, null, 784, null, 880, null,
+      784, null, 659, null, 587, null, 523, null,
+      440, null, 523, null, 659, null, 784, null,
+      659, null, 523, null, 494, null, 440, null,
+    ];
+    const bas = [
+      262, 262, null, null, 196, 196, null, null,
+      262, 262, null, null, 196, 196, null, null,
+      220, 220, null, null, 165, 165, null, null,
+      262, 262, null, null, 196, 196, null, null,
+    ];
+    for (let i = 0; i < 32; i++) {
+      if (mel[i]) this._playNote(mel[i], t + i * beat, beat * 1.6, 'square', 0.04);
+      if (bas[i]) this._playNote(bas[i], t + i * beat, beat * 1.7, 'triangle', 0.035);
+      if (i % 8 === 0) this._playTick(t + i * beat, 0.03);
     }
-    this._phraseTimeout = setTimeout(() => this._loopMenu(), 8000);
+    const dur = 32 * beat;
+    this._phraseTimeout = setTimeout(() => this._loopMenu(), (dur - 0.05) * 1000);
   }
 }
 
