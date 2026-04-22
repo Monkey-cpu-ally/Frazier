@@ -68,8 +68,13 @@ export class Engine {
     this.dailyModifier = null;
     this.dailyMode = false;
 
-    // Background art is fully procedural now — see _renderBackground() for the
-    // biome-aware multi-layer pixel-art parallax system.
+    // Painted background art — original atmospheric industrial-ruins painting.
+    // Tiled seamlessly at slow parallax; enhanced with layered effects (god rays,
+    // drifting fog, torch glows, biome tint) drawn on top in _renderBg().
+    this.bgImage = new Image();
+    this.bgImage.src = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/e352993c8b6ad491a1f19da7bb7f3a7aa5ade71deb48994a814b5024daf01114.png';
+    this.bgImageLoaded = false;
+    this.bgImage.onload = () => { this.bgImageLoaded = true; };
 
     // Preload pixel-art character sprites (generated via Gemini Nano Banana).
     // Access via engine.sprites.axel / .scrap / .root_crawler / etc.
@@ -1276,45 +1281,38 @@ export class Engine {
         // Sun or moon disc
         if (pal.sun) this._drawSunDisc(ctx, pal.sun);
       }
-      if (bg.type === 'hills' && bg.points) {
-        // Retained for backwards compat — draw the level's custom hill shape
-        // as the *mid-distance* band under our procedural layers.
-        ctx.save();
-        this.camera.apply(ctx);
-        ctx.save();
-        ctx.translate(this.camera.x * 0.4, this.camera.y * 0.2);
-        ctx.globalAlpha = 0.35;
-        ctx.fillStyle = bg.color;
-        ctx.beginPath();
-        bg.points.forEach((p, i) => {
-          if (i === 0) ctx.moveTo(p[0], p[1]);
-          else ctx.lineTo(p[0], p[1]);
-        });
-        ctx.closePath();
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.restore();
-        ctx.restore();
-      }
     });
 
-    // ── Procedural pixel-art parallax layers ──────────────────────
-    // Layer 0 (far 0.12): distant silhouettes with embedded glow spots.
-    // Layer 1 (mid 0.30): chunky mid-ground props.
-    // Layer 2 (near 0.55): foreground detail at horizon line.
+    // ── Painted background art (seamless tiling + biome tint) ─────
+    // The original industrial-ruins painting is drawn as a slow-parallax
+    // seamless horizontal tile. We flip alternate tiles so joins hide behind
+    // symmetry rather than showing a hard seam. A biome-colored overlay tints
+    // the painting so the same asset reads differently across biomes.
+    this._drawPaintedBackdrop(ctx, pal, biomeKey);
+
+    // ── God-ray light shafts ──────────────────────────────────────
+    // Soft diagonal beams, subtle animation. Gives the scene cinematic depth.
+    this._drawGodRays(ctx, pal);
+
+    // ── Drifting fog banks ────────────────────────────────────────
+    // Two soft horizontal bands drift across the mid-ground at different speeds.
+    this._drawFogBanks(ctx, pal);
+
+    // ── Procedural pixel-art parallax layers (kept as silhouettes on top) ──
     this._drawParallaxLayer(ctx, 0.12, pal.far,  pal);
     this._drawFarGlowSpots(ctx, 0.12, pal);
     this._drawParallaxLayer(ctx, 0.30, pal.mid,  pal);
-    // Hanging ceiling decorations — draw above mid, below near, at slow parallax
     this._drawHangingDecor(ctx, 0.22, pal);
     this._drawParallaxLayer(ctx, 0.55, pal.near, pal);
-    // Ground-level detailed props — biome-appropriate clutter (mushrooms,
-    // candles, gems, rocks) scattered along the horizon to make the world
-    // feel lived-in, not just silhouetted.
     this._drawGroundProps(ctx, 0.72, pal);
 
-    // Subsurface dirt/rock band — fills the area under the main ground with
-    // textured pixel noise so there's no flat brown void.
+    // ── Torch/lantern warm glow pools at the horizon ──────────────
+    this._drawTorchGlows(ctx, pal);
+
+    // ── Vignette — darkens the edges so the action pops out ───────
+    this._drawVignette(ctx);
+
+    // Subsurface dirt/rock band — fills under the main ground.
     this._drawDirtBand(ctx, pal);
   }
 
@@ -1335,58 +1333,78 @@ export class Engine {
     const P = {
       forest: {
         skyTop: '#2B4030', skyBot: '#486B4E',
+        tint: { color: '#2D5E38', alpha: 0.22 },       // dusk green wash over painted BG
         far:  { kind: 'mountains', color: '#1F3527',  alpha: 0.75 },
-        mid:  { kind: 'trees',     color: '#2C5237',  alpha: 0.85, accent: '#1A3322' },
+        mid:  { kind: 'trees',     color: '#2C5237',  alpha: 0.55, accent: '#1A3322' },
         near: { kind: 'ferns',     color: '#3F7A4A',  alpha: 0.95, accent: '#245730' },
         dirtTop: '#5F4F3B', dirtMid: '#4A3D2E', dirtNoise: '#3A3124',
         sun: { color: '#FFE1A6', x: 0.78, y: 0.22, r: 34 },
-        glow:   { color: '#FFD88A', count: 12 },            // firefly window-glints
+        glow:   { color: '#FFD88A', count: 12 },
         hanging:{ kind: 'vines',  color: '#3A6B42', accent: '#8ACB6A', count: 18 },
         props:  { kinds: ['mushroomRed','mushroomBlue','grass','rock','flower'], count: 34 },
+        rays: { color: '#E8D88A', alpha: 0.10, count: 5, angle: -0.6 },
+        fog:  { color: '#5D7A68', alpha: 0.18 },
+        torches: { count: 7, color: '#FFC256' },
       },
       lava: {
         skyTop: '#1A0609', skyBot: '#582418',
+        tint: { color: '#6B1A10', alpha: 0.32 },
         far:  { kind: 'mountains', color: '#2C0A0E',  alpha: 0.85 },
-        mid:  { kind: 'mountains', color: '#6B1E18',  alpha: 0.85, accent: '#8C2C1E' },
+        mid:  { kind: 'mountains', color: '#6B1E18',  alpha: 0.55, accent: '#8C2C1E' },
         near: { kind: 'lavaPools', color: '#E44B18',  alpha: 1.0,  accent: '#FFD23A' },
         dirtTop: '#3A150E', dirtMid: '#28090A', dirtNoise: '#1A0608',
         sun: { color: '#FF6B3A', x: 0.72, y: 0.22, r: 40 },
         glow:   { color: '#FF7A1C', count: 18 },
         hanging:{ kind: 'stalactites', color: '#3A130E', accent: '#FF7A1C', count: 14 },
         props:  { kinds: ['skull','lavaRock','obsidian','candleSmall'], count: 28 },
+        rays: { color: '#FF7A1C', alpha: 0.12, count: 4, angle: -0.5 },
+        fog:  { color: '#3A0F0E', alpha: 0.25 },
+        torches: { count: 10, color: '#FF8240' },
       },
       sky: {
         skyTop: '#152742', skyBot: '#6BA8D4',
+        tint: { color: '#3A5A80', alpha: 0.18 },
         far:  { kind: 'islands',   color: '#3A5577',  alpha: 0.7  },
-        mid:  { kind: 'clouds',    color: '#E6F0FA',  alpha: 0.85, accent: '#BFD4E8' },
-        near: { kind: 'clouds',    color: '#FFFFFF',  alpha: 0.95, accent: '#C8DCEE' },
+        mid:  { kind: 'clouds',    color: '#E6F0FA',  alpha: 0.45, accent: '#BFD4E8' },
+        near: { kind: 'clouds',    color: '#FFFFFF',  alpha: 0.85, accent: '#C8DCEE' },
         dirtTop: '#4A5C72', dirtMid: '#35455A', dirtNoise: '#243348',
         stars: 50,
         glow:   { color: '#CFE8FF', count: 8 },
         hanging:{ kind: 'icicles', color: '#BFD9EF', accent: '#FFFFFF', count: 12 },
         props:  { kinds: ['snowPile','iceCrystal','snowflower','rockIce'], count: 26 },
+        rays: { color: '#CFE8FF', alpha: 0.12, count: 5, angle: -0.7 },
+        fog:  { color: '#CFE8FF', alpha: 0.15 },
+        torches: { count: 4, color: '#B8E0FF' },
       },
       dream: {
         skyTop: '#1B0930', skyBot: '#6E2F78',
+        tint: { color: '#7A2A9A', alpha: 0.28 },
         far:  { kind: 'spires',    color: '#3A1450',  alpha: 0.75 },
-        mid:  { kind: 'spires',    color: '#7A2A9A',  alpha: 0.85, accent: '#B060D0' },
+        mid:  { kind: 'spires',    color: '#7A2A9A',  alpha: 0.6,  accent: '#B060D0' },
         near: { kind: 'gems',      color: '#FF8EE0',  alpha: 1.0,  accent: '#FFE0F8' },
         dirtTop: '#3A1450', dirtMid: '#240830', dirtNoise: '#120418',
         stars: 80,
         glow:   { color: '#FFB0F0', count: 14 },
         hanging:{ kind: 'chains',  color: '#4A2458', accent: '#D88AFF', count: 10 },
         props:  { kinds: ['gemPink','gemTeal','sparkle','crystalShard'], count: 30 },
+        rays: { color: '#FFB0F0', alpha: 0.15, count: 6, angle: -0.4 },
+        fog:  { color: '#4A1458', alpha: 0.22 },
+        torches: { count: 8, color: '#FFB0F0' },
       },
       city: {
         skyTop: '#141A24', skyBot: '#2C3848',
+        tint: { color: '#2A3848', alpha: 0.25 },
         far:  { kind: 'buildings', color: '#1A222E',  alpha: 0.9  },
-        mid:  { kind: 'buildings', color: '#2A384A',  alpha: 0.9,  accent: '#FFD34D' },
+        mid:  { kind: 'buildings', color: '#2A384A',  alpha: 0.6,  accent: '#FFD34D' },
         near: { kind: 'buildings', color: '#3A4A5E',  alpha: 0.95, accent: '#FFD34D' },
         dirtTop: '#2A2218', dirtMid: '#1A1410', dirtNoise: '#0E0A07',
         sun: { color: '#FFB84D', x: 0.18, y: 0.18, r: 28 },
         glow:   { color: '#FFD34D', count: 22 },
         hanging:{ kind: 'wires',   color: '#1A1A1A', accent: '#FFD34D', count: 10 },
         props:  { kinds: ['trashcan','crate','barrel','sign','streetlamp'], count: 24 },
+        rays: { color: '#FFD34D', alpha: 0.10, count: 4, angle: -0.5 },
+        fog:  { color: '#2A3240', alpha: 0.30 },
+        torches: { count: 12, color: '#FFD34D' },
       },
     };
     return P[key] || P.forest;
@@ -1938,6 +1956,154 @@ export class Engine {
         break;
       }
     }
+  }
+
+  // ── Painted backdrop — seamless horizontal tiling with biome tint ──
+  _drawPaintedBackdrop(ctx, pal, biomeKey) {
+    if (!this.bgImageLoaded) return;
+    ctx.save();
+    const parallax = 0.18;
+    const imgW = 1280;       // draw width per tile
+    const imgH = H;          // fill full screen height
+    const offsetX = -this.camera.x * parallax;
+    const offsetY = -this.camera.y * parallax * 0.4;
+    // How many tiles needed to cover the visible range (plus slack).
+    const tilesLeft  = Math.ceil(( offsetX) / imgW) + 2;
+    const tilesRight = Math.ceil((W - offsetX) / imgW) + 2;
+    ctx.globalAlpha = 0.55;
+    for (let i = -tilesLeft; i <= tilesRight; i++) {
+      const x = offsetX + i * imgW;
+      // Mirror every other tile so the seam "bounces" symmetrically instead
+      // of showing a hard join, creating a natural extended panorama feel.
+      if (i % 2 === 0) {
+        ctx.drawImage(this.bgImage, x, offsetY, imgW, imgH);
+      } else {
+        ctx.save();
+        ctx.translate(x + imgW, offsetY);
+        ctx.scale(-1, 1);
+        ctx.drawImage(this.bgImage, 0, 0, imgW, imgH);
+        ctx.restore();
+      }
+    }
+    ctx.globalAlpha = 1;
+    // Biome color wash over the painted image so the same asset reads as
+    // a different mood per level.
+    if (pal.tint) {
+      ctx.globalAlpha = pal.tint.alpha;
+      ctx.fillStyle = pal.tint.color;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+    // Bottom fade — gradient from transparent to the dirt color so the painted
+    // image blends into the subsurface band instead of cutting off hard.
+    const fade = ctx.createLinearGradient(0, H * 0.55, 0, H);
+    fade.addColorStop(0, 'rgba(0,0,0,0)');
+    fade.addColorStop(1, pal.dirtTop || '#2A1D10');
+    ctx.fillStyle = fade;
+    ctx.fillRect(0, H * 0.55, W, H * 0.45);
+    ctx.restore();
+  }
+
+  // ── Diagonal god-ray beams (soft animated light shafts) ──────
+  _drawGodRays(ctx, pal) {
+    if (!pal.rays) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    const r = pal.rays;
+    for (let i = 0; i < r.count; i++) {
+      const baseX = W * (0.15 + 0.14 * i);
+      // Gentle sway based on levelTimer
+      const sway = Math.sin(this.levelTimer * 0.4 + i * 1.3) * 16;
+      const a = r.alpha * (0.7 + 0.3 * Math.sin(this.levelTimer * 0.6 + i * 2));
+      ctx.globalAlpha = a;
+      ctx.fillStyle = r.color;
+      ctx.beginPath();
+      // A tilted parallelogram from sky to mid-height.
+      const topW = 90;
+      const botW = 220;
+      const angle = r.angle || -0.5;
+      const x0 = baseX + sway;
+      ctx.moveTo(x0 - topW / 2,            0);
+      ctx.lineTo(x0 + topW / 2,            0);
+      ctx.lineTo(x0 + botW / 2 + angle*60, H * 0.7);
+      ctx.lineTo(x0 - botW / 2 + angle*60, H * 0.7);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ── Drifting fog banks (two low horizontal blobs at different speeds) ──
+  _drawFogBanks(ctx, pal) {
+    if (!pal.fog) return;
+    ctx.save();
+    const color = pal.fog.color;
+    const alpha = pal.fog.alpha;
+    // Bank 1 — slow, mid-height
+    let drift = (this.levelTimer * 14) % (W + 400);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    for (let i = -2; i <= 3; i++) {
+      const cx = (i * 420) - drift + 200;
+      const cy = H * 0.55 + Math.sin(this.levelTimer * 0.5 + i) * 6;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 220, 36, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Bank 2 — faster, lower
+    drift = (this.levelTimer * 22) % (W + 400);
+    ctx.globalAlpha = alpha * 0.85;
+    for (let i = -2; i <= 3; i++) {
+      const cx = (i * 360) - drift + 80;
+      const cy = H * 0.72 + Math.sin(this.levelTimer * 0.8 + i) * 4;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 180, 26, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  // ── Torch glows anchored at horizon, pulsing like braziers ──
+  _drawTorchGlows(ctx, pal) {
+    if (!pal.torches) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    const factor = 0.55;
+    const ox = -this.camera.x * factor;
+    const horizonY = 320 + this.camera.y * factor * 0.25;
+    // Evenly distributed torches along the world, jittered.
+    this._tileScan(ctx, ox, 280, 80, 2100, (x, rng, i) => {
+      if (rng() > pal.torches.count / 14) return;
+      const pulse = 0.55 + 0.45 * Math.sin(this.levelTimer * 6 + i * 1.7);
+      const y = horizonY - 10;
+      // Outer halo
+      const halo = ctx.createRadialGradient(x, y, 0, x, y, 80);
+      halo.addColorStop(0, pal.torches.color);
+      halo.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = 0.45 * pulse;
+      ctx.fillStyle = halo;
+      ctx.fillRect(x - 80, y - 80, 160, 160);
+      // Inner flame core — chunky pixel
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = pal.torches.color;
+      ctx.fillRect(Math.round(x - 2), Math.round(y - 4), 4, 6);
+      ctx.fillStyle = '#FFF2B0';
+      ctx.fillRect(Math.round(x - 1), Math.round(y - 2), 2, 3);
+    });
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  // ── Vignette — darkens edges to focus the player ─────────────
+  _drawVignette(ctx) {
+    ctx.save();
+    const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.75);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.38)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
   }
 
   _drawDirtBand(ctx, pal) {
