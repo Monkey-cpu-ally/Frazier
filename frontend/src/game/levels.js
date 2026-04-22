@@ -46,8 +46,10 @@ export function getLevels(newGamePlus = false) {
       breakables: [],
       message: 'WASD move | SPACE jump | X/J attack',
       hintTriggers: [
-        { x: 180, y: 200, w: 120, h: 100, text: 'Press X near the crawler!', color: '#FFD68F' },
-        { x: 500, y: 200, w: 120, h: 100, text: 'Grab scrap to power assists [Q]', color: '#7FE08A' },
+        { x: 180, y: 200, w: 120, h: 100, text: 'Tap X: quick jab', color: '#FFD68F' },
+        { x: 360, y: 150, w: 120, h: 120, text: 'Double-tap X: mid combo', color: '#FFA16A' },
+        { x: 560, y: 110, w: 140, h: 120, text: 'Hold X then release: HEAVY strike!', color: '#FF6B3A' },
+        { x: 780, y: 160, w: 140, h: 140, text: 'Grab scrap to power assists [Q]', color: '#7FE08A' },
       ],
     },
 
