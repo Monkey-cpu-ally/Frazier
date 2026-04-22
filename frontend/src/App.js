@@ -318,15 +318,11 @@ function App() {
 
   const goToMenu = () => {
     sfx.uiClick();
-    music.stop();
-    music.playMenu();
     setScreen('menu');
   };
 
   const startGame = (levelIndex = 0) => {
     sfx.uiStart();
-    music.stop();
-    music.playExploration();
     setStartLevel(levelIndex);
     setDailyMode(false); // regular play — not a daily run
     setScreen('playing');
@@ -368,30 +364,59 @@ function App() {
     return () => window.removeEventListener('keydown', handleKey);
   }, [screen, handlePause, showControls, showSettings, showWorkshop, showAchievements, showGallery]);
 
-  // Play the title "glimpse" theme on the title screen. Browsers block autoplay
-  // until the user interacts, so we hook a one-shot pointerdown/keydown starter.
-  // Also fires two title SFX: a glass shatter (evokes "SHATTERED MIRRORS") and
-  // a warm ascending glimpse shimmer.
+  // ── Unified music director ────────────────────────────────────────
+  // One effect owns the soundtrack. Every screen has its own distinct track
+  // and the audio never stops between screens — switching tracks hands the
+  // audio context off cleanly without a silent gap. Browsers block autoplay
+  // until the user interacts, so on the title screen we hook a one-shot
+  // pointerdown/keydown starter. Once unlocked, every later screen transition
+  // plays its track immediately.
   React.useEffect(() => {
-    if (screen !== 'title') return;
+    const trackFor = (s) => {
+      if (s === 'title') return 'title';
+      if (s === 'menu') return 'menu';
+      if (s === 'playing') return 'explore';
+      return null; // intro: silent
+    };
+    const desired = trackFor(screen);
+    if (!desired) { music.stop(); return; }
+
+    const play = () => {
+      if (desired === 'title') music.playTitle();
+      else if (desired === 'menu') music.playMenu();
+      else if (desired === 'explore') music.playExploration();
+    };
+
+    // Title fires the shatter/glimpse SFX in addition to the theme.
     let started = false;
-    const start = () => {
+    const unlockAndPlay = () => {
       if (started) return;
       started = true;
       try {
-        sfx.shatter();
-        setTimeout(() => { try { sfx.glimpse(); } catch (e) {} }, 380);
-        setTimeout(() => { try { music.playTitle(); } catch (e) {} }, 900);
+        if (screen === 'title') {
+          sfx.shatter();
+          setTimeout(() => { try { sfx.glimpse(); } catch (e) {} }, 380);
+          setTimeout(() => { try { play(); } catch (e) {} }, 900);
+        } else {
+          play();
+        }
       } catch (e) {}
     };
-    // Try immediately — some browsers allow it after intro cinematic.
-    start();
-    window.addEventListener('pointerdown', start, { once: true });
-    window.addEventListener('keydown', start, { once: true });
+
+    // If the audio context already exists (user has interacted at least once),
+    // play immediately. Otherwise wait for the first input.
+    if (music.ctx && music.ctx.state === 'running') {
+      unlockAndPlay();
+    } else {
+      // Try right away — some browsers allow it after the intro cinematic.
+      unlockAndPlay();
+      window.addEventListener('pointerdown', unlockAndPlay, { once: true });
+      window.addEventListener('keydown', unlockAndPlay, { once: true });
+    }
+
     return () => {
-      window.removeEventListener('pointerdown', start);
-      window.removeEventListener('keydown', start);
-      if (screen !== 'title') music.stop();
+      window.removeEventListener('pointerdown', unlockAndPlay);
+      window.removeEventListener('keydown', unlockAndPlay);
     };
   }, [screen]);
 
