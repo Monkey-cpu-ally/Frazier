@@ -65,6 +65,15 @@ body.pixel-theme canvas {
 body.pixel-theme * {
   border-radius: 0 !important;
 }
+/* …except the glossy on-screen touch controls which need their circles. */
+body.pixel-theme .touch-btn,
+body.pixel-theme .touch-btn::before,
+body.pixel-theme .touch-btn::after,
+body.pixel-theme .touch-pause,
+body.pixel-theme .touch-interact,
+body.pixel-theme [class*='touch-dpad-'] {
+  border-radius: 50% !important;
+}
 
 /* ===========================================================
    Pixel bevel helper — applied via box-shadow layering.
@@ -311,12 +320,7 @@ body.pixel-theme textarea {
   padding: 6px 10px !important;
 }
 
-/* ---- TouchControls (mobile D-pad + A button) ---- */
-body.pixel-theme .tc-btn,
-body.pixel-theme [class*='touch-'] {
-  font-family: 'Press Start 2P', monospace !important;
-  border-radius: 0 !important;
-}
+/* ---- TouchControls — styled in TouchControls.css; no pixel overrides. ---- */
 
 /* ---- Toaster (sonner) pixel skin ---- */
 body.pixel-theme [data-sonner-toast] {

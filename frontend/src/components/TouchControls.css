@@ -1,7 +1,5 @@
 /* ======================================================================
-   On-Screen Touch Controls — PICO-8 pixel-art arcade style.
-   Always visible during gameplay (desktop + mobile). Buttons are round
-   with thick dark bevels and saturated accent colors + big glyphs.
+   On-Screen Controls — glossy, detailed, compact. Modern gamepad feel.
    ====================================================================== */
 
 .touch-controls {
@@ -11,46 +9,83 @@
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
-  image-rendering: pixelated;
-  font-family: 'Press Start 2P', monospace;
 }
 
+/* ── Base button ──────────────────────────────────────────── */
 .touch-btn {
   pointer-events: auto;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  color: #141014;
+  border-radius: 50% !important;
+  color: #fff;
+  font-family: 'Press Start 2P', system-ui, monospace;
   font-weight: 700;
-  letter-spacing: 1px;
-  text-shadow: 2px 2px 0 rgba(0,0,0,0.35);
-  transition: transform 0.06s steps(2), filter 0.06s steps(2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  transition: transform 0.08s ease-out, filter 0.08s ease-out;
   -webkit-tap-highlight-color: transparent;
   touch-action: none;
-  border: 3px solid #141014;
+  cursor: pointer;
+
+  /* Glossy sheen — inset highlight on top, inset shadow on bottom,
+     drop shadow + subtle colored glow matching the base color.       */
   box-shadow:
-    inset 0 -6px 0 0 rgba(0,0,0,0.35),
-    inset 0 6px 0 0 rgba(255,255,255,0.25),
-    0 5px 0 0 #141014;
+    inset 0 2px 3px rgba(255, 255, 255, 0.55),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.40),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 3px 8px rgba(0, 0, 0, 0.50),
+    0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+
+/* Shine cap — pseudo-element that creates the glass highlight arc */
+.touch-btn::before {
+  content: '';
+  position: absolute;
+  top: 8%;
+  left: 18%;
+  right: 18%;
+  height: 36%;
+  border-radius: 50% !important;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.15) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+  filter: blur(0.5px);
+}
+
+/* Soft inner rim for extra depth */
+.touch-btn::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50% !important;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
 }
 
 .touch-btn:active {
-  transform: translate(0, 4px);
-  filter: brightness(0.9);
+  transform: scale(0.93);
+  filter: brightness(1.15) saturate(1.1);
   box-shadow:
-    inset 0 -2px 0 0 rgba(0,0,0,0.35),
-    inset 0 4px 0 0 rgba(255,255,255,0.25),
-    0 1px 0 0 #141014;
+    inset 0 1px 1px rgba(255, 255, 255, 0.25),
+    inset 0 -1px 3px rgba(0, 0, 0, 0.55),
+    0 1px 3px rgba(0, 0, 0, 0.55);
 }
 
-/* ── D-Pad (left side) — bigger, spread out cross layout ── */
+/* SVG glyphs render above the ::before sheen */
+.touch-btn > * { position: relative; z-index: 1; }
+
+/* ── D-Pad ────────────────────────────────────────────────── */
 .touch-dpad {
   position: absolute;
-  bottom: 48px;
-  left: 36px;
-  width: 190px;
-  height: 190px;
+  bottom: 42px;
+  left: 28px;
+  width: 150px;
+  height: 150px;
   pointer-events: none;
 }
 
@@ -59,83 +94,107 @@
 .touch-dpad-up,
 .touch-dpad-down {
   position: absolute;
-  width: 64px;
-  height: 64px;
-  background: #2DA232;                 /* leafy green per reference */
-  font-size: 1rem;
+  width: 48px;
+  height: 48px;
+  font-size: 0.65rem;
+  background:
+    radial-gradient(circle at 30% 28%, #56d85c 0%, #2ea733 45%, #186b1d 100%);
 }
 
-.touch-dpad-left   { left: 0;     top: 63px; }
-.touch-dpad-right  { right: 0;    top: 63px; }
-.touch-dpad-up     { left: 63px;  top: 0;    }
-.touch-dpad-down   { left: 63px;  bottom: 0; }
+.touch-dpad-left   { left: 0;    top: 51px; }
+.touch-dpad-right  { right: 0;   top: 51px; }
+.touch-dpad-up     { left: 51px; top: 0;    }
+.touch-dpad-down   { left: 51px; bottom: 0; }
 
-/* ── Action buttons (right side) — SNES-style cross with gaps ── */
+/* ── Action cluster ───────────────────────────────────────── */
 .touch-actions {
   position: absolute;
-  bottom: 48px;
-  right: 36px;
-  width: 210px;
-  height: 210px;
+  bottom: 42px;
+  right: 28px;
+  width: 168px;
+  height: 168px;
   pointer-events: none;
 }
 
 .touch-btn.touch-jump,
 .touch-btn.touch-attack,
 .touch-btn.touch-dash,
-.touch-btn.touch-special,
+.touch-btn.touch-special {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  font-size: 0.65rem;
+}
+
+.touch-btn.touch-jump {
+  right: 0; top: 54px;
+  background: radial-gradient(circle at 30% 28%, #ff7265 0%, #dc2f25 45%, #7d1810 100%);
+}
+.touch-btn.touch-attack {
+  right: 54px; top: 0;
+  background: radial-gradient(circle at 30% 28%, #5aa2ef 0%, #2b74d5 45%, #103b75 100%);
+}
+.touch-btn.touch-dash {
+  right: 108px; top: 54px;
+  background: radial-gradient(circle at 30% 28%, #ffd460 0%, #e9a310 45%, #7d5408 100%);
+  color: #3a2600;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.touch-btn.touch-special {
+  right: 54px; bottom: 0;
+  background: radial-gradient(circle at 30% 28%, #ff68c8 0%, #dc2da3 45%, #7b1658 100%);
+}
 .touch-btn.touch-assist {
   position: absolute;
-  width: 72px;
-  height: 72px;
-  font-size: 0.7rem;
+  right: 0; bottom: 0;
+  width: 42px; height: 42px;
+  font-size: 0.5rem;
+  background: radial-gradient(circle at 30% 28%, #a78dff 0%, #6e4dd6 45%, #2e1e70 100%);
 }
 
-.touch-btn.touch-jump    { right: 0;   top: 68px; background: #E23A2E; color: #F4ECD8; }  /* red A */
-.touch-btn.touch-attack  { right: 69px; top: 0;    background: #2E7BD6; color: #F4ECD8; }  /* blue X up */
-.touch-btn.touch-dash    { right: 138px; top: 68px; background: #F7B71D; }                 /* yellow dash */
-.touch-btn.touch-special { right: 69px; bottom: 0; background: #E83DB4; color: #F4ECD8; }  /* pink special */
-.touch-btn.touch-assist  {
-  position: absolute;
-  right: 0;   bottom: 0;
-  width: 56px; height: 56px;
-  background: #7D5BEA; color: #F4ECD8;
-  font-size: 0.55rem;
-}
-
-/* ── Top-right utility buttons: pause, interact ── */
+/* ── Top utility buttons ──────────────────────────────────── */
 .touch-top {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 14px;
+  right: 14px;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   pointer-events: none;
 }
 
 .touch-pause,
 .touch-interact {
   pointer-events: auto;
-  width: 52px;
-  height: 52px;
-  background: #F4ECD8;
-  color: #141014;
-  font-size: 0.6rem;
-  border: 3px solid #141014;
-  border-radius: 50%;
-  box-shadow:
-    inset 0 -4px 0 0 rgba(0,0,0,0.3),
-    inset 0 4px 0 0 rgba(255,255,255,0.35),
-    0 4px 0 0 #141014;
+  width: 40px;
+  height: 40px;
+  font-size: 0.55rem;
+  color: #2b2415;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: radial-gradient(circle at 30% 28%, #f7f0de 0%, #c9bd99 55%, #6e6344 100%);
+  border-radius: 50% !important;
 }
-.touch-interact { background: #F7B71D; }
+.touch-interact {
+  color: #3a2a05;
+  background: radial-gradient(circle at 30% 28%, #ffd970 0%, #ddaa1a 55%, #73530a 100%);
+}
 
-/* Always-visible on all devices now — game wants the pixel pad on desktop too. */
-@media (max-width: 900px) {
+/* ── Responsive nudge for small screens ───────────────────── */
+@media (max-width: 640px) {
+  .touch-dpad { width: 132px; height: 132px; left: 16px; }
   .touch-dpad-left, .touch-dpad-right,
-  .touch-dpad-up, .touch-dpad-down { width: 56px; height: 56px; }
-  .touch-dpad-left   { top: 55px; }
-  .touch-dpad-right  { top: 55px; }
-  .touch-dpad-down   { left: 55px; }
-  .touch-dpad-up     { left: 55px; }
+  .touch-dpad-up,   .touch-dpad-down { width: 42px; height: 42px; }
+  .touch-dpad-left { top: 45px; }
+  .touch-dpad-right { top: 45px; }
+  .touch-dpad-up { left: 45px; }
+  .touch-dpad-down { left: 45px; }
+
+  .touch-actions { width: 150px; height: 150px; right: 16px; }
+  .touch-btn.touch-jump,
+  .touch-btn.touch-attack,
+  .touch-btn.touch-dash,
+  .touch-btn.touch-special { width: 48px; height: 48px; }
+  .touch-btn.touch-jump    { top: 48px; }
+  .touch-btn.touch-attack  { right: 48px; }
+  .touch-btn.touch-dash    { right: 96px; top: 48px; }
+  .touch-btn.touch-special { right: 48px; }
 }
