@@ -18,7 +18,9 @@ export const PL = {
   dashSpeed: 520, dashTime: 0.14, dashCooldown: 0.20,
   // Combat
   comboReset: 0.45, maxCombo: 3,
-  atkDur: [0.18, 0.18, 0.25],
+  // atkDur per combo level: tap (1) is a quick jab, doubleTap (2) a sweep,
+  // holdRelease (3) a committed heavy. Durations double as attack-active time.
+  atkDur: [0.18, 0.22, 0.30],
   atkCooldown: 0.06,
   airAtkDur: 0.18,
   smashSpeed: 750,

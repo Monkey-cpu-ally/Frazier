@@ -180,24 +180,36 @@ class MusicEngine {
     const bpm = 128;
     const beat = 60 / bpm / 2;  // 8th notes
     let t = ctx.currentTime + 0.1;
-    // A-minor pentatonic arc, 32 notes = 4 bars of 8.
+    // A-minor pentatonic with phrase-level variation and rests for breathing room.
+    // null = rest. Bar 3 syncopates with a dotted call-and-response; bar 4 climbs.
     const mel = [
-      440, 523, 659, 880, 784, 659, 523, 440,
-      494, 587, 740, 988, 880, 740, 587, 494,
-      392, 494, 587, 784, 659, 494, 392, 330,
-      440, 523, 659, 880, 784, 659, 587, 523,
+      440, 523, null, 659, 880, 784, 659, 523,
+      494, 587, null, 740, 988, 880, 740, 587,
+      392, null, 494, 587, null, 784, 659, 494,
+      440, 523, 659, 880, null, 1047, 880, 659,
     ];
+    // Triangle bass — walks a simple i-v-iv-v shape under each bar.
     const bas = [
-      220, 220, 330, 330, 220, 220, 330, 330,
-      247, 247, 370, 370, 247, 247, 370, 370,
-      196, 196, 294, 294, 196, 196, 294, 294,
-      220, 220, 330, 330, 220, 220, 330, 330,
+      110, 110, 165, 165, 110, 110, 165, 165,
+      123, 123, 185, 185, 123, 123, 185, 185,
+       98,  98, 147, 147,  98,  98, 147, 147,
+      110, 110, 165, 165, 220, 220, 165, 165,
+    ];
+    // Arp counter-melody — alternating bars layer sparse high notes.
+    const arp = [
+      null, null, 1319, null, null, null, 1175, null,
+      null, null, null, null, null, null, null, null,
+      null, null, 1047, null, null, null, 1175, null,
+      null, null, null, null, null, null, null, null,
     ];
     for (let i = 0; i < 32; i++) {
-      this._playNote(mel[i], t + i * beat, beat * 0.9, 'square', 0.055);
-      this._playNote(bas[i], t + i * beat, beat * 0.95, 'triangle', 0.045);
+      if (mel[i]) this._playNote(mel[i], t + i * beat, beat * 0.9, 'square', 0.055);
+      if (bas[i]) this._playNote(bas[i], t + i * beat, beat * 0.95, 'triangle', 0.05);
+      if (arp[i]) this._playNote(arp[i], t + i * beat, beat * 0.6, 'sine', 0.028);
       if (i % 4 === 0) this._playTick(t + i * beat, 0.05);
       if (i % 2 === 1) this._playHat(t + i * beat, 0.02);
+      // Snare-ish tick on beats 2 and 4 of each bar
+      if (i % 8 === 4) this._playTick(t + i * beat, 0.07);
     }
     const dur = 32 * beat;
     this._phraseTimeout = setTimeout(() => this._loopPhrase(), (dur - 0.05) * 1000);
@@ -209,24 +221,30 @@ class MusicEngine {
     const bpm = 160;
     const beat = 60 / bpm / 2;
     let t = ctx.currentTime + 0.1;
-    // D-minor tension — heavier hits on the downbeats, more chromatic lead.
+    // D-minor tension — driving 16-note pattern with dramatic rests and a
+    // chromatic "alarm" motif on bar 3. Bar 4 ascends into the loop return.
     const mel = [
-      294, 349, 440, 587, 523, 440, 349, 294,
-      262, 330, 392, 523, 440, 392, 330, 262,
-      233, 294, 370, 494, 440, 370, 294, 233,
-      294, 440, 587, 880, 740, 587, 440, 294,
+      294, 349, 440, 587, null, 440, 349, 294,
+      262, 330, 392, 523, null, 392, 330, 262,
+      233, 277, 233, 277, 233, 349, 440, 523,  // chromatic alarm
+      294, 440, 587, 740, 880, 740, 587, 440,
     ];
+    // Sawtooth bass pedal with a walking fifth on the last bar.
     const bas = [
       147, 147, 147, 147, 175, 175, 175, 175,
       131, 131, 131, 131, 165, 165, 165, 165,
       117, 117, 117, 117, 147, 147, 147, 147,
-      147, 147, 175, 175, 220, 220, 294, 294,
+      147, 175, 196, 220, 247, 220, 196, 175,
     ];
     for (let i = 0; i < 32; i++) {
-      this._playNote(mel[i], t + i * beat, beat * 0.9, 'square', 0.07);
-      this._playNote(bas[i], t + i * beat, beat * 0.95, 'sawtooth', 0.055);
-      if (i % 4 === 0 || i % 4 === 2) this._playTick(t + i * beat, 0.08);
+      if (mel[i]) this._playNote(mel[i], t + i * beat, beat * 0.9, 'square', 0.075);
+      if (bas[i]) this._playNote(bas[i], t + i * beat, beat * 0.95, 'sawtooth', 0.06);
+      // Kick on every downbeat + ghost kick on beat 3 for drive.
+      if (i % 4 === 0 || i % 8 === 6) this._playTick(t + i * beat, 0.085);
+      // Hi-hats on every 8th — constant urgency.
       this._playHat(t + i * beat, 0.03);
+      // Snare accents on 2 and 4
+      if (i % 8 === 4) this._playTick(t + i * beat, 0.09);
     }
     const dur = 32 * beat;
     this._phraseTimeout = setTimeout(() => this._loopBoss(), (dur - 0.05) * 1000);
@@ -317,17 +335,27 @@ class MusicEngine {
     const bpm = 112;
     const beat = 60 / bpm / 2;                          // 8th notes
     let t = ctx.currentTime + 0.1;
-    // Melody — 16 notes: G major pentatonic arc
+    // G-major "glimpse" theme — 16 notes with dotted rhythm hook and a lifting
+    // tail. Rests give the melody its uplifting, hopeful feel.
     const mel = [
-      392, 587, 784, 988, 784, 587, 494, 392,
-      440, 659, 880, 1109, 880, 659, 494, 440,
+      392, null, 587, 784, 988, null, 784, 587,
+      440, null, 659, 880, 1109, 988, 880, 659,
     ];
-    const bass = [196, 196, 294, 294, 392, 392, 294, 294,
-                  220, 220, 330, 330, 440, 440, 330, 330];
+    const bass = [
+      196, 196, 294, 294, 392, 392, 294, 294,
+      220, 220, 330, 330, 440, 440, 330, 330,
+    ];
+    // Sparkling high arpeggio accents on bar 2
+    const arp = [
+      null, null, null, null, null, 1568, null, 1319,
+      null, null, null, null, null, 1760, 1568, 1319,
+    ];
     for (let i = 0; i < 16; i++) {
-      this._playNote(mel[i], t + i * beat, beat * 0.9, 'square', 0.055);
-      this._playNote(bass[i], t + i * beat, beat * 0.95, 'triangle', 0.045);
+      if (mel[i])  this._playNote(mel[i],  t + i * beat, beat * 0.9,  'square',  0.055);
+      if (bass[i]) this._playNote(bass[i], t + i * beat, beat * 0.95, 'triangle', 0.05);
+      if (arp[i])  this._playNote(arp[i],  t + i * beat, beat * 0.6,  'sine',    0.028);
       if (i % 4 === 0) this._playTick(t + i * beat, 0.05);
+      if (i % 2 === 1) this._playHat(t + i * beat, 0.018);
     }
     const dur = 16 * beat;
     this._titleTimeout = setTimeout(() => this._loopTitle(), (dur - 0.05) * 1000);
@@ -350,22 +378,32 @@ class MusicEngine {
     const bpm = 100;
     const beat = 60 / bpm / 2;
     let t = ctx.currentTime + 0.1;
-    // 32-note C-major gentle arc, space for the title's attention.
+    // C-major gentle arc — half-time feel, wider spacing. Menu should never
+    // compete with the title theme for attention; this version is more melodic
+    // than the original but still calm.
     const mel = [
       523, null, 659, null, 784, null, 880, null,
-      784, null, 659, null, 587, null, 523, null,
-      440, null, 523, null, 659, null, 784, null,
-      659, null, 523, null, 494, null, 440, null,
+      987, null, 784, null, 659, null, 587, null,
+      440, null, 523, null, 659, null, 880, null,
+      784, null, 659, null, 523, null, 440, null,
     ];
     const bas = [
-      262, 262, null, null, 196, 196, null, null,
-      262, 262, null, null, 196, 196, null, null,
-      220, 220, null, null, 165, 165, null, null,
-      262, 262, null, null, 196, 196, null, null,
+      262, null, null, null, 196, null, null, null,
+      294, null, null, null, 220, null, null, null,
+      220, null, null, null, 165, null, null, null,
+      262, null, null, null, 196, null, 174, null,
+    ];
+    // Soft pad — sine triad held for a full beat every two bars
+    const pad = [
+      523, null, null, null, null, null, null, null,
+      null, null, null, null, null, null, null, null,
+      440, null, null, null, null, null, null, null,
+      null, null, null, null, null, null, null, null,
     ];
     for (let i = 0; i < 32; i++) {
-      if (mel[i]) this._playNote(mel[i], t + i * beat, beat * 1.6, 'square', 0.04);
-      if (bas[i]) this._playNote(bas[i], t + i * beat, beat * 1.7, 'triangle', 0.035);
+      if (mel[i]) this._playNote(mel[i], t + i * beat, beat * 1.8, 'square', 0.04);
+      if (bas[i]) this._playNote(bas[i], t + i * beat, beat * 2.0, 'triangle', 0.035);
+      if (pad[i]) this._playNote(pad[i], t + i * beat, beat * 8.0, 'sine',     0.022);
       if (i % 8 === 0) this._playTick(t + i * beat, 0.03);
     }
     const dur = 32 * beat;

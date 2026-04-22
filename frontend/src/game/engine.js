@@ -17,6 +17,7 @@ const PL_STOMP_BOUNCE_HIGH = -520;
 import { DialogueManager } from './dialogue';
 import { SecretEnding } from './secretEnding';
 import { triggerScrapAssist } from './assists';
+import { music } from './music';
 
 export class Engine {
   constructor(canvas, onStateChange) {
@@ -235,6 +236,7 @@ export class Engine {
     });
     // Flag the arena barrier — render at camera right edge
     this.bossArenaActive = true;
+    try { music.playBoss(); } catch (e) {}
   }
 
   loadLevel(index) {
@@ -274,6 +276,8 @@ export class Engine {
     this.deathY = lv.deathY || 800;
     this.levelTimer = 0;
     this.bossActivated = false;
+    this._bossMusicEnded = false;
+    this.bossArenaShown = false;
 
     this.player = new Player(lv.playerSpawn.x, lv.playerSpawn.y);
     // Apply equipped wrench skin color
@@ -469,11 +473,16 @@ export class Engine {
       if (!this.bossActivated && this.player.x > (this.currentLevel.boss?.triggerX || 0)) {
         this.bossActivated = true;
         this.boss.activate(this);
+        try { music.playBoss(); } catch (e) {}
       }
       if (this.bossActivated) {
         this.boss.update(dt, this);
       }
-      // After boss defeated, spawn fox spirit
+      // After boss defeated: swap back to exploration music + spawn fox spirit
+      if (this.boss.defeated && !this._bossMusicEnded) {
+        this._bossMusicEnded = true;
+        try { music.playExploration(); } catch (e) {}
+      }
       if (this.boss.defeated && this.foxSpirit && !this.foxSpirit.visible) {
         this.foxSpirit.appear(this);
         this.foxSpirit.showMessage('Follow the light...');
@@ -544,6 +553,7 @@ export class Engine {
       this.flightLog.add('Boss arena cleared.', 'event');
       if (this.achievements) this.achievements.onBossDefeated();
       sfx.levelComplete();
+      try { music.playExploration(); } catch (e) {}
     }
 
     // Level exit (skip in hub — hub is non-linear, player leaves via Mission Gate)

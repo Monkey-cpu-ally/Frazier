@@ -20,10 +20,14 @@ export function getLevels(newGamePlus = false) {
       platforms: [
         // Main ground
         { x: -1700, y: 288, w: 3400, h: 48, color: '#5F4F3B', topColor: '#6B5A45' },
-        // Platforms
-        { x: 200, y: 230, w: 120, h: 20, color: '#856A4E' },
-        { x: 400, y: 190, w: 120, h: 20, color: '#856A4E' },
-        { x: 600, y: 150, w: 120, h: 20, color: '#856A4E' },
+        // Platforms — gentler intro staircase: wider platforms + smaller rise
+        // so the player learns the jump arc without over-committing.
+        { x: 200, y: 240, w: 140, h: 20, color: '#856A4E' },
+        { x: 400, y: 208, w: 140, h: 20, color: '#856A4E' },
+        { x: 600, y: 178, w: 150, h: 20, color: '#856A4E' },
+        // New safety ledge past the top so players who overshoot aren't
+        // punished with a full fall back to the ground.
+        { x: 820, y: 202, w: 100, h: 20, color: '#856A4E' },
       ],
       enemies: [
         { type: 'root_crawler', x: -120, y: 286 },
@@ -34,9 +38,10 @@ export function getLevels(newGamePlus = false) {
         { type: 'coin', x: 96, y: 260 },
         { type: 'coin', x: 152, y: 260 },
         { type: 'food', x: 850, y: 264 },
-        { type: 'coin', x: 260, y: 206 },
-        { type: 'coin', x: 460, y: 166 },
-        { type: 'coin', x: 660, y: 126 },
+        { type: 'coin', x: 260, y: 216 },
+        { type: 'coin', x: 460, y: 184 },
+        { type: 'coin', x: 660, y: 154 },
+        { type: 'coin', x: 860, y: 178 },
       ],
       breakables: [],
       message: 'WASD move | SPACE jump | X/J attack',

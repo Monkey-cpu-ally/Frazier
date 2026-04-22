@@ -226,9 +226,14 @@ export class Player {
       return;
     }
 
-    // Attack
-    if (inp.attack && this.atkCooldown <= 0) {
-      if (!this.grounded && inp.dn) {
+    // Attack — air/smash always fire on instant press (feel beats tap-delay).
+    // Ground attacks use gesture classifier: tap → combo 1, doubleTap → combo 2,
+    // holdRelease (≥0.28s charge) → combo 3 heavy. Holding the button shows a
+    // glowing charge aura via `this.charging`.
+    this.charging = inp.attackCharging && this.grounded && !this.isAttacking;
+
+    if (!this.grounded && inp.attack && this.atkCooldown <= 0) {
+      if (inp.dn) {
         this.smashing = true;
         this.atkTimer = 0.5;
         this.isAttacking = true;
@@ -236,24 +241,33 @@ export class Player {
         this.vy = PL.smashSpeed;
         this.atkFlash = 0.1;
         sfx.smash();
-      } else if (!this.grounded) {
+      } else {
         this.atkTimer = PL.airAtkDur;
         this.isAttacking = true;
         this.state = 'air_attack';
         this.atkFlash = 0.1;
         sfx.wrenchSwing();
+      }
+      return;
+    }
+
+    const gesture = inp.attackGesture;
+    if (gesture && this.grounded && this.atkCooldown <= 0) {
+      // Map gesture → explicit combo level.
+      const comboLevel = gesture === 'holdRelease' ? 3
+                       : gesture === 'doubleTap'   ? 2
+                       : 1;
+      this.combo = comboLevel;
+      this.atkTimer = PL.atkDur[this.combo - 1] || PL.atkDur[0];
+      this.comboTimer = PL.comboReset;
+      this.isAttacking = true;
+      this.state = 'attacking';
+      this.atkFlash = comboLevel === 3 ? 0.22 : 0.1;
+      if (comboLevel === 3) {
+        sfx.comboFinish();
+        if (engine.achievements) engine.achievements.onComboFinished();
       } else {
-        this.combo = (this.comboTimer > 0) ? Math.min(this.combo + 1, PL.maxCombo) : 1;
-        this.atkTimer = PL.atkDur[this.combo - 1] || PL.atkDur[0];
-        this.comboTimer = PL.comboReset;
-        this.isAttacking = true;
-        this.state = 'attacking';
-        this.atkFlash = 0.1;
-        if (this.combo === 3) {
-          sfx.comboFinish();
-          if (engine.achievements) engine.achievements.onComboFinished();
-        }
-        else sfx.wrenchSwing();
+        sfx.wrenchSwing();
       }
       return;
     }
@@ -427,6 +441,23 @@ export class Player {
       ctx.globalAlpha = 0.18;
       ctx.beginPath();
       ctx.arc(this.x, this.y - this.h / 2, 48 + 6 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Charge glow — pulsing amber ring while the player holds attack for a heavy.
+    if (this.charging) {
+      const pulse = 0.6 + 0.4 * Math.sin(this.animT * 18);
+      ctx.save();
+      ctx.globalAlpha = 0.45 * pulse;
+      ctx.fillStyle = '#FFC24D';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y - this.h / 2, 22 + 4 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.22 * pulse;
+      ctx.fillStyle = '#FF7A1A';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y - this.h / 2, 32 + 5 * pulse, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
