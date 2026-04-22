@@ -11,9 +11,9 @@ export class Boss {
     this.x = x; this.y = y;
     this.w = 80; this.h = 60;
     this.vx = 0; this.vy = 0;
-    this.hp = 12; this.maxHp = 12;
+    this.hp = 24; this.maxHp = 24;       // 2× HP for a proper boss fight
     this.alive = true;
-    this.phase = 'idle'; // idle, charge, slam, vulnerable, recover, dying
+    this.phase = 'idle'; // idle, charge, slam, vulnerable, recover, dying, enrage
     this.phaseTimer = 0;
     this.stateTimer = 0;
     this.attackCount = 0;
@@ -33,6 +33,8 @@ export class Boss {
     this.recoverTime = 1.5;
     this.projectiles = [];
     this.roarPlayed = false;
+    this.enraged = false;               // Phase-2 rage trigger (<50% HP)
+    this.enrageTimer = 0;               // Banner / invuln grace after enrage
   }
 
   get left() { return this.x - this.w / 2; }
@@ -67,7 +69,9 @@ export class Boss {
     if (this.flashTimer > 0) this.flashTimer -= dt;
     if (this.hurtTimer > 0) this.hurtTimer -= dt;
     if (this.warningTimer > 0) this.warningTimer -= dt;
-    this.shakeX = this.hurtTimer > 0 ? (Math.random() - 0.5) * 4 : 0;
+    if (this.enrageTimer > 0) this.enrageTimer -= dt;
+    this.shakeX = (this.hurtTimer > 0 || (this.enraged && Math.random() < 0.3))
+      ? (Math.random() - 0.5) * (this.enraged ? 6 : 4) : 0;
 
     // Update projectiles
     this.projectiles.forEach(p => {
@@ -143,12 +147,13 @@ export class Boss {
           engine.camera.shake(10, 0.25);
           engine.addParticles(this.cx, this.y, 12, C.ground);
           if (engine.sfx) engine.sfx.smash();
-          // Spawn debris projectiles
-          for (let i = 0; i < 4; i++) {
+          // Spawn debris projectiles (2× barrage when enraged)
+          const projCount = this.enraged ? 8 : 4;
+          for (let i = 0; i < projCount; i++) {
             this.projectiles.push({
               x: this.cx + (Math.random() - 0.5) * 60,
               y: this.y - 10,
-              vx: (Math.random() - 0.5) * 300,
+              vx: (Math.random() - 0.5) * (this.enraged ? 420 : 300),
               vy: -200 - Math.random() * 150,
               life: 1.5,
             });
@@ -240,6 +245,24 @@ export class Boss {
     engine.addParticles(this.cx, this.cy, 5, C.hvAccent);
     if (engine.sfx) engine.sfx.bossHit();
 
+    // ── Phase 2 trigger: rage mode at ≤ 50% HP ──
+    if (!this.enraged && this.hp <= this.maxHp / 2 && this.hp > 0) {
+      this.enraged = true;
+      this.enrageTimer = 1.4;              // banner duration (boss is still hittable)
+      this.chargeSpeed = 460;              // faster charges
+      this.vulnerableTime = 2.0;           // shorter hit window
+      this.recoverTime = 1.0;              // faster recovery
+      engine.flightLog.add('!! SIEGE TANK ENRAGED !!', 'combat');
+      engine.camera.shake(10, 0.4);
+      engine.hitStopTimer = 0.15;
+      // Red rage burst
+      for (let i = 0; i < 30; i++) {
+        const ang = (i / 30) * Math.PI * 2;
+        engine.addParticles(this.cx + Math.cos(ang) * 20, this.cy + Math.sin(ang) * 20, 1, C.red);
+      }
+      if (engine.sfx && engine.sfx.bossRoar) engine.sfx.bossRoar();
+    }
+
     if (this.hp <= 0) {
       this.phase = 'dying';
       this.deathTimer = 2.0;
@@ -269,6 +292,18 @@ export class Boss {
     ctx.beginPath();
     ctx.ellipse(x, y + 2, 36, 8, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    // Rage aura — red heat shimmer around boss when enraged.
+    if (this.enraged && this.phase !== 'dying') {
+      const auraR = 70 + Math.sin(this.animT * 8) * 6;
+      const grad = ctx.createRadialGradient(x, y - 30, 30, x, y - 30, auraR);
+      grad.addColorStop(0, 'rgba(255,60,40,0.45)');
+      grad.addColorStop(1, 'rgba(255,60,40,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(x, y - 30, auraR, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // Treads
     ctx.fillStyle = flash ? C.white : '#3A4A56';
@@ -333,16 +368,29 @@ export class Boss {
       ctx.fillRect(bx, by, bw * (this.hp / this.maxHp), bh);
     }
 
-    // Warning telegraph
+    // Warning telegraph — brighter + pulsing + explicit border line.
     if (this.warningTimer > 0) {
-      ctx.fillStyle = 'rgba(255,60,30,0.15)';
+      const pulse = 0.3 + 0.5 * Math.abs(Math.sin(this.animT * 14));
+      ctx.fillStyle = `rgba(255,60,30,${0.15 + pulse * 0.15})`;
       if (this._nextAttack === 'charge') {
         const wx = this.facing === 1 ? x : this.arenaLeft;
         const ww = this.facing === 1 ? (this.arenaRight - x) : (x - this.arenaLeft);
         ctx.fillRect(wx, y - 60, ww, 60);
+        // Outline stripe for clarity
+        ctx.fillStyle = `rgba(255,230,80,${pulse})`;
+        ctx.fillRect(wx, y - 4, ww, 3);
       } else {
         ctx.fillRect(x - 50, y - 100, 100, 100);
+        ctx.strokeStyle = `rgba(255,230,80,${pulse})`;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x - 50, y - 100, 100, 100);
       }
+      // ⚠ icon above boss
+      ctx.fillStyle = `rgba(255,210,60,${pulse})`;
+      ctx.font = 'bold 28px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('⚠', x, y - this.h - 18);
+      ctx.textAlign = 'start';
     }
 
     // Projectiles
@@ -352,6 +400,24 @@ export class Boss {
       ctx.fillStyle = '#6A5030';
       ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
     });
+
+    // ENRAGE banner — shown briefly when phase-2 triggers.
+    if (this.enrageTimer > 0) {
+      const a = Math.min(1, this.enrageTimer / 0.3) * 0.9;
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.fillStyle = 'rgba(120,0,0,0.85)';
+      ctx.fillRect(x - 240, y - this.h - 110, 480, 50);
+      ctx.strokeStyle = '#FFD34D';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(x - 240, y - this.h - 110, 480, 50);
+      ctx.fillStyle = '#FFD34D';
+      ctx.font = 'bold 30px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('⚠ SIEGE TANK ENRAGED ⚠', x, y - this.h - 75);
+      ctx.textAlign = 'start';
+      ctx.restore();
+    }
 
     if (dying) ctx.globalAlpha = 1;
   }

@@ -50,18 +50,19 @@ export function getLevels(newGamePlus = false) {
     {
       name: 'Rust Climb',
       playerSpawn: { x: -760, y: 286 },
-      camera: { startX: -420, startY: 100, limitLeft: -1200, limitTop: -280, limitRight: 1600, limitBottom: 600 },
+      camera: { startX: -420, startY: 100, limitLeft: -1200, limitTop: -280, limitRight: 2800, limitBottom: 600 },
       deathY: 800,
-      exitX: 1340,
+      exitX: 2600,
       backgrounds: [
         { type: 'sky', color1: '#243038', color2: '#3A4A52' },
         { type: 'hills', color: '#4A5660', points: [
           [-1200,180],[-900,100],[-600,170],[-300,90],[0,180],[300,110],
-          [600,190],[900,120],[1200,200],[1600,140],[1600,520],[-1200,520]
+          [600,190],[900,120],[1200,200],[1600,140],[2000,180],[2400,110],[2800,170],
+          [2800,520],[-1200,520]
         ]},
       ],
       platforms: [
-        { x: -1200, y: 288, w: 3400, h: 48, color: '#786D4F', topColor: '#887D5F' },
+        { x: -1200, y: 288, w: 4400, h: 48, color: '#786D4F', topColor: '#887D5F' },
         // Climb platforms
         { x: -580, y: 250, w: 120, h: 20, color: '#856A4E' },
         { x: -410, y: 200, w: 120, h: 20, color: '#856A4E' },
@@ -70,6 +71,13 @@ export function getLevels(newGamePlus = false) {
         { x: 820, y: 220, w: 80, h: 20, color: '#856A4E' },
         { x: 970, y: 180, w: 80, h: 20, color: '#856A4E' },
         { x: 1120, y: 140, w: 80, h: 20, color: '#856A4E' },
+        // Extended middle-late section (2× stage length)
+        { x: 1400, y: 200, w: 100, h: 20, color: '#856A4E' },
+        { x: 1600, y: 160, w: 100, h: 20, color: '#856A4E' },
+        { x: 1800, y: 200, w: 100, h: 20, color: '#856A4E' },
+        { x: 2000, y: 160, w: 110, h: 20, color: '#856A4E' },
+        { x: 2200, y: 120, w: 80,  h: 20, color: '#856A4E' },
+        { x: 2420, y: 180, w: 140, h: 20, color: '#856A4E' },
       ],
       enemies: [
         { type: 'root_crawler', x: -170, y: 148 },
@@ -78,6 +86,13 @@ export function getLevels(newGamePlus = false) {
         { type: 'wispling', x: 700, y: 180 },
         { type: 'candle_skull', x: 1050, y: 286 },
         { type: 'moss_golem', x: 1300, y: 286 },
+        // Extended half — more enemies + personalities
+        { type: 'gear_bug', x: 1550, y: 286 },
+        { type: 'wispling', x: 1700, y: 140 },
+        { type: 'flicker', x: 1900, y: 140 },
+        { type: 'candle_skull', x: 2100, y: 286 },
+        { type: 'heavy', x: 2300, y: 286 },
+        { type: 'root_crawler', x: 2500, y: 286 },
       ],
       pickups: [
         { type: 'coin', x: 560, y: 260 },
@@ -86,6 +101,13 @@ export function getLevels(newGamePlus = false) {
         { type: 'coin', x: 860, y: 196 },
         { type: 'coin', x: 1010, y: 156 },
         { type: 'scrap', x: 1160, y: 116 },
+        // Extended pickups
+        { type: 'coin',  x: 1440, y: 176 },
+        { type: 'coin',  x: 1640, y: 136 },
+        { type: 'scrap', x: 1840, y: 176 },
+        { type: 'coin',  x: 2040, y: 136 },
+        { type: 'scrap', x: 2240, y: 96  },
+        { type: 'coin',  x: 2460, y: 156 },
       ],
       breakables: [],
       hintTriggers: [

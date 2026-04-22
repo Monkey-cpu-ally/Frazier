@@ -325,8 +325,22 @@ export class RootCrawler extends EnemyBase {
 }
 
 export class GearBug extends EnemyBase {
-  constructor(x, y) { super(x, y, 'gear_bug'); }
+  constructor(x, y) {
+    super(x, y, 'gear_bug');
+    this.hopT = 0.8;
+  }
   _getColor() { return C.gbBody; }
+  // Personality: HOPS while patrolling — short bursty jumps every ~0.8s when grounded.
+  _ai(dt, engine) {
+    super._ai(dt, engine);
+    this.hopT -= dt;
+    if (this.hopT <= 0 && this.grounded) {
+      this.hopT = 0.65 + Math.random() * 0.35;
+      this.vy = -220;
+      // Little forward lunge with each hop
+      this.vx *= 1.35;
+    }
+  }
   _draw(ctx) {
     const x = Math.round(this.x), y = Math.round(this.y);
     ctx.fillStyle = this.flashTimer > 0 ? C.white : C.gbBody;
@@ -424,14 +438,75 @@ export class FlickerEnemy extends EnemyBase {
     ctx.fillStyle = C.flBody;
     ctx.fillRect(x - 2, y - 12, 4, 4);
   }
+
+  // Personality: TELEPORTS to a flanking position when it survives a hit.
+  takeDamage(amount, fromX, engine, opts = {}) {
+    const wasHp = this.hp;
+    super.takeDamage(amount, fromX, engine, opts);
+    if (!this.alive || this.hp <= 0 || wasHp === this.hp) return;
+    // Small smoke burst at old position, reappear ~120px away on the flank.
+    this._spawnSmokePoof(engine);
+    const pl = engine.player;
+    const side = (pl && this.x > pl.x) ? 1 : -1;
+    const newX = (pl ? pl.x : this.x) + side * (100 + Math.random() * 60);
+    const newY = (pl ? pl.cy : this.baseY) - 20;
+    this.x = newX;
+    this.baseY = newY;
+    this.y = newY;
+    this.vx = 0; this.vy = 0;
+    this.flickerOpen = false;                 // temporarily sealed during teleport
+    this.flickerT = 0.4;
+    // Puff at arrival too
+    this._spawnSmokePoof(engine);
+  }
 }
 
 export class HeavyEnemy extends EnemyBase {
-  constructor(x, y) { super(x, y, 'heavy'); }
+  constructor(x, y) {
+    super(x, y, 'heavy');
+    this.chargeT = 0;            // countdown to next charge
+    this.charging = false;
+    this.chargeWarnT = 0;        // telegraph duration
+  }
   _getColor() { return C.hvBody; }
+
+  // Personality: CHARGES when Axel is within 250px — telegraphs briefly, then rams.
+  _ai(dt, engine) {
+    const pl = engine.player;
+    const dist = Math.abs(pl.x - this.x);
+    if (this.charging) {
+      this.vx = this.dir * (this.speed * 3.5);
+      // End charge after ~0.9s or on wall/ledge
+      this.chargeT -= dt;
+      if (this.chargeT <= 0) {
+        this.charging = false;
+        this.chargeT = 2.6;       // cool-down before next charge
+      }
+      return;
+    }
+    if (this.chargeWarnT > 0) {
+      this.chargeWarnT -= dt;
+      this.vx = 0;
+      if (this.chargeWarnT <= 0) {
+        this.charging = true;
+        this.chargeT = 0.9;
+        this.dir = pl.x > this.x ? 1 : -1;
+        engine.camera.shake(2, 0.06);
+      }
+      return;
+    }
+    super._ai(dt, engine);
+    this.chargeT -= dt;
+    if (this.chargeT <= 0 && dist < 260 && this.grounded) {
+      this.chargeWarnT = 0.55;    // warning stomp
+      this.vx = 0;
+      this.chargeT = 3.0;
+    }
+  }
   _draw(ctx) {
     const x = Math.round(this.x), y = Math.round(this.y);
-    ctx.fillStyle = this.flashTimer > 0 ? C.white : C.hvBody;
+    ctx.fillStyle = this.flashTimer > 0 ? C.white
+                 : (this.charging ? C.red : C.hvBody);
     ctx.beginPath();
     ctx.moveTo(x - 20, y - 16); ctx.lineTo(x - 8, y - 20);
     ctx.lineTo(x + 10, y - 20); ctx.lineTo(x + 20, y - 14);
@@ -446,13 +521,30 @@ export class HeavyEnemy extends EnemyBase {
     ctx.lineTo(x + 14, y - 2); ctx.lineTo(x + 10, y + 6);
     ctx.lineTo(x - 10, y + 6); ctx.lineTo(x - 14, y - 2);
     ctx.closePath(); ctx.fill();
-    // Warning eye
-    ctx.fillStyle = C.red;
+    // Warning eye — flashes red during windup
+    ctx.fillStyle = this.chargeWarnT > 0
+      ? (Math.floor(this.chargeWarnT * 20) % 2 === 0 ? C.yellow : C.red)
+      : C.red;
     ctx.fillRect(x - 3, y - 8, 6, 4);
     // Treads
     ctx.fillStyle = C.hvPlate;
     ctx.fillRect(x - 18, y + 10, 10, 6);
     ctx.fillRect(x + 8, y + 10, 10, 6);
+    // Charge telegraph: exclamation + motion stripe
+    if (this.chargeWarnT > 0) {
+      ctx.fillStyle = 'rgba(255,60,30,0.7)';
+      ctx.font = 'bold 20px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('!', x, y - 30);
+      ctx.textAlign = 'start';
+    }
+    // Charge motion lines
+    if (this.charging) {
+      ctx.fillStyle = 'rgba(255,200,60,0.6)';
+      for (let i = 0; i < 3; i++) {
+        ctx.fillRect(x - this.dir * (28 + i * 10), y - 4 - i * 2, 8, 2);
+      }
+    }
   }
 }
 
@@ -527,7 +619,7 @@ export class CandleSkull extends EnemyBase {
     const targeting = pl && Math.abs(pl.x - this.x) < 220;
     this.dir = targeting ? (pl.x > this.x ? 1 : -1)
                          : (Math.abs(this.x - this.originX) > this.patrol ? -this.dir : this.dir);
-    this.vx = this.dir * this.spd;
+    this.vx = this.dir * this.speed;
     this.sparkT -= dt;
     if (this.sparkT <= 0 && targeting) {
       this.sparkT = 1.8;
@@ -605,7 +697,7 @@ export class MossGolem extends EnemyBase {
     if (this.pounding) { this.vx = 0; return; }
     this.dir = targeting ? (pl.x > this.x ? 1 : -1)
                          : (Math.abs(this.x - this.originX) > this.patrol ? -this.dir : this.dir);
-    this.vx = this.dir * this.spd;
+    this.vx = this.dir * this.speed;
     // Ground pound — telegraphed pause then shockwave.
     this.poundT -= dt;
     if (this.poundT <= 0 && targeting && Math.abs(pl.x - this.x) < 120) {
