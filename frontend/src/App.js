@@ -379,13 +379,6 @@ function App() {
               <div className="title-overlay" />
               <div className="title-content">
                 <div className="title-left">
-                  <img
-                    src={LOGO_URL}
-                    alt="HYPER AXEL"
-                    className="title-logo"
-                    data-testid="game-title-logo"
-                  />
-                  <p className="title-sub">Wrenchbound</p>
                   <div className="title-buttons">
                     <button
                       className="start-btn"
@@ -402,14 +395,6 @@ function App() {
                       CONTROLS
                     </button>
                   </div>
-                </div>
-                <div className="title-right">
-                  <img
-                    src={CHAR_URL}
-                    alt="Axel"
-                    className="title-character"
-                    data-testid="title-character-art"
-                  />
                 </div>
               </div>
             </div>

@@ -74,12 +74,6 @@ const MainMenu = ({
 
   return (
     <div className="main-menu-wrap" data-testid="main-menu">
-      {/* Character portraits */}
-      <div className="menu-portraits">
-        <img src={charUrl} alt="Axel" className="menu-portrait-axel" data-testid="menu-axel-portrait" />
-        <img src={scrapUrl} alt="Scrap" className="menu-portrait-scrap" data-testid="menu-scrap-portrait" />
-      </div>
-
       <GamePanel variant="bordered" className="menu-panel">
         <PanelHeader
           title="COMMAND TERMINAL"
