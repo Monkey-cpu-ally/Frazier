@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import '@/App.css';
+import '@/pixel-theme.css';
 import { Toaster, toast } from 'sonner';
 import GameCanvas from '@/components/GameCanvas';
 import IntroScreen from '@/components/IntroScreen';

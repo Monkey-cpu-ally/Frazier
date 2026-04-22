@@ -1,0 +1,360 @@
+/* =====================================================================
+   HYPER AXEL — Pixel-Art / PICO-8 Arcade Theme
+   ---------------------------------------------------------------------
+   Layered on top of the existing GUI system via `body.pixel-theme`.
+   Remove that class to get the original smooth-vector look back.
+   Reference palette (user-supplied): warm yellow / leafy green / sky
+   blue / fire red / near-black. Off-white page bg, hard pixel bevels.
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
+body.pixel-theme {
+  /* palette overrides */
+  --px-yellow:     #F7B71D;
+  --px-yellow-sh:  #A36F00;
+  --px-green:      #2DA232;
+  --px-green-sh:   #175E1A;
+  --px-blue:       #2E7BD6;
+  --px-blue-sh:    #174270;
+  --px-red:        #E23A2E;
+  --px-red-sh:     #80180F;
+  --px-ink:        #141014;   /* dark outlines */
+  --px-cream:      #F4ECD8;   /* off-white */
+  --px-panel:      #262028;
+  --px-panel-hi:   #3A3140;
+
+  /* re-wire existing gui-* variables so legacy components inherit the style */
+  --gui-bg: #1B161C;
+  --gui-panel: var(--px-panel);
+  --gui-panel-light: var(--px-panel-hi);
+  --gui-panel-hover: #463A4E;
+  --gui-border: var(--px-ink);
+  --gui-border-light: #5D4F68;
+  --gui-accent: var(--px-yellow);
+  --gui-accent-dim: rgba(247,183,29,0.18);
+  --gui-accent-glow: rgba(247,183,29,0.5);
+  --gui-red: var(--px-red);
+  --gui-red-dark: var(--px-red-sh);
+  --gui-yellow: var(--px-yellow);
+  --gui-text: var(--px-cream);
+  --gui-text-dim: #C8B796;
+  --gui-radius: 0;
+  --gui-radius-sm: 0;
+  --gui-radius-lg: 0;
+
+  --gui-font-title: 'Press Start 2P', monospace;
+  --gui-font-label: 'Press Start 2P', monospace;
+  --gui-font-body:  'VT323', monospace;
+  --gui-font-mono:  'VT323', monospace;
+
+  /* page-wide tweaks */
+  font-family: 'VT323', monospace;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  letter-spacing: 0.5px;
+}
+
+body.pixel-theme img,
+body.pixel-theme canvas {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}
+
+/* remove all rounded corners & smooth gradients site-wide */
+body.pixel-theme * {
+  border-radius: 0 !important;
+}
+
+/* ===========================================================
+   Pixel bevel helper — applied via box-shadow layering.
+   Creates a 4-step inset/outset bevel that looks hand-painted.
+   =========================================================== */
+
+/* ---- Title screen buttons (PLAY / CONTROLS) ---- */
+body.pixel-theme .start-btn,
+body.pixel-theme .controls-btn {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.95rem !important;
+  font-weight: normal !important;
+  letter-spacing: 2px !important;
+  padding: 18px 32px !important;
+  color: var(--px-cream) !important;
+  background: var(--px-red) !important;
+  border: 4px solid var(--px-ink) !important;
+  border-radius: 0 !important;
+  box-shadow:
+    inset 0 -6px 0 0 var(--px-red-sh),
+    inset 0 6px 0 0 rgba(255,255,255,0.22),
+    0 6px 0 0 var(--px-ink),
+    6px 6px 0 0 rgba(0,0,0,0.35) !important;
+  text-shadow: 2px 2px 0 var(--px-red-sh);
+  transition: transform 0.08s steps(2), box-shadow 0.08s steps(2) !important;
+  backdrop-filter: none !important;
+  text-transform: uppercase;
+}
+
+body.pixel-theme .controls-btn {
+  background: var(--px-yellow) !important;
+  color: var(--px-ink) !important;
+  text-shadow: 2px 2px 0 var(--px-yellow-sh);
+  box-shadow:
+    inset 0 -6px 0 0 var(--px-yellow-sh),
+    inset 0 6px 0 0 rgba(255,255,255,0.35),
+    0 6px 0 0 var(--px-ink),
+    6px 6px 0 0 rgba(0,0,0,0.35) !important;
+}
+
+body.pixel-theme .start-btn:hover,
+body.pixel-theme .controls-btn:hover {
+  filter: brightness(1.08);
+  transform: translate(-1px, -1px);
+}
+
+body.pixel-theme .start-btn:active,
+body.pixel-theme .controls-btn:active {
+  transform: translate(0, 4px);
+  box-shadow:
+    inset 0 -2px 0 0 var(--px-red-sh),
+    inset 0 4px 0 0 rgba(255,255,255,0.18),
+    0 2px 0 0 var(--px-ink) !important;
+}
+
+body.pixel-theme .controls-btn:active {
+  box-shadow:
+    inset 0 -2px 0 0 var(--px-yellow-sh),
+    inset 0 4px 0 0 rgba(255,255,255,0.3),
+    0 2px 0 0 var(--px-ink) !important;
+}
+
+/* ---- GameButton component (.gui-btn) ---- */
+body.pixel-theme .gui-btn {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.75rem !important;
+  font-weight: normal !important;
+  letter-spacing: 1px !important;
+  padding: 12px 18px !important;
+  border: 4px solid var(--px-ink) !important;
+  border-radius: 0 !important;
+  transition: transform 0.08s steps(2), filter 0.08s steps(2) !important;
+  text-transform: uppercase;
+}
+
+body.pixel-theme .gui-btn--primary {
+  background: var(--px-red) !important;
+  color: var(--px-cream) !important;
+  text-shadow: 2px 2px 0 var(--px-red-sh);
+  box-shadow:
+    inset 0 -6px 0 0 var(--px-red-sh),
+    inset 0 6px 0 0 rgba(255,255,255,0.2),
+    0 5px 0 0 var(--px-ink) !important;
+}
+
+body.pixel-theme .gui-btn--secondary {
+  background: var(--px-green) !important;
+  color: var(--px-cream) !important;
+  text-shadow: 2px 2px 0 var(--px-green-sh);
+  box-shadow:
+    inset 0 -6px 0 0 var(--px-green-sh),
+    inset 0 6px 0 0 rgba(255,255,255,0.2),
+    0 5px 0 0 var(--px-ink) !important;
+}
+
+body.pixel-theme .gui-btn--ghost {
+  background: var(--px-blue) !important;
+  color: var(--px-cream) !important;
+  text-shadow: 2px 2px 0 var(--px-blue-sh);
+  box-shadow:
+    inset 0 -6px 0 0 var(--px-blue-sh),
+    inset 0 6px 0 0 rgba(255,255,255,0.22),
+    0 5px 0 0 var(--px-ink) !important;
+}
+
+body.pixel-theme .gui-btn:hover {
+  filter: brightness(1.1);
+  transform: translate(-1px, -1px);
+}
+
+body.pixel-theme .gui-btn:active {
+  transform: translate(0, 4px);
+  filter: brightness(0.96);
+}
+
+/* ---- Panels / modals ---- */
+body.pixel-theme .gui-panel,
+body.pixel-theme .gui-modal {
+  background: var(--px-panel) !important;
+  border: 4px solid var(--px-ink) !important;
+  border-radius: 0 !important;
+  box-shadow:
+    inset 0 4px 0 rgba(255,255,255,0.08),
+    inset 0 -4px 0 rgba(0,0,0,0.4),
+    6px 6px 0 rgba(0,0,0,0.5) !important;
+}
+
+body.pixel-theme .gui-panel::before,
+body.pixel-theme .gui-panel::after {
+  display: none !important;
+}
+
+body.pixel-theme .gui-panel--bordered {
+  border-color: var(--px-ink) !important;
+}
+body.pixel-theme .gui-panel--accent {
+  border-color: var(--px-yellow) !important;
+  box-shadow:
+    inset 0 4px 0 rgba(255,255,255,0.12),
+    inset 0 -4px 0 rgba(0,0,0,0.4),
+    0 0 0 4px var(--px-ink),
+    6px 6px 0 rgba(0,0,0,0.5) !important;
+}
+
+/* Panel header — thick yellow title bar */
+body.pixel-theme .gui-panel-header {
+  background: var(--px-yellow) !important;
+  color: var(--px-ink) !important;
+  border-bottom: 4px solid var(--px-ink) !important;
+  padding: 10px 14px !important;
+  text-shadow: 2px 2px 0 var(--px-yellow-sh);
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 1px !important;
+}
+
+body.pixel-theme .gui-panel-header * {
+  color: var(--px-ink) !important;
+}
+
+/* ---- Badges / chips ---- */
+body.pixel-theme .gui-badge {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.6rem !important;
+  padding: 4px 8px !important;
+  border: 3px solid var(--px-ink) !important;
+  box-shadow: 0 3px 0 var(--px-ink);
+  border-radius: 0 !important;
+}
+
+body.pixel-theme .gui-badge--red   { background: var(--px-red)    !important; color: var(--px-cream) !important; }
+body.pixel-theme .gui-badge--teal  { background: var(--px-green)  !important; color: var(--px-cream) !important; }
+body.pixel-theme .gui-badge--yellow{ background: var(--px-yellow) !important; color: var(--px-ink)   !important; }
+body.pixel-theme .gui-badge--purple{ background: var(--px-blue)   !important; color: var(--px-cream) !important; }
+
+/* ---- Meter bar ---- */
+body.pixel-theme .gui-meter {
+  height: 16px !important;
+  border: 3px solid var(--px-ink) !important;
+  border-radius: 0 !important;
+  background: var(--px-panel-hi) !important;
+  image-rendering: pixelated;
+  box-shadow: 0 3px 0 var(--px-ink);
+}
+body.pixel-theme .gui-meter-fill {
+  border-radius: 0 !important;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--px-yellow) 0 8px,
+    var(--px-yellow-sh) 8px 10px
+  ) !important;
+}
+
+/* ---- Tabs ---- */
+body.pixel-theme .gui-tab,
+body.pixel-theme [class*='gui-tab'] {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.6rem !important;
+  border: 3px solid var(--px-ink) !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+  background: var(--px-panel-hi) !important;
+  padding: 8px 12px !important;
+}
+body.pixel-theme .gui-tab--active,
+body.pixel-theme [class*='gui-tab--active'] {
+  background: var(--px-yellow) !important;
+  color: var(--px-ink) !important;
+}
+
+/* ---- Title screen tweaks ---- */
+body.pixel-theme .title-content {
+  image-rendering: pixelated;
+}
+body.pixel-theme .title-overlay {
+  background: linear-gradient(180deg, rgba(0,0,0,0) 60%, rgba(0,0,0,0.6) 100%) !important;
+}
+
+/* ---- Main menu wrap ---- */
+body.pixel-theme .main-menu-wrap {
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
+}
+
+body.pixel-theme .menu-overlay {
+  background: linear-gradient(180deg, rgba(20,16,20,0.85), rgba(20,16,20,0.65)) !important;
+}
+
+/* ---- Workshop overlay ---- */
+body.pixel-theme .gui-modal-overlay {
+  background: rgba(20,16,20,0.82) !important;
+}
+
+/* ---- Inputs ---- */
+body.pixel-theme input,
+body.pixel-theme select,
+body.pixel-theme textarea {
+  font-family: 'VT323', monospace !important;
+  background: var(--px-panel-hi) !important;
+  border: 3px solid var(--px-ink) !important;
+  border-radius: 0 !important;
+  color: var(--px-cream) !important;
+  font-size: 1.1rem !important;
+  padding: 6px 10px !important;
+}
+
+/* ---- TouchControls (mobile D-pad + A button) ---- */
+body.pixel-theme .tc-btn,
+body.pixel-theme [class*='touch-'] {
+  font-family: 'Press Start 2P', monospace !important;
+  border-radius: 0 !important;
+}
+
+/* ---- Toaster (sonner) pixel skin ---- */
+body.pixel-theme [data-sonner-toast] {
+  font-family: 'VT323', monospace !important;
+  font-size: 1.05rem !important;
+  border: 3px solid var(--px-ink) !important;
+  border-radius: 0 !important;
+  background: var(--px-panel-hi) !important;
+  color: var(--px-cream) !important;
+  box-shadow: 4px 4px 0 var(--px-ink) !important;
+}
+
+/* ---- Big headings throughout ---- */
+body.pixel-theme h1,
+body.pixel-theme h2,
+body.pixel-theme h3,
+body.pixel-theme h4 {
+  font-family: 'Press Start 2P', monospace !important;
+  letter-spacing: 1px;
+  text-shadow: 3px 3px 0 rgba(0,0,0,0.6);
+}
+
+/* Body paragraphs get the chunky VT323 monitor font */
+body.pixel-theme p,
+body.pixel-theme span,
+body.pixel-theme li,
+body.pixel-theme div {
+  font-family: 'VT323', monospace;
+}
+/* …except anything already using Press Start 2P explicitly  */
+body.pixel-theme .gui-btn,
+body.pixel-theme .gui-badge,
+body.pixel-theme .gui-tab,
+body.pixel-theme .gui-panel-header,
+body.pixel-theme .gui-panel-header *,
+body.pixel-theme h1, body.pixel-theme h2, body.pixel-theme h3, body.pixel-theme h4 {
+  font-family: 'Press Start 2P', monospace !important;
+}
+
+/* Starfield / parallax canvases stay crisp */
+body.pixel-theme canvas { image-rendering: pixelated; }
