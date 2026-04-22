@@ -16,6 +16,11 @@ import WorldPicker from '@/components/WorldPicker';
 import EngineStateProbe from '@/components/EngineStateProbe';
 import { sfx } from '@/game/sfx';
 import { music } from '@/game/music';
+// Expose music globally so the canvas-side engine can start/stop the water rush
+// without needing a direct import (avoids circular deps with sfx).
+if (typeof window !== 'undefined') {
+  window.__hyperAxelMusic = music;
+}
 
 const ACHIEVEMENT_NAMES = {
   first_blood: 'First Blood',
@@ -362,6 +367,27 @@ function App() {
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [screen, handlePause, showControls, showSettings, showWorkshop, showAchievements, showGallery]);
+
+  // Play the title "glimpse" theme on the title screen. Browsers block autoplay
+  // until the user interacts, so we hook a one-shot pointerdown/keydown starter.
+  React.useEffect(() => {
+    if (screen !== 'title') return;
+    let started = false;
+    const start = () => {
+      if (started) return;
+      started = true;
+      try { music.playTitle(); } catch (e) {}
+    };
+    // Try immediately — some browsers allow it after intro cinematic.
+    start();
+    window.addEventListener('pointerdown', start, { once: true });
+    window.addEventListener('keydown', start, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', start);
+      window.removeEventListener('keydown', start);
+      if (screen !== 'title') music.stop();
+    };
+  }, [screen]);
 
   return (
     <div className="app-root" data-testid="app-root">

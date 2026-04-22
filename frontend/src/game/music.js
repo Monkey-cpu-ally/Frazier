@@ -218,6 +218,98 @@ class MusicEngine {
       clearTimeout(this._phraseTimeout);
       this._phraseTimeout = null;
     }
+    if (this._titleTimeout) {
+      clearTimeout(this._titleTimeout);
+      this._titleTimeout = null;
+    }
+  }
+
+  // ── Waterfall rush (pink-noise ambient) — fades in/out, ducks music 45% ──
+  startWaterRush() {
+    if (!this.enabled) return;
+    if (this._waterSrc) return;
+    const ctx = this._ensure();
+    // 2 seconds of pink-ish noise, looped.
+    const bufLen = ctx.sampleRate * 2;
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    let b0 = 0, b1 = 0, b2 = 0;
+    for (let i = 0; i < bufLen; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750759;
+      b2 = 0.96900 * b2 + white * 0.1538520;
+      data[i] = (b0 + b1 + b2 + white * 0.31) * 0.22;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.value = 2400;
+    filt.Q.value = 0.8;
+    const g = ctx.createGain();
+    g.gain.value = 0;
+    src.connect(filt); filt.connect(g); g.connect(this.masterGain || ctx.destination);
+    src.start();
+    g.gain.linearRampToValueAtTime(0.32, ctx.currentTime + 0.4);
+    this._waterSrc = src;
+    this._waterGain = g;
+    // Duck music for clarity
+    if (this.masterGain) {
+      this.masterGain.gain.cancelScheduledValues(ctx.currentTime);
+      this.masterGain.gain.linearRampToValueAtTime(this.volume * 0.45, ctx.currentTime + 0.4);
+    }
+  }
+
+  stopWaterRush() {
+    if (!this._waterSrc) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    this._waterGain.gain.cancelScheduledValues(t);
+    this._waterGain.gain.linearRampToValueAtTime(0.0, t + 0.4);
+    const src = this._waterSrc;
+    setTimeout(() => { try { src.stop(); } catch (e) {} }, 500);
+    this._waterSrc = null;
+    this._waterGain = null;
+    if (this.masterGain) {
+      this.masterGain.gain.cancelScheduledValues(t);
+      this.masterGain.gain.linearRampToValueAtTime(this.volume, t + 0.5);
+    }
+  }
+
+  // ── Title "glimpse" — short uplifting chiptune teaser ──────────
+  // 4-bar loop: G major arpeggio with driving bass. Meant to hint at the
+  // full gameplay music while staying light.
+  playTitle() {
+    if (!this.enabled) return;
+    this.stop();
+    this._ensure();
+    this.playing = true;
+    this.currentTrack = 'title';
+    this._loopTitle();
+  }
+
+  _loopTitle() {
+    if (!this.playing || this.currentTrack !== 'title') return;
+    const ctx = this._ensure();
+    const bpm = 112;
+    const beat = 60 / bpm / 2;                          // 8th notes
+    let t = ctx.currentTime + 0.1;
+    // Melody — 16 notes: G major pentatonic arc
+    const mel = [
+      392, 587, 784, 988, 784, 587, 494, 392,
+      440, 659, 880, 1109, 880, 659, 494, 440,
+    ];
+    const bass = [196, 196, 294, 294, 392, 392, 294, 294,
+                  220, 220, 330, 330, 440, 440, 330, 330];
+    for (let i = 0; i < 16; i++) {
+      this._playNote(mel[i], t + i * beat, beat * 0.9, 'square', 0.055);
+      this._playNote(bass[i], t + i * beat, beat * 0.95, 'triangle', 0.045);
+      if (i % 4 === 0) this._playTick(t + i * beat, 0.05);
+    }
+    const dur = 16 * beat;
+    this._titleTimeout = setTimeout(() => this._loopTitle(), (dur - 0.05) * 1000);
   }
 
   // Menu ambient (very sparse)

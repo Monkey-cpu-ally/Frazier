@@ -714,6 +714,10 @@ export class Engine {
       this.gameState.showPickup('⬇ WATERFALL DESCENT');
       this.flightLog.add('Waterfall descent — gravity surge!', 'event');
       this.camera.shake(6, 0.5);
+      // Ambient water rush — proper low-pass-filtered pink-noise roar.
+      if (typeof window !== 'undefined' && window.__hyperAxelMusic) {
+        try { window.__hyperAxelMusic.startWaterRush(); } catch (e) {}
+      }
     }
     if (this.waterfallActive) {
       this.waterfallTimer -= dt;
@@ -735,6 +739,9 @@ export class Engine {
         this.waterfallActive = false;
         this.fallingRocks = [];
         this.gameState.showPickup('Descent cleared.');
+        if (typeof window !== 'undefined' && window.__hyperAxelMusic) {
+          try { window.__hyperAxelMusic.stopWaterRush(); } catch (e) {}
+        }
       }
     }
     // Update + collide falling rocks
