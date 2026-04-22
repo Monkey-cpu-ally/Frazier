@@ -10,6 +10,10 @@ import { generateDreamWorld, getFantasyBiome } from './biomes';
 import { HUD } from './hud';
 import { Boss, FoxSpirit } from './boss';
 import { sfx } from './sfx';
+
+// Mario-stomp bounce velocities (negative = upward; engine uses screen-y)
+const PL_STOMP_BOUNCE      = -360;
+const PL_STOMP_BOUNCE_HIGH = -520;
 import { DialogueManager } from './dialogue';
 import { SecretEnding } from './secretEnding';
 import { triggerScrapAssist } from './assists';
@@ -328,6 +332,14 @@ export class Engine {
     this.camera.setLimits(lv.camera.limitLeft, lv.camera.limitTop, lv.camera.limitRight, lv.camera.limitBottom);
     this.camera.x = lv.camera.startX - W / 2;
     this.camera.y = lv.camera.startY - H / 2;
+    // Clamp bounds for player — prevents walking off into the void.
+    // Leave ~80px of room so they can reach exit trigger at lv.exitX.
+    this.playerMinX = (lv.playerMinX !== undefined)
+      ? lv.playerMinX
+      : (lv.camera.limitLeft - W / 2 + 40);
+    this.playerMaxX = (lv.playerMaxX !== undefined)
+      ? lv.playerMaxX
+      : (lv.exitX !== undefined ? lv.exitX + 80 : lv.camera.limitRight + W / 2 - 40);
 
     this.state = 'transition';
     this.transitionTimer = 0.8;
@@ -560,11 +572,30 @@ export class Engine {
     const pl = this.player;
     if (!pl.alive) return;
 
-    // Player vs enemies (contact damage)
+    // Player vs enemies (contact damage + Mario-stomp kill)
     this.enemies.forEach(e => {
       if (!e.alive) return;
       const hb = e.getHitbox();
       if (this._aabb(pl.left, pl.top, pl.w, pl.h, hb.x, hb.y, hb.w, hb.h)) {
+        // Mario stomp — player falling onto enemy's head kills/damages it and bounces.
+        // Armored enemies (Heavy) only stun, don't die.
+        const stompingFromAbove = pl.vy > 60 && (pl.bottom - hb.y) < hb.h * 0.55 && !e.armored;
+        if (stompingFromAbove && pl.invTimer <= 0) {
+          const stompDmg = e.sizeClass === 'large' ? 2 : Math.max(1, e.maxHp);
+          e.takeDamage(stompDmg, pl.x, this, { smash: true, bypassFlicker: true });
+          // Bounce — reverse vy. Extra bounce if jump is held.
+          pl.vy = this.input.jumpHeld ? PL_STOMP_BOUNCE_HIGH : PL_STOMP_BOUNCE;
+          pl.canDash = true;       // reward: refresh dash
+          this.camera.shake(3, 0.08);
+          if (sfx && sfx.enemyHit) sfx.enemyHit();
+          return;
+        }
+        // Armored enemies bounce the player off without damage instead of auto-hitting
+        if (stompingFromAbove && e.armored && pl.invTimer <= 0) {
+          pl.vy = PL_STOMP_BOUNCE * 0.6;
+          this.camera.shake(2, 0.05);
+          return;
+        }
         pl.takeDamage(e.dmg, e.cx, this);
       }
     });
@@ -581,9 +612,17 @@ export class Engine {
     // Player attack vs enemies
     if (pl.atkTimer > 0) {
       const ab = pl.getAtkBox();
+      // Base dmg multiplier from active power.
       let dmgMul = this.powerManager.isGoldenGloves ? 2
                 : this.powerManager.isHyperMode ? 2
                 : this.powerManager.isSuperMode ? 1.5 : 1;
+      // Combo tiering — weak / mid / heavy (combo 1 / 2 / 3).
+      // Smash attack (down-air) is a dedicated heavy.
+      const comboMul = pl.smashing ? 2.0
+                     : pl.combo === 3 ? 1.75
+                     : pl.combo === 2 ? 1.25
+                     : 1.0;
+      dmgMul *= comboMul;
       // Daily: dmg_mul
       if (this.dailyMode && this.dailyModifier && this.dailyModifier.dmg_mul) {
         dmgMul *= this.dailyModifier.dmg_mul;

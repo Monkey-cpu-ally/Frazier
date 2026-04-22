@@ -33,6 +33,11 @@ const TouchControls = ({ visible }) => {
             <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="3" fill="none"/>
           </svg>
         </Btn>
+        <Btn code="ArrowUp" label="UP" className="touch-dpad-up">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 15l6-6 6 6" stroke="currentColor" strokeWidth="3" fill="none"/>
+          </svg>
+        </Btn>
         <Btn code="KeyD" label="R" className="touch-dpad-right">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
             <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="3" fill="none"/>
@@ -49,6 +54,7 @@ const TouchControls = ({ visible }) => {
       <div className="touch-actions">
         <Btn code="Space" label="JUMP" className="touch-jump" />
         <Btn code="KeyX" label="ATK" className="touch-attack" />
+        <Btn code="ShiftLeft" label="DASH" className="touch-dash" />
         <Btn code="KeyK" label="PWR" className="touch-special" />
         <Btn code="KeyQ" label="ASSIST" className="touch-assist" />
       </div>

@@ -130,6 +130,19 @@ export class PowerPickup extends PickupBase {
     engine.flightLog.add(`Activated ${this.powerId.replace('_', ' ')}`, 'power');
     if (engine.achievements) engine.achievements.onPowerActivated(this.powerId);
     sfx.powerPickup();
+    // Flashy activation burst — obvious visual feedback so the power is felt.
+    const powerColors = {
+      burning_buffalo: '#FD8C59', shadow_tag: '#8B5CF6',
+      golden_gloves: '#FFD700',   super_mode: '#FF4444',
+      specter_mode:  '#88DDFF',   fighter_plane: '#44BB44',
+      hyper_mode:    '#FF2ED5',
+    };
+    const col = powerColors[this.powerId] || '#FFFFFF';
+    if (engine.addParticles) {
+      engine.addParticles(engine.player.x, engine.player.cy, 22, col);
+      engine.addParticles(engine.player.x, engine.player.cy, 10, '#FFFFFF');
+    }
+    if (engine.camera && engine.camera.shake) engine.camera.shake(4, 0.25);
   }
 
   _draw(ctx, x, y) {

@@ -69,6 +69,9 @@ export class Player {
     this.animT += dt;
     if (!this.alive) return;
 
+    // Track active power color for aura effect rendered in render().
+    this._powerColor = (pm && pm.active) ? pm.active.color : null;
+
     // Timers
     if (this.invTimer > 0) this.invTimer -= dt;
     if (this.atkCooldown > 0) this.atkCooldown -= dt;
@@ -363,6 +366,16 @@ export class Player {
     if (this.y > engine.deathY) {
       this.alive = false;
     }
+
+    // Horizontal bounds — prevents walking off the side of the stage.
+    if (engine.playerMinX !== undefined && this.x < engine.playerMinX + this.w / 2) {
+      this.x = engine.playerMinX + this.w / 2;
+      if (this.vx < 0) this.vx = 0;
+    }
+    if (engine.playerMaxX !== undefined && this.x > engine.playerMaxX - this.w / 2) {
+      this.x = engine.playerMaxX - this.w / 2;
+      if (this.vx > 0) this.vx = 0;
+    }
   }
 
   takeDamage(dmg, fromX, engine) {
@@ -387,8 +400,26 @@ export class Player {
 
   render(ctx) {
     if (!this.alive) return;
-    const blink = this.invTimer > 0 && Math.floor(this.invTimer * 10) % 2 === 0;
-    if (blink) return;
+    // Damage flicker — keep ouch face visible but semi-transparent on flicker frames.
+    const flickerOff = this.invTimer > 0 && Math.floor(this.invTimer * 10) % 2 === 0;
+    if (flickerOff) ctx.globalAlpha = 0.35;
+
+    // Power aura — pulsing ring behind Axel that matches the active power's color.
+    // Always drawn so the player feels the power is doing something.
+    if (this._powerColor) {
+      const pulse = 0.75 + 0.25 * Math.sin(this.animT * 6);
+      ctx.save();
+      ctx.globalAlpha = 0.35 * pulse;
+      ctx.fillStyle = this._powerColor;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y - this.h / 2, 32 + 4 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.18;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y - this.h / 2, 48 + 6 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
     // Dash ghosts
     this.dashGhosts.forEach(g => {
@@ -454,6 +485,7 @@ export class Player {
     }
 
     ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
   _drawBody(ctx, ox, oy, face) {
@@ -521,6 +553,32 @@ export class Player {
     ctx.fillRect(x + 1, y - 45, 6, 6);
     ctx.fillStyle = C.eye;
     const ep = face === 1 ? 2 : 0;
+    // ── Damage expression: X eyes + frown when invulnerable ──
+    if (this.invTimer > 0) {
+      // X eyes
+      ctx.fillStyle = C.eye;
+      // left X
+      ctx.fillRect(x - 6, y - 45, 1, 6);
+      ctx.fillRect(x - 1, y - 45, 1, 6);
+      ctx.fillRect(x - 5, y - 45, 1, 1);
+      ctx.fillRect(x - 4, y - 44, 1, 1);
+      ctx.fillRect(x - 3, y - 43, 1, 1);
+      ctx.fillRect(x - 4, y - 41, 1, 1);
+      ctx.fillRect(x - 5, y - 40, 1, 1);
+      // right X
+      ctx.fillRect(x + 1, y - 45, 1, 6);
+      ctx.fillRect(x + 6, y - 45, 1, 6);
+      ctx.fillRect(x + 2, y - 44, 1, 1);
+      ctx.fillRect(x + 3, y - 43, 1, 1);
+      ctx.fillRect(x + 4, y - 44, 1, 1);
+      ctx.fillRect(x + 5, y - 45, 1, 1);
+      // frown / owie mouth
+      ctx.fillStyle = C.red;
+      ctx.fillRect(x - 3, y - 36, 6, 2);
+      ctx.fillStyle = C.noseBand;
+      ctx.fillRect(x - 3, y - 39, 6, 3);
+      return; // skip normal face
+    }
     ctx.fillRect(x - 5 + ep, y - 44, 3, 4);
     ctx.fillRect(x + 2 + ep, y - 44, 3, 4);
     ctx.fillStyle = C.eyeW;
