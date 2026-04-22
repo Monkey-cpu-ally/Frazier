@@ -41,6 +41,17 @@ const ACHIEVEMENT_NAMES = {
 };
 
 const BG_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/e352993c8b6ad491a1f19da7bb7f3a7aa5ade71deb48994a814b5024daf01114.png';
+// Procedural pixel-art background — layered gradients mimic a dusk forest
+// biome. Used on the title and menu screens in place of the painted PNG so
+// the UI stays consistent with the in-game pixel aesthetic.
+const PIXEL_BG_STYLE = {
+  background: `
+    radial-gradient(ellipse 280px 120px at 82% 22%, rgba(255,225,166,0.55), rgba(255,225,166,0) 70%),
+    radial-gradient(ellipse 180px 80px at 82% 22%, rgba(255,241,200,0.7), rgba(255,241,200,0) 65%),
+    linear-gradient(180deg, #1E2C22 0%, #2B4030 45%, #3A5B3E 75%, #486B4E 100%)
+  `,
+  imageRendering: 'pixelated',
+};
 const CHAR_URL = 'https://customer-assets.emergentagent.com/job_agent-platform-73/artifacts/3vnrayz5_download%20%282%29.jpeg';
 const LOGO_URL = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/b9f1e61660d975d35abd57e13d38465e838517983dcb816893171db757fb203e.png';
 const SCRAP_URL = 'https://customer-assets.emergentagent.com/job_agent-platform-73/artifacts/65k5qqhf_file_00000000b57c71fbb0f6cfcc4204d795.png';
@@ -433,7 +444,21 @@ function App() {
         {/* ===== TITLE SCREEN ===== */}
         {screen === 'title' && (
           <div className="title-screen" data-testid="title-screen">
-            <div className="title-bg" style={{ backgroundImage: `url(${BG_URL})` }}>
+            <div className="title-bg" style={PIXEL_BG_STYLE}>
+              {/* Pixel mountain silhouettes layered behind the overlay */}
+              <svg className="title-bg-layer" viewBox="0 0 1280 720" preserveAspectRatio="none" shapeRendering="crispEdges"
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+                {/* far mountains */}
+                <polygon points="0,520 120,380 240,460 400,320 560,440 720,360 880,450 1040,380 1200,470 1280,420 1280,720 0,720" fill="#1F3527" opacity="0.85"/>
+                {/* mid hills */}
+                <polygon points="0,600 160,500 320,560 480,480 640,540 800,460 960,530 1120,470 1280,540 1280,720 0,720" fill="#2C5237" opacity="0.9"/>
+                {/* near trees row — chunky triangles */}
+                <g fill="#1A3322">
+                  {[80,180,300,420,540,660,780,900,1020,1140,1240].map((cx,i) => (
+                    <polygon key={i} points={`${cx-20},640 ${cx},560 ${cx+20},640`} />
+                  ))}
+                </g>
+              </svg>
               <div className="title-overlay" />
               <div className="title-content title-content-centered">
                 <div className="title-center">
@@ -485,7 +510,13 @@ function App() {
 
         {/* ===== MAIN MENU ===== */}
         {screen === 'menu' && (
-          <div className="menu-screen" data-testid="menu-screen" style={{ backgroundImage: `url(${BG_URL})` }}>
+          <div className="menu-screen" data-testid="menu-screen" style={PIXEL_BG_STYLE}>
+            {/* Procedural pixel silhouettes behind the menu overlay */}
+            <svg className="menu-bg-layer" viewBox="0 0 1280 720" preserveAspectRatio="none" shapeRendering="crispEdges"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+              <polygon points="0,540 160,420 320,500 480,380 640,490 800,400 960,500 1120,420 1280,520 1280,720 0,720" fill="#1F3527" opacity="0.75"/>
+              <polygon points="0,620 180,520 360,580 540,500 720,570 900,490 1080,570 1280,520 1280,720 0,720" fill="#2C5237" opacity="0.85"/>
+            </svg>
             <div className="menu-overlay" />
             <div className="menu-content">
               <MainMenu

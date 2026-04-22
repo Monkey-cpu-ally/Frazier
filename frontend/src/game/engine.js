@@ -68,11 +68,8 @@ export class Engine {
     this.dailyModifier = null;
     this.dailyMode = false;
 
-    // Preload background image
-    this.bgImage = new Image();
-    this.bgImage.src = 'https://static.prod-images.emergentagent.com/jobs/373297d6-1933-47c6-98ac-bd4bef2c6b43/images/e352993c8b6ad491a1f19da7bb7f3a7aa5ade71deb48994a814b5024daf01114.png';
-    this.bgImageLoaded = false;
-    this.bgImage.onload = () => { this.bgImageLoaded = true; };
+    // Background art is fully procedural now — see _renderBackground() for the
+    // biome-aware multi-layer pixel-art parallax system.
 
     // Preload pixel-art character sprites (generated via Gemini Nano Banana).
     // Access via engine.sprites.axel / .scrap / .root_crawler / etc.
@@ -1251,34 +1248,32 @@ export class Engine {
     }
 
     const bgs = this.currentLevel.backgrounds || [];
+    // Figure out biome palette — explicit biome wins, else detect from level name.
+    const biomeKey = this._resolveBiomeKey();
+    const pal = this._biomePalette(biomeKey);
+
     bgs.forEach(bg => {
       if (bg.type === 'sky') {
+        // Sky gradient — biome palette overrides level colors if available.
         const grad = ctx.createLinearGradient(0, 0, 0, H);
-        grad.addColorStop(0, bg.color1);
-        grad.addColorStop(1, bg.color2);
+        grad.addColorStop(0, pal.skyTop || bg.color1);
+        grad.addColorStop(1, pal.skyBot || bg.color2);
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
 
-        // Parallax background image (overgrown ruins)
-        if (this.bgImageLoaded) {
-          ctx.save();
-          const parallax = 0.15;
-          const imgW = W * 1.4;
-          const imgH = H;
-          const offsetX = -this.camera.x * parallax;
-          const offsetY = -this.camera.y * parallax * 0.5 + 20;
-          ctx.globalAlpha = 0.35;
-          ctx.drawImage(this.bgImage, offsetX - 100, offsetY, imgW, imgH);
-          ctx.globalAlpha = 1;
-          ctx.restore();
-        }
+        // Sky sparkle / star field (only for sky/dream biomes)
+        if (pal.stars) this._drawStarField(ctx, pal.stars);
+        // Sun or moon disc
+        if (pal.sun) this._drawSunDisc(ctx, pal.sun);
       }
       if (bg.type === 'hills' && bg.points) {
+        // Retained for backwards compat — draw the level's custom hill shape
+        // as the *mid-distance* band under our procedural layers.
         ctx.save();
         this.camera.apply(ctx);
         ctx.save();
         ctx.translate(this.camera.x * 0.4, this.camera.y * 0.2);
-        ctx.globalAlpha = 0.45;
+        ctx.globalAlpha = 0.35;
         ctx.fillStyle = bg.color;
         ctx.beginPath();
         bg.points.forEach((p, i) => {
@@ -1292,6 +1287,377 @@ export class Engine {
         ctx.restore();
       }
     });
+
+    // ── Procedural pixel-art parallax layers ──────────────────────
+    // Layer 0 (far 0.12): distant silhouettes.
+    // Layer 1 (mid 0.30): chunky mid-ground props.
+    // Layer 2 (near 0.55): foreground detail at horizon line.
+    this._drawParallaxLayer(ctx, 0.12, pal.far,  pal);
+    this._drawParallaxLayer(ctx, 0.30, pal.mid,  pal);
+    this._drawParallaxLayer(ctx, 0.55, pal.near, pal);
+
+    // Subsurface dirt/rock band — fills the area under the main ground with
+    // textured pixel noise so there's no flat brown void.
+    this._drawDirtBand(ctx, pal);
+  }
+
+  // ── Biome resolution & palette ────────────────────────────────
+  _resolveBiomeKey() {
+    if (this.biome) return this.biome;
+    const name = (this.currentLevel && this.currentLevel.name) || '';
+    const s = name.toLowerCase();
+    if (s.includes('lava') || s.includes('forge') || s.includes('ember')) return 'lava';
+    if (s.includes('sky') || s.includes('cloud') || s.includes('storm'))  return 'sky';
+    if (s.includes('forest') || s.includes('grove') || s.includes('outskirt') || s.includes('overgrown')) return 'forest';
+    if (s.includes('dream') || s.includes('mirror') || s.includes('shard')) return 'dream';
+    if (s.includes('hub') || s.includes('city'))                           return 'city';
+    return 'forest';
+  }
+
+  _biomePalette(key) {
+    const P = {
+      forest: {
+        skyTop: '#2B4030', skyBot: '#486B4E',
+        far:  { kind: 'mountains', color: '#1F3527',  alpha: 0.75 },
+        mid:  { kind: 'trees',     color: '#2C5237',  alpha: 0.85, accent: '#1A3322' },
+        near: { kind: 'ferns',     color: '#3F7A4A',  alpha: 0.95, accent: '#245730' },
+        dirtTop: '#5F4F3B', dirtMid: '#4A3D2E', dirtNoise: '#3A3124',
+        sun: { color: '#FFE1A6', x: 0.78, y: 0.22, r: 34 },
+      },
+      lava: {
+        skyTop: '#1A0609', skyBot: '#582418',
+        far:  { kind: 'mountains', color: '#2C0A0E',  alpha: 0.85 },
+        mid:  { kind: 'mountains', color: '#6B1E18',  alpha: 0.85, accent: '#8C2C1E' },
+        near: { kind: 'lavaPools', color: '#E44B18',  alpha: 1.0,  accent: '#FFD23A' },
+        dirtTop: '#3A150E', dirtMid: '#28090A', dirtNoise: '#1A0608',
+        sun: { color: '#FF6B3A', x: 0.72, y: 0.22, r: 40 },
+      },
+      sky: {
+        skyTop: '#152742', skyBot: '#6BA8D4',
+        far:  { kind: 'islands',   color: '#3A5577',  alpha: 0.7  },
+        mid:  { kind: 'clouds',    color: '#E6F0FA',  alpha: 0.85, accent: '#BFD4E8' },
+        near: { kind: 'clouds',    color: '#FFFFFF',  alpha: 0.95, accent: '#C8DCEE' },
+        dirtTop: '#4A5C72', dirtMid: '#35455A', dirtNoise: '#243348',
+        stars: 50,
+      },
+      dream: {
+        skyTop: '#1B0930', skyBot: '#6E2F78',
+        far:  { kind: 'spires',    color: '#3A1450',  alpha: 0.75 },
+        mid:  { kind: 'spires',    color: '#7A2A9A',  alpha: 0.85, accent: '#B060D0' },
+        near: { kind: 'gems',      color: '#FF8EE0',  alpha: 1.0,  accent: '#FFE0F8' },
+        dirtTop: '#3A1450', dirtMid: '#240830', dirtNoise: '#120418',
+        stars: 80,
+      },
+      city: {
+        skyTop: '#141A24', skyBot: '#2C3848',
+        far:  { kind: 'buildings', color: '#1A222E',  alpha: 0.9  },
+        mid:  { kind: 'buildings', color: '#2A384A',  alpha: 0.9,  accent: '#FFD34D' },
+        near: { kind: 'buildings', color: '#3A4A5E',  alpha: 0.95, accent: '#FFD34D' },
+        dirtTop: '#2A2218', dirtMid: '#1A1410', dirtNoise: '#0E0A07',
+        sun: { color: '#FFB84D', x: 0.18, y: 0.18, r: 28 },
+      },
+    };
+    return P[key] || P.forest;
+  }
+
+  // Deterministic pseudo-random for stable pixel-art layouts per-seed.
+  _rng(seed) {
+    let s = seed | 0;
+    return () => { s = (s * 1664525 + 1013904223) | 0; return ((s >>> 0) % 10000) / 10000; };
+  }
+
+  _drawStarField(ctx, count) {
+    ctx.save();
+    const px = this.camera.x * 0.04; // very slow parallax for stars
+    const rng = this._rng(13);
+    for (let i = 0; i < count; i++) {
+      const x = ((rng() * 2400) - px) % W;
+      const y = rng() * H * 0.6;
+      const tw = 0.4 + 0.6 * Math.abs(Math.sin(this.levelTimer * 0.7 + i));
+      ctx.globalAlpha = tw;
+      ctx.fillStyle = i % 5 === 0 ? '#FFE6A0' : '#FFFFFF';
+      const sz = i % 7 === 0 ? 2 : 1;
+      ctx.fillRect(((x + W) % W), y, sz, sz);
+    }
+    ctx.restore();
+  }
+
+  _drawSunDisc(ctx, s) {
+    ctx.save();
+    const cx = W * s.x, cy = H * s.y;
+    // Pixel-art disc with a halo ring
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = s.color;
+    ctx.beginPath(); ctx.arc(cx, cy, s.r + 14, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath(); ctx.arc(cx, cy, s.r + 6, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Chunky disc (step circle)
+    const px = 4; // pixel size
+    for (let dy = -s.r; dy < s.r; dy += px) {
+      const hw = Math.sqrt(Math.max(0, s.r * s.r - dy * dy));
+      const sx = Math.round((cx - hw) / px) * px;
+      const ex = Math.round((cx + hw) / px) * px;
+      ctx.fillRect(sx, Math.round(cy + dy), ex - sx, px);
+    }
+    ctx.restore();
+  }
+
+  // ── Parallax layer dispatcher ─────────────────────────────────
+  _drawParallaxLayer(ctx, factor, layer, pal) {
+    if (!layer) return;
+    ctx.save();
+    ctx.globalAlpha = layer.alpha != null ? layer.alpha : 1;
+    const ox = -this.camera.x * factor;
+    // Horizon sits around y = 330 (ground line ≈ 288 + some dirt)
+    // Layers anchor near horizon; size scales with parallax depth.
+    const horizonY = 330 + this.camera.y * factor * 0.25;
+    ctx.translate(0, 0);
+    if (layer.kind === 'mountains')  this._drawMountains (ctx, ox, horizonY, layer, factor);
+    else if (layer.kind === 'trees')  this._drawTrees     (ctx, ox, horizonY, layer, factor);
+    else if (layer.kind === 'ferns')  this._drawFerns     (ctx, ox, horizonY, layer, factor);
+    else if (layer.kind === 'clouds') this._drawClouds    (ctx, ox, horizonY, layer, factor);
+    else if (layer.kind === 'islands')this._drawIslands   (ctx, ox, horizonY, layer, factor);
+    else if (layer.kind === 'spires') this._drawSpires    (ctx, ox, horizonY, layer, factor);
+    else if (layer.kind === 'gems')   this._drawGems      (ctx, ox, horizonY, layer, factor);
+    else if (layer.kind === 'buildings')this._drawBuildings(ctx, ox, horizonY, layer, factor);
+    else if (layer.kind === 'lavaPools')this._drawLavaPools(ctx, ox, horizonY, layer, factor);
+    ctx.restore();
+  }
+
+  // Tile-scanner: render repeating motifs across the visible range.
+  _tileScan(ctx, ox, spacing, jitter, seedBase, cb) {
+    const tileW = spacing;
+    const first = Math.floor((-ox - W) / tileW) - 1;
+    const last  = Math.ceil ((-ox + W * 2) / tileW) + 1;
+    for (let i = first; i < last; i++) {
+      const rng = this._rng(seedBase + i * 71);
+      const x = ox + i * tileW + (rng() - 0.5) * jitter;
+      cb(x, rng, i);
+    }
+  }
+
+  _drawMountains(ctx, ox, y, layer, factor) {
+    ctx.fillStyle = layer.color;
+    const spacing = 220 - factor * 120;   // tighter peaks on closer layers
+    const amp = 90 + factor * 80;
+    this._tileScan(ctx, ox, spacing, 30, 701 + Math.round(factor * 100), (x, rng) => {
+      const peakH = amp + rng() * 60;
+      const w = spacing * (0.9 + rng() * 0.4);
+      ctx.beginPath();
+      ctx.moveTo(x - w / 2, y);
+      ctx.lineTo(x,         y - peakH);
+      ctx.lineTo(x + w / 2, y);
+      ctx.closePath();
+      ctx.fill();
+      // Snow/accent cap
+      if (layer.accent && peakH > amp + 30) {
+        ctx.save();
+        ctx.fillStyle = layer.accent;
+        ctx.globalAlpha = (ctx.globalAlpha || 1) * 0.8;
+        ctx.beginPath();
+        ctx.moveTo(x - 18, y - peakH + 28);
+        ctx.lineTo(x,      y - peakH);
+        ctx.lineTo(x + 18, y - peakH + 28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    });
+  }
+
+  _drawTrees(ctx, ox, y, layer, factor) {
+    const spacing = 90 - factor * 30;
+    this._tileScan(ctx, ox, spacing, 16, 330 + Math.round(factor * 100), (x, rng) => {
+      const h = 90 + rng() * 70;
+      const w = 28 + rng() * 14;
+      // Trunk
+      ctx.fillStyle = '#1A1310';
+      ctx.fillRect(Math.round(x - 3), Math.round(y - 20), 6, 22);
+      // Canopy — stacked chunky triangles (pixel conifer)
+      ctx.fillStyle = layer.color;
+      const layers = 3;
+      for (let i = 0; i < layers; i++) {
+        const ly = y - 20 - i * (h / layers * 0.8);
+        const lw = w * (1 - i * 0.18);
+        ctx.beginPath();
+        ctx.moveTo(x - lw / 2, ly);
+        ctx.lineTo(x,          ly - h / layers);
+        ctx.lineTo(x + lw / 2, ly);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // Accent highlight — thin edge on top-left of each layer
+      if (layer.accent) {
+        ctx.fillStyle = layer.accent;
+        ctx.fillRect(Math.round(x - 2), Math.round(y - 20 - h * 0.65), 2, 4);
+      }
+    });
+  }
+
+  _drawFerns(ctx, ox, y, layer, factor) {
+    const spacing = 40;
+    this._tileScan(ctx, ox, spacing, 10, 540, (x, rng) => {
+      const h = 14 + rng() * 14;
+      ctx.fillStyle = layer.color;
+      // Stem
+      ctx.fillRect(Math.round(x), Math.round(y - h), 2, h);
+      // Fronds — small 2px rectangles fanning out
+      for (let i = 0; i < 4; i++) {
+        const fy = y - h + i * (h / 4);
+        ctx.fillRect(Math.round(x - 5 - i), Math.round(fy),  3, 2);
+        ctx.fillRect(Math.round(x + 3 + i), Math.round(fy),  3, 2);
+      }
+      if (layer.accent && rng() < 0.3) {
+        ctx.fillStyle = layer.accent;
+        ctx.fillRect(Math.round(x - 1), Math.round(y - h - 2), 2, 2);
+      }
+    });
+  }
+
+  _drawClouds(ctx, ox, y, layer, factor) {
+    const spacing = 280 - factor * 80;
+    const drift = this.levelTimer * (4 + factor * 6);
+    this._tileScan(ctx, ox - drift, spacing, 40, 820 + Math.round(factor * 50), (x, rng) => {
+      const cy = y - 120 - rng() * 140;
+      const w = 90 + rng() * 90;
+      const h = 24 + rng() * 16;
+      ctx.fillStyle = layer.color;
+      // Chunky cloud: overlapping rects
+      ctx.fillRect(Math.round(x - w / 2),     Math.round(cy),         w,       h);
+      ctx.fillRect(Math.round(x - w / 4),     Math.round(cy - h / 2), w * 0.7, h);
+      ctx.fillRect(Math.round(x - w / 2 + 8), Math.round(cy - h / 4), w * 0.5, h * 0.7);
+      if (layer.accent) {
+        ctx.fillStyle = layer.accent;
+        ctx.fillRect(Math.round(x - w / 2 + 4), Math.round(cy + h - 2), w - 8, 2);
+      }
+    });
+  }
+
+  _drawIslands(ctx, ox, y, layer, factor) {
+    const spacing = 420;
+    this._tileScan(ctx, ox, spacing, 80, 930, (x, rng) => {
+      const cy = y - 140 - rng() * 80;
+      const w = 120 + rng() * 60;
+      ctx.fillStyle = layer.color;
+      // Top plateau
+      ctx.fillRect(Math.round(x - w / 2), Math.round(cy), w, 18);
+      // Tapered bottom
+      ctx.fillRect(Math.round(x - w / 2 + 10), Math.round(cy + 18), w - 20, 12);
+      ctx.fillRect(Math.round(x - w / 2 + 24), Math.round(cy + 30), w - 48, 10);
+      ctx.fillRect(Math.round(x - w / 2 + 42), Math.round(cy + 40), w - 84, 8);
+      // Grass dots on top
+      if (layer.accent) {
+        ctx.fillStyle = '#3F7A4A';
+        for (let i = 0; i < 4; i++) ctx.fillRect(Math.round(x - w / 2 + 12 + i * (w / 4)), Math.round(cy - 3), 4, 3);
+      }
+    });
+  }
+
+  _drawSpires(ctx, ox, y, layer, factor) {
+    const spacing = 140 - factor * 40;
+    this._tileScan(ctx, ox, spacing, 20, 1230 + Math.round(factor * 100), (x, rng) => {
+      const h = 110 + rng() * 90;
+      const w = 16 + rng() * 10;
+      ctx.fillStyle = layer.color;
+      // Crystal shape — elongated diamond stacks
+      ctx.beginPath();
+      ctx.moveTo(x,         y - h);
+      ctx.lineTo(x + w / 2, y - h * 0.3);
+      ctx.lineTo(x,         y);
+      ctx.lineTo(x - w / 2, y - h * 0.3);
+      ctx.closePath();
+      ctx.fill();
+      if (layer.accent) {
+        ctx.fillStyle = layer.accent;
+        ctx.fillRect(Math.round(x - 1), Math.round(y - h + 4), 2, h * 0.4);
+      }
+    });
+  }
+
+  _drawGems(ctx, ox, y, layer, factor) {
+    const spacing = 80;
+    this._tileScan(ctx, ox, spacing, 14, 1460, (x, rng) => {
+      const cy = y - 10 - rng() * 60;
+      const s = 5 + rng() * 3;
+      ctx.fillStyle = layer.color;
+      ctx.fillRect(Math.round(x),     Math.round(cy),     s, s);
+      ctx.fillRect(Math.round(x + s), Math.round(cy + s), s, s);
+      if (layer.accent) {
+        ctx.fillStyle = layer.accent;
+        ctx.fillRect(Math.round(x + s / 2), Math.round(cy + s / 2), 2, 2);
+      }
+    });
+  }
+
+  _drawBuildings(ctx, ox, y, layer, factor) {
+    const spacing = 120 - factor * 40;
+    this._tileScan(ctx, ox, spacing, 12, 1700 + Math.round(factor * 100), (x, rng) => {
+      const h = 140 + rng() * 160;
+      const w = 60 + rng() * 40;
+      ctx.fillStyle = layer.color;
+      ctx.fillRect(Math.round(x - w / 2), Math.round(y - h), w, h);
+      // Windows — chunky 3x4 blocks
+      if (layer.accent) {
+        ctx.fillStyle = layer.accent;
+        for (let row = 0; row < Math.floor(h / 18); row++) {
+          for (let col = 0; col < Math.floor(w / 14); col++) {
+            if ((row * 3 + col * 7 + Math.floor(rng() * 99)) % 3 === 0) continue;
+            ctx.fillRect(Math.round(x - w / 2 + 4 + col * 14), Math.round(y - h + 6 + row * 18), 5, 7);
+          }
+        }
+      }
+    });
+  }
+
+  _drawLavaPools(ctx, ox, y, layer, factor) {
+    const spacing = 240;
+    const glow = 0.7 + 0.3 * Math.sin(this.levelTimer * 3);
+    this._tileScan(ctx, ox, spacing, 40, 1900, (x, rng) => {
+      const w = 80 + rng() * 60;
+      ctx.globalAlpha = glow;
+      ctx.fillStyle = layer.color;
+      ctx.fillRect(Math.round(x - w / 2), Math.round(y - 8), w, 10);
+      ctx.globalAlpha = Math.min(1, glow + 0.2);
+      ctx.fillStyle = layer.accent || '#FFE46B';
+      ctx.fillRect(Math.round(x - w / 2 + 4), Math.round(y - 10), w - 8, 3);
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  _drawDirtBand(ctx, pal) {
+    // A textured earth strata band that fills from the ground line down to
+    // the bottom of the camera view, replacing the flat brown fill.
+    ctx.save();
+    this.camera.apply(ctx);
+    const camL = this.camera.x - W / 2 - 200;
+    const camR = this.camera.x + W / 2 + 200;
+    const top = 320;       // just under the ground line
+    const bot = 900;
+    // Base band
+    const grad = ctx.createLinearGradient(0, top, 0, bot);
+    grad.addColorStop(0, pal.dirtTop);
+    grad.addColorStop(0.4, pal.dirtMid);
+    grad.addColorStop(1, pal.dirtNoise);
+    ctx.fillStyle = grad;
+    ctx.fillRect(camL, top, camR - camL, bot - top);
+    // Pixel noise flecks — deterministic so it doesn't shimmer frame-to-frame.
+    const rng = this._rng(Math.floor(this.camera.x / 8));
+    ctx.fillStyle = pal.dirtNoise;
+    for (let i = 0; i < 120; i++) {
+      const nx = camL + rng() * (camR - camL);
+      const ny = top + rng() * (bot - top);
+      ctx.fillRect(Math.round(nx), Math.round(ny), 3, 3);
+    }
+    // Rock chunks scattered
+    ctx.fillStyle = pal.dirtMid;
+    for (let i = 0; i < 30; i++) {
+      const nx = camL + rng() * (camR - camL);
+      const ny = top + 20 + rng() * (bot - top - 40);
+      const sz = 4 + Math.floor(rng() * 6);
+      ctx.fillRect(Math.round(nx), Math.round(ny), sz, Math.max(3, sz - 2));
+    }
+    ctx.restore();
   }
 
   _renderPlatforms(ctx) {
