@@ -398,8 +398,11 @@ export class Player {
     if (engine.achievements) engine.achievements.onPlayerDamaged();
   }
 
-  render(ctx) {
+  render(ctx, engine) {
     if (!this.alive) return;
+    // Snapshot sprite for sub-draws (dash ghosts, hyper trail, shadow trail).
+    this._spriteImg = engine && engine.sprites && engine.sprites.axel && engine.sprites.axel.loaded
+                       ? engine.sprites.axel : null;
     // Damage flicker — keep ouch face visible but semi-transparent on flicker frames.
     const flickerOff = this.invTimer > 0 && Math.floor(this.invTimer * 10) % 2 === 0;
     if (flickerOff) ctx.globalAlpha = 0.35;

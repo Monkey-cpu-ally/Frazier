@@ -4,16 +4,10 @@ import { sfx } from './sfx';
 const GRAVITY = PL.gravity;
 const MAX_FALL = PL.maxFall;
 
-// Preload claymation enemy sprite PNGs (generated via Gemini Nano Banana).
-// If a sprite fails to load, _drawSprite returns false and the procedural
-// canvas drawing fallback is used.
+// Enemy PNG sprites disabled — using procedural pixel-rect rendering instead.
+// To re-enable, repopulate SPRITE_FILES below.
 const ENEMY_SPRITES = {};
-const SPRITE_FILES = {
-  root_crawler: '/enemies/root_crawler.png',
-  gear_bug: '/enemies/gear_bug.png',
-  heavy: '/enemies/heavy.png',
-  flicker: '/enemies/flicker.png',
-};
+const SPRITE_FILES = {};
 if (typeof window !== 'undefined') {
   Object.entries(SPRITE_FILES).forEach(([k, src]) => {
     const img = new Image();

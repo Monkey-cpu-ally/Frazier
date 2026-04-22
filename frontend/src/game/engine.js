@@ -73,6 +73,17 @@ export class Engine {
     this.bgImageLoaded = false;
     this.bgImage.onload = () => { this.bgImageLoaded = true; };
 
+    // Preload pixel-art character sprites (generated via Gemini Nano Banana).
+    // Access via engine.sprites.axel / .scrap / .root_crawler / etc.
+    this.sprites = {};
+    ['axel', 'scrap', 'root_crawler', 'gear_bug', 'flicker', 'heavy', 'boss'].forEach(id => {
+      const img = new Image();
+      img.src = `/sprites/${id}.png`;
+      img.loaded = false;
+      img.onload = () => { img.loaded = true; };
+      this.sprites[id] = img;
+    });
+
     this.player = null;
     this.enemies = [];
     this.pickups = [];
@@ -843,7 +854,7 @@ export class Engine {
     }
 
     // Enemies
-    this.enemies.forEach(e => e.render(ctx));
+    this.enemies.forEach(e => e.render(ctx, this));
 
     // Boss
     if (this.boss && this.bossActivated) this.boss.render(ctx);
@@ -852,7 +863,7 @@ export class Engine {
     if (this.foxSpirit) this.foxSpirit.render(ctx);
 
     // Player
-    if (this.player) this.player.render(ctx);
+    if (this.player) this.player.render(ctx, this);
 
     // Scrap Assists (above everything — planes, drops, actors)
     this.assists.forEach(a => a.render(ctx));
