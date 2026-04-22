@@ -1,5 +1,7 @@
 /* ======================================================================
-   On-Screen Controls — glossy, detailed, compact. Modern gamepad feel.
+   On-Screen Controls — small pixel-style round buttons, DARK palette.
+   Round silhouette preserved via border-radius; the "pixel" feel comes from
+   hard 3-stop radial gradients (no smooth blends) + a chunky dark ring.
    ====================================================================== */
 
 .touch-controls {
@@ -9,6 +11,7 @@
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
+  image-rendering: pixelated;
 }
 
 /* ── Base button ──────────────────────────────────────────── */
@@ -19,73 +22,59 @@
   align-items: center;
   justify-content: center;
   border-radius: 50% !important;
-  color: #fff;
+  color: #f2e8d0;
   font-family: 'Press Start 2P', system-ui, monospace;
   font-weight: 700;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
-  transition: transform 0.08s ease-out, filter 0.08s ease-out;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+  transition: transform 0.06s steps(2), filter 0.06s steps(2);
   -webkit-tap-highlight-color: transparent;
   touch-action: none;
   cursor: pointer;
 
-  /* Glossy sheen — inset highlight on top, inset shadow on bottom,
-     drop shadow + subtle colored glow matching the base color.       */
+  /* Chunky dark ring + one step shadow — pixel-art circle feel */
+  border: 2px solid #0a0608;
   box-shadow:
-    inset 0 2px 3px rgba(255, 255, 255, 0.55),
-    inset 0 -3px 6px rgba(0, 0, 0, 0.40),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 3px 8px rgba(0, 0, 0, 0.50),
-    0 0 0 1px rgba(0, 0, 0, 0.45);
+    inset 0 0 0 1px rgba(0, 0, 0, 0.55),     /* inner ring darken */
+    inset 0 2px 0 rgba(255, 255, 255, 0.10),  /* flat top highlight */
+    inset 0 -3px 0 rgba(0, 0, 0, 0.45),       /* flat bottom shade */
+    0 3px 0 #0a0608,                          /* solid drop shadow */
+    0 3px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* Shine cap — pseudo-element that creates the glass highlight arc */
+/* Tiny square highlight dot — the only "shine" is a pixel speck (not a blur) */
 .touch-btn::before {
   content: '';
   position: absolute;
-  top: 8%;
-  left: 18%;
-  right: 18%;
-  height: 36%;
+  top: 18%;
+  left: 28%;
+  width: 14%;
+  height: 14%;
   border-radius: 50% !important;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.55) 0%,
-    rgba(255, 255, 255, 0.15) 55%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  pointer-events: none;
-  filter: blur(0.5px);
-}
-
-/* Soft inner rim for extra depth */
-.touch-btn::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: 50% !important;
-  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.45);
+  box-shadow: 2px 2px 0 rgba(255, 255, 255, 0.15);
   pointer-events: none;
 }
 
 .touch-btn:active {
-  transform: scale(0.93);
-  filter: brightness(1.15) saturate(1.1);
+  transform: translate(0, 3px);
+  filter: brightness(1.08);
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.25),
-    inset 0 -1px 3px rgba(0, 0, 0, 0.55),
-    0 1px 3px rgba(0, 0, 0, 0.55);
+    inset 0 0 0 1px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.45),
+    0 0 0 #0a0608,
+    0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* SVG glyphs render above the ::before sheen */
 .touch-btn > * { position: relative; z-index: 1; }
 
-/* ── D-Pad ────────────────────────────────────────────────── */
+/* ── D-Pad (dark forest green) ───────────────────────────── */
 .touch-dpad {
   position: absolute;
   bottom: 42px;
   left: 28px;
-  width: 150px;
-  height: 150px;
+  width: 126px;
+  height: 126px;
   pointer-events: none;
 }
 
@@ -94,25 +83,33 @@
 .touch-dpad-up,
 .touch-dpad-down {
   position: absolute;
-  width: 48px;
-  height: 48px;
-  font-size: 0.65rem;
+  width: 40px;
+  height: 40px;
+  font-size: 0.55rem;
   background:
-    radial-gradient(circle at 30% 28%, #56d85c 0%, #2ea733 45%, #186b1d 100%);
+    radial-gradient(
+      circle at 34% 32%,
+      #3a7a3e 0%,
+      #3a7a3e 35%,
+      #1f4a22 36%,
+      #1f4a22 70%,
+      #0e2b10 71%,
+      #0e2b10 100%
+    );
 }
 
-.touch-dpad-left   { left: 0;    top: 51px; }
-.touch-dpad-right  { right: 0;   top: 51px; }
-.touch-dpad-up     { left: 51px; top: 0;    }
-.touch-dpad-down   { left: 51px; bottom: 0; }
+.touch-dpad-left   { left: 0;    top: 43px; }
+.touch-dpad-right  { right: 0;   top: 43px; }
+.touch-dpad-up     { left: 43px; top: 0;    }
+.touch-dpad-down   { left: 43px; bottom: 0; }
 
-/* ── Action cluster ───────────────────────────────────────── */
+/* ── Action cluster (darker palette) ─────────────────────── */
 .touch-actions {
   position: absolute;
   bottom: 42px;
   right: 28px;
-  width: 168px;
-  height: 168px;
+  width: 140px;
+  height: 140px;
   pointer-events: none;
 }
 
@@ -121,38 +118,58 @@
 .touch-btn.touch-dash,
 .touch-btn.touch-special {
   position: absolute;
-  width: 54px;
-  height: 54px;
-  font-size: 0.65rem;
+  width: 46px;
+  height: 46px;
+  font-size: 0.55rem;
 }
 
 .touch-btn.touch-jump {
-  right: 0; top: 54px;
-  background: radial-gradient(circle at 30% 28%, #ff7265 0%, #dc2f25 45%, #7d1810 100%);
+  right: 0; top: 46px;
+  background:
+    radial-gradient(circle at 34% 32%,
+      #a32d24 0%, #a32d24 35%,
+      #6d1a14 36%, #6d1a14 70%,
+      #340b07 71%, #340b07 100%);
 }
 .touch-btn.touch-attack {
-  right: 54px; top: 0;
-  background: radial-gradient(circle at 30% 28%, #5aa2ef 0%, #2b74d5 45%, #103b75 100%);
+  right: 46px; top: 0;
+  background:
+    radial-gradient(circle at 34% 32%,
+      #2f5aa3 0%, #2f5aa3 35%,
+      #183b70 36%, #183b70 70%,
+      #081c3a 71%, #081c3a 100%);
 }
 .touch-btn.touch-dash {
-  right: 108px; top: 54px;
-  background: radial-gradient(circle at 30% 28%, #ffd460 0%, #e9a310 45%, #7d5408 100%);
-  color: #3a2600;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+  right: 92px; top: 46px;
+  background:
+    radial-gradient(circle at 34% 32%,
+      #c79017 0%, #c79017 35%,
+      #8c5f08 36%, #8c5f08 70%,
+      #3e2a02 71%, #3e2a02 100%);
+  color: #1d1102;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 .touch-btn.touch-special {
-  right: 54px; bottom: 0;
-  background: radial-gradient(circle at 30% 28%, #ff68c8 0%, #dc2da3 45%, #7b1658 100%);
+  right: 46px; bottom: 0;
+  background:
+    radial-gradient(circle at 34% 32%,
+      #a2258a 0%, #a2258a 35%,
+      #6d1558 36%, #6d1558 70%,
+      #320723 71%, #320723 100%);
 }
 .touch-btn.touch-assist {
   position: absolute;
   right: 0; bottom: 0;
-  width: 42px; height: 42px;
-  font-size: 0.5rem;
-  background: radial-gradient(circle at 30% 28%, #a78dff 0%, #6e4dd6 45%, #2e1e70 100%);
+  width: 36px; height: 36px;
+  font-size: 0.45rem;
+  background:
+    radial-gradient(circle at 34% 32%,
+      #6644bf 0%, #6644bf 35%,
+      #402680 36%, #402680 70%,
+      #1b0f3a 71%, #1b0f3a 100%);
 }
 
-/* ── Top utility buttons ──────────────────────────────────── */
+/* ── Top utility buttons ─────────────────────────────────── */
 .touch-top {
   position: absolute;
   top: 14px;
@@ -165,36 +182,43 @@
 .touch-pause,
 .touch-interact {
   pointer-events: auto;
-  width: 40px;
-  height: 40px;
-  font-size: 0.55rem;
-  color: #2b2415;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
-  background: radial-gradient(circle at 30% 28%, #f7f0de 0%, #c9bd99 55%, #6e6344 100%);
+  width: 34px;
+  height: 34px;
+  font-size: 0.5rem;
+  color: #f2e8d0;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
   border-radius: 50% !important;
+  background:
+    radial-gradient(circle at 34% 32%,
+      #6a5a3c 0%, #6a5a3c 35%,
+      #403420 36%, #403420 70%,
+      #1b1309 71%, #1b1309 100%);
 }
 .touch-interact {
-  color: #3a2a05;
-  background: radial-gradient(circle at 30% 28%, #ffd970 0%, #ddaa1a 55%, #73530a 100%);
+  background:
+    radial-gradient(circle at 34% 32%,
+      #a6741a 0%, #a6741a 35%,
+      #6f4a0a 36%, #6f4a0a 70%,
+      #2f1e02 71%, #2f1e02 100%);
 }
 
-/* ── Responsive nudge for small screens ───────────────────── */
+/* ── Responsive nudge for small screens ──────────────────── */
 @media (max-width: 640px) {
-  .touch-dpad { width: 132px; height: 132px; left: 16px; }
+  .touch-dpad { width: 112px; height: 112px; left: 16px; }
   .touch-dpad-left, .touch-dpad-right,
-  .touch-dpad-up,   .touch-dpad-down { width: 42px; height: 42px; }
-  .touch-dpad-left { top: 45px; }
-  .touch-dpad-right { top: 45px; }
-  .touch-dpad-up { left: 45px; }
-  .touch-dpad-down { left: 45px; }
+  .touch-dpad-up, .touch-dpad-down { width: 36px; height: 36px; }
+  .touch-dpad-left { top: 38px; }
+  .touch-dpad-right { top: 38px; }
+  .touch-dpad-up { left: 38px; }
+  .touch-dpad-down { left: 38px; }
 
-  .touch-actions { width: 150px; height: 150px; right: 16px; }
+  .touch-actions { width: 126px; height: 126px; right: 16px; }
   .touch-btn.touch-jump,
   .touch-btn.touch-attack,
   .touch-btn.touch-dash,
-  .touch-btn.touch-special { width: 48px; height: 48px; }
-  .touch-btn.touch-jump    { top: 48px; }
-  .touch-btn.touch-attack  { right: 48px; }
-  .touch-btn.touch-dash    { right: 96px; top: 48px; }
-  .touch-btn.touch-special { right: 48px; }
+  .touch-btn.touch-special { width: 40px; height: 40px; }
+  .touch-btn.touch-jump    { top: 40px; }
+  .touch-btn.touch-attack  { right: 40px; }
+  .touch-btn.touch-dash    { right: 80px; top: 40px; }
+  .touch-btn.touch-special { right: 40px; }
 }
