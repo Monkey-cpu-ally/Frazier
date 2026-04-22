@@ -544,7 +544,7 @@ export class Engine {
     this.camera.follow(this.player.x, this.player.y - 40, dt);
     this.camera.updateShake(dt);
 
-    this._checkCollisions();
+    this._checkCollisions(dt);
 
     // Player death
     if (!this.player.alive) {
@@ -597,7 +597,7 @@ export class Engine {
     }
   }
 
-  _checkCollisions() {
+  _checkCollisions(dt) {
     const pl = this.player;
     if (!pl.alive) return;
 
