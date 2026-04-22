@@ -1299,12 +1299,19 @@ export class Engine {
     });
 
     // ── Procedural pixel-art parallax layers ──────────────────────
-    // Layer 0 (far 0.12): distant silhouettes.
+    // Layer 0 (far 0.12): distant silhouettes with embedded glow spots.
     // Layer 1 (mid 0.30): chunky mid-ground props.
     // Layer 2 (near 0.55): foreground detail at horizon line.
     this._drawParallaxLayer(ctx, 0.12, pal.far,  pal);
+    this._drawFarGlowSpots(ctx, 0.12, pal);
     this._drawParallaxLayer(ctx, 0.30, pal.mid,  pal);
+    // Hanging ceiling decorations — draw above mid, below near, at slow parallax
+    this._drawHangingDecor(ctx, 0.22, pal);
     this._drawParallaxLayer(ctx, 0.55, pal.near, pal);
+    // Ground-level detailed props — biome-appropriate clutter (mushrooms,
+    // candles, gems, rocks) scattered along the horizon to make the world
+    // feel lived-in, not just silhouetted.
+    this._drawGroundProps(ctx, 0.72, pal);
 
     // Subsurface dirt/rock band — fills the area under the main ground with
     // textured pixel noise so there's no flat brown void.
@@ -1333,6 +1340,9 @@ export class Engine {
         near: { kind: 'ferns',     color: '#3F7A4A',  alpha: 0.95, accent: '#245730' },
         dirtTop: '#5F4F3B', dirtMid: '#4A3D2E', dirtNoise: '#3A3124',
         sun: { color: '#FFE1A6', x: 0.78, y: 0.22, r: 34 },
+        glow:   { color: '#FFD88A', count: 12 },            // firefly window-glints
+        hanging:{ kind: 'vines',  color: '#3A6B42', accent: '#8ACB6A', count: 18 },
+        props:  { kinds: ['mushroomRed','mushroomBlue','grass','rock','flower'], count: 34 },
       },
       lava: {
         skyTop: '#1A0609', skyBot: '#582418',
@@ -1341,6 +1351,9 @@ export class Engine {
         near: { kind: 'lavaPools', color: '#E44B18',  alpha: 1.0,  accent: '#FFD23A' },
         dirtTop: '#3A150E', dirtMid: '#28090A', dirtNoise: '#1A0608',
         sun: { color: '#FF6B3A', x: 0.72, y: 0.22, r: 40 },
+        glow:   { color: '#FF7A1C', count: 18 },
+        hanging:{ kind: 'stalactites', color: '#3A130E', accent: '#FF7A1C', count: 14 },
+        props:  { kinds: ['skull','lavaRock','obsidian','candleSmall'], count: 28 },
       },
       sky: {
         skyTop: '#152742', skyBot: '#6BA8D4',
@@ -1349,6 +1362,9 @@ export class Engine {
         near: { kind: 'clouds',    color: '#FFFFFF',  alpha: 0.95, accent: '#C8DCEE' },
         dirtTop: '#4A5C72', dirtMid: '#35455A', dirtNoise: '#243348',
         stars: 50,
+        glow:   { color: '#CFE8FF', count: 8 },
+        hanging:{ kind: 'icicles', color: '#BFD9EF', accent: '#FFFFFF', count: 12 },
+        props:  { kinds: ['snowPile','iceCrystal','snowflower','rockIce'], count: 26 },
       },
       dream: {
         skyTop: '#1B0930', skyBot: '#6E2F78',
@@ -1357,6 +1373,9 @@ export class Engine {
         near: { kind: 'gems',      color: '#FF8EE0',  alpha: 1.0,  accent: '#FFE0F8' },
         dirtTop: '#3A1450', dirtMid: '#240830', dirtNoise: '#120418',
         stars: 80,
+        glow:   { color: '#FFB0F0', count: 14 },
+        hanging:{ kind: 'chains',  color: '#4A2458', accent: '#D88AFF', count: 10 },
+        props:  { kinds: ['gemPink','gemTeal','sparkle','crystalShard'], count: 30 },
       },
       city: {
         skyTop: '#141A24', skyBot: '#2C3848',
@@ -1365,6 +1384,9 @@ export class Engine {
         near: { kind: 'buildings', color: '#3A4A5E',  alpha: 0.95, accent: '#FFD34D' },
         dirtTop: '#2A2218', dirtMid: '#1A1410', dirtNoise: '#0E0A07',
         sun: { color: '#FFB84D', x: 0.18, y: 0.18, r: 28 },
+        glow:   { color: '#FFD34D', count: 22 },
+        hanging:{ kind: 'wires',   color: '#1A1A1A', accent: '#FFD34D', count: 10 },
+        props:  { kinds: ['trashcan','crate','barrel','sign','streetlamp'], count: 24 },
       },
     };
     return P[key] || P.forest;
@@ -1633,6 +1655,289 @@ export class Engine {
       ctx.fillRect(Math.round(x - w / 2 + 4), Math.round(y - 10), w - 8, 3);
     });
     ctx.globalAlpha = 1;
+  }
+
+  // ── Far-layer glow spots (pulsing windows/torches) ───────────
+  _drawFarGlowSpots(ctx, factor, pal) {
+    if (!pal.glow) return;
+    ctx.save();
+    const ox = -this.camera.x * factor;
+    const horizonY = 330 + this.camera.y * factor * 0.25;
+    // Seeded positions so glows don't dance around. Tile across the range.
+    this._tileScan(ctx, ox, 180, 60, 401, (x, rng, i) => {
+      if (rng() > pal.glow.count / 20) return;  // density control
+      const yOff = 20 + rng() * 160;
+      const pulse = 0.55 + 0.45 * Math.sin(this.levelTimer * 2 + i * 0.7);
+      ctx.globalAlpha = 0.35 * pulse;
+      ctx.fillStyle = pal.glow.color;
+      ctx.fillRect(Math.round(x - 6), Math.round(horizonY - yOff - 6), 12, 12);
+      ctx.globalAlpha = 0.85 * pulse;
+      ctx.fillRect(Math.round(x - 2), Math.round(horizonY - yOff - 2), 4, 4);
+    });
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  // ── Hanging ceiling decorations ──────────────────────────────
+  _drawHangingDecor(ctx, factor, pal) {
+    const h = pal.hanging;
+    if (!h) return;
+    ctx.save();
+    const ox = -this.camera.x * factor;
+    const topY = 40 + this.camera.y * factor * 0.15;
+    const spacing = 80;
+    this._tileScan(ctx, ox, spacing, 24, 1101, (x, rng, i) => {
+      if (rng() > h.count / 20) return;
+      const len = 24 + rng() * 48;
+      if (h.kind === 'vines') {
+        // Drooping vine with leaf accents
+        ctx.fillStyle = h.color;
+        ctx.fillRect(Math.round(x), Math.round(topY), 2, len);
+        // Sway
+        const sway = Math.sin(this.levelTimer * 1.2 + i) * 3;
+        ctx.fillRect(Math.round(x + sway), Math.round(topY + len - 10), 2, 10);
+        if (h.accent) {
+          ctx.fillStyle = h.accent;
+          for (let k = 6; k < len; k += 12) {
+            ctx.fillRect(Math.round(x - 3), Math.round(topY + k), 3, 2);
+            ctx.fillRect(Math.round(x + 2), Math.round(topY + k + 4), 3, 2);
+          }
+        }
+      } else if (h.kind === 'stalactites') {
+        // Tapered triangular spike pointing down
+        ctx.fillStyle = h.color;
+        ctx.beginPath();
+        ctx.moveTo(x - 6, topY);
+        ctx.lineTo(x + 6, topY);
+        ctx.lineTo(x,     topY + len);
+        ctx.closePath();
+        ctx.fill();
+        // Red glow tip for lava biome feel
+        if (h.accent) {
+          const pulse = 0.5 + 0.5 * Math.sin(this.levelTimer * 3 + i);
+          ctx.globalAlpha = pulse * 0.8;
+          ctx.fillStyle = h.accent;
+          ctx.fillRect(Math.round(x - 1), Math.round(topY + len - 3), 2, 3);
+          ctx.globalAlpha = 1;
+        }
+      } else if (h.kind === 'icicles') {
+        // Straight icicle with highlight
+        ctx.fillStyle = h.color;
+        ctx.beginPath();
+        ctx.moveTo(x - 4, topY);
+        ctx.lineTo(x + 4, topY);
+        ctx.lineTo(x,     topY + len);
+        ctx.closePath();
+        ctx.fill();
+        if (h.accent) {
+          ctx.fillStyle = h.accent;
+          ctx.fillRect(Math.round(x - 1), Math.round(topY + 2), 1, len - 6);
+        }
+      } else if (h.kind === 'chains') {
+        // 2-pixel chain drop with link accent
+        ctx.fillStyle = h.color;
+        ctx.fillRect(Math.round(x), Math.round(topY), 2, len);
+        if (h.accent) {
+          ctx.fillStyle = h.accent;
+          for (let k = 8; k < len; k += 14) {
+            ctx.fillRect(Math.round(x - 1), Math.round(topY + k), 4, 2);
+          }
+        }
+      } else if (h.kind === 'wires') {
+        // Curved sagging wire (three small segments) with lamp at the end
+        ctx.strokeStyle = h.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, topY);
+        ctx.quadraticCurveTo(x + 4, topY + len * 0.6, x + 2, topY + len);
+        ctx.stroke();
+        if (h.accent) {
+          const pulse = 0.6 + 0.4 * Math.sin(this.levelTimer * 2 + i);
+          ctx.globalAlpha = pulse;
+          ctx.fillStyle = h.accent;
+          ctx.fillRect(Math.round(x), Math.round(topY + len), 4, 4);
+          ctx.globalAlpha = 1;
+        }
+      }
+    });
+    ctx.restore();
+  }
+
+  // ── Ground-level biome props ─────────────────────────────────
+  _drawGroundProps(ctx, factor, pal) {
+    if (!pal.props) return;
+    ctx.save();
+    const ox = -this.camera.x * factor;
+    const groundY = 288;  // main ground line
+    const spacing = 60;
+    this._tileScan(ctx, ox, spacing, 20, 1501, (x, rng, i) => {
+      if (rng() > pal.props.count / 40) return;
+      const kind = pal.props.kinds[Math.floor(rng() * pal.props.kinds.length)];
+      this._drawProp(ctx, kind, Math.round(x), groundY, rng, i);
+    });
+    ctx.restore();
+  }
+
+  _drawProp(ctx, kind, x, y, rng, i) {
+    switch (kind) {
+      case 'mushroomRed': {
+        // Red-capped mushroom with white dots
+        ctx.fillStyle = '#F4ECD8'; ctx.fillRect(x - 2, y - 6, 4, 6);        // stem
+        ctx.fillStyle = '#C3341F'; ctx.fillRect(x - 6, y - 10, 12, 5);      // cap
+        ctx.fillRect(x - 5, y - 11, 10, 1);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(x - 4, y - 9, 2, 2); ctx.fillRect(x + 2, y - 10, 2, 2);
+        break;
+      }
+      case 'mushroomBlue': {
+        ctx.fillStyle = '#E8E0D0'; ctx.fillRect(x - 1, y - 5, 3, 5);
+        ctx.fillStyle = '#3A8FB8'; ctx.fillRect(x - 5, y - 8, 10, 4);
+        ctx.fillRect(x - 4, y - 9, 8, 1);
+        break;
+      }
+      case 'grass': {
+        ctx.fillStyle = '#2D6B34';
+        ctx.fillRect(x - 2, y - 4, 1, 4);
+        ctx.fillRect(x, y - 5, 1, 5);
+        ctx.fillRect(x + 2, y - 3, 1, 3);
+        break;
+      }
+      case 'flower': {
+        ctx.fillStyle = '#2D6B34'; ctx.fillRect(x, y - 5, 1, 5);             // stem
+        const col = (i % 3 === 0) ? '#FFD34D' : (i % 3 === 1) ? '#FF6BA3' : '#D88AFF';
+        ctx.fillStyle = col;
+        ctx.fillRect(x - 2, y - 7, 2, 2); ctx.fillRect(x + 1, y - 7, 2, 2);
+        ctx.fillRect(x - 1, y - 9, 3, 2);
+        break;
+      }
+      case 'rock': {
+        ctx.fillStyle = '#6B5F55';
+        ctx.fillRect(x - 5, y - 3, 10, 3);
+        ctx.fillRect(x - 4, y - 5, 8, 2);
+        ctx.fillStyle = '#8B7F75'; ctx.fillRect(x - 3, y - 5, 2, 1);
+        break;
+      }
+      case 'skull': {
+        ctx.fillStyle = '#D4CBA8';
+        ctx.fillRect(x - 4, y - 6, 8, 5);
+        ctx.fillRect(x - 3, y - 2, 6, 2);
+        ctx.fillStyle = '#1A0608';
+        ctx.fillRect(x - 3, y - 5, 2, 2); ctx.fillRect(x + 1, y - 5, 2, 2);
+        break;
+      }
+      case 'lavaRock': {
+        ctx.fillStyle = '#3A150E';
+        ctx.fillRect(x - 6, y - 4, 12, 4);
+        ctx.fillStyle = '#FF7A1C';
+        ctx.fillRect(x - 4, y - 3, 2, 1); ctx.fillRect(x + 2, y - 2, 2, 1);
+        break;
+      }
+      case 'obsidian': {
+        ctx.fillStyle = '#0E0408';
+        ctx.beginPath(); ctx.moveTo(x, y - 10); ctx.lineTo(x + 4, y); ctx.lineTo(x - 4, y); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#5A2C3A'; ctx.fillRect(x - 1, y - 8, 1, 4);
+        break;
+      }
+      case 'candleSmall': {
+        const pulse = 0.7 + 0.3 * Math.sin(this.levelTimer * 8 + i);
+        ctx.fillStyle = '#D4CBA8'; ctx.fillRect(x - 1, y - 6, 3, 6);
+        ctx.globalAlpha = pulse; ctx.fillStyle = '#FFD23A';
+        ctx.fillRect(x - 1, y - 9, 2, 3);
+        ctx.globalAlpha = pulse * 0.4; ctx.fillStyle = '#FF7A1C';
+        ctx.fillRect(x - 2, y - 10, 4, 4);
+        ctx.globalAlpha = 1;
+        break;
+      }
+      case 'snowPile': {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(x - 6, y - 3, 12, 3);
+        ctx.fillRect(x - 4, y - 5, 8, 2);
+        ctx.fillStyle = '#CFE6F5'; ctx.fillRect(x - 5, y - 3, 10, 1);
+        break;
+      }
+      case 'iceCrystal': {
+        ctx.fillStyle = '#BFD9EF';
+        ctx.beginPath(); ctx.moveTo(x, y - 12); ctx.lineTo(x + 3, y - 4); ctx.lineTo(x, y); ctx.lineTo(x - 3, y - 4); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#FFFFFF'; ctx.fillRect(x - 1, y - 10, 1, 4);
+        break;
+      }
+      case 'snowflower': {
+        ctx.fillStyle = '#4A6B7A'; ctx.fillRect(x, y - 5, 1, 5);
+        ctx.fillStyle = '#E8F5FF';
+        ctx.fillRect(x - 2, y - 7, 2, 2); ctx.fillRect(x + 1, y - 7, 2, 2);
+        ctx.fillRect(x - 1, y - 9, 3, 2);
+        break;
+      }
+      case 'rockIce': {
+        ctx.fillStyle = '#4A5C72'; ctx.fillRect(x - 4, y - 3, 8, 3);
+        ctx.fillStyle = '#BFD9EF'; ctx.fillRect(x - 3, y - 4, 2, 1);
+        break;
+      }
+      case 'gemPink': {
+        const pulse = 0.7 + 0.3 * Math.sin(this.levelTimer * 4 + i);
+        ctx.globalAlpha = pulse;
+        ctx.fillStyle = '#FF8EE0';
+        ctx.beginPath(); ctx.moveTo(x, y - 8); ctx.lineTo(x + 3, y - 4); ctx.lineTo(x, y); ctx.lineTo(x - 3, y - 4); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#FFE0F8'; ctx.fillRect(x - 1, y - 6, 1, 2);
+        ctx.globalAlpha = 1;
+        break;
+      }
+      case 'gemTeal': {
+        const pulse = 0.7 + 0.3 * Math.sin(this.levelTimer * 3 + i);
+        ctx.globalAlpha = pulse;
+        ctx.fillStyle = '#60FFD0';
+        ctx.beginPath(); ctx.moveTo(x, y - 8); ctx.lineTo(x + 3, y - 4); ctx.lineTo(x, y); ctx.lineTo(x - 3, y - 4); ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 1;
+        break;
+      }
+      case 'sparkle': {
+        const pulse = Math.max(0, Math.sin(this.levelTimer * 5 + i));
+        ctx.globalAlpha = pulse;
+        ctx.fillStyle = '#FFE0F8';
+        ctx.fillRect(x, y - 10, 1, 1); ctx.fillRect(x - 2, y - 8, 1, 1); ctx.fillRect(x + 2, y - 8, 1, 1);
+        ctx.globalAlpha = 1;
+        break;
+      }
+      case 'crystalShard': {
+        ctx.fillStyle = '#7A2A9A';
+        ctx.beginPath(); ctx.moveTo(x, y - 10); ctx.lineTo(x + 2, y); ctx.lineTo(x - 2, y); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#D88AFF'; ctx.fillRect(x - 1, y - 8, 1, 3);
+        break;
+      }
+      case 'trashcan': {
+        ctx.fillStyle = '#2A2F38'; ctx.fillRect(x - 4, y - 10, 8, 10);
+        ctx.fillStyle = '#3A4350'; ctx.fillRect(x - 4, y - 11, 8, 2);
+        ctx.fillStyle = '#1A1D22'; ctx.fillRect(x - 3, y - 8, 1, 7); ctx.fillRect(x + 2, y - 8, 1, 7);
+        break;
+      }
+      case 'crate': {
+        ctx.fillStyle = '#6B4A2A'; ctx.fillRect(x - 5, y - 8, 10, 8);
+        ctx.fillStyle = '#3A2A18';
+        ctx.fillRect(x - 5, y - 4, 10, 1); ctx.fillRect(x, y - 8, 1, 8);
+        break;
+      }
+      case 'barrel': {
+        ctx.fillStyle = '#5A3A20'; ctx.fillRect(x - 4, y - 10, 8, 10);
+        ctx.fillStyle = '#3A220E';
+        ctx.fillRect(x - 4, y - 8, 8, 1); ctx.fillRect(x - 4, y - 3, 8, 1);
+        break;
+      }
+      case 'sign': {
+        ctx.fillStyle = '#3A2A18'; ctx.fillRect(x, y - 12, 1, 12);
+        ctx.fillStyle = '#FFD34D'; ctx.fillRect(x - 4, y - 12, 9, 5);
+        ctx.fillStyle = '#1A1310'; ctx.fillRect(x - 3, y - 11, 2, 1); ctx.fillRect(x + 1, y - 11, 2, 1);
+        break;
+      }
+      case 'streetlamp': {
+        const pulse = 0.7 + 0.3 * Math.sin(this.levelTimer * 1.2 + i);
+        ctx.fillStyle = '#1A1D22'; ctx.fillRect(x, y - 20, 2, 20);
+        ctx.globalAlpha = pulse * 0.4; ctx.fillStyle = '#FFD34D';
+        ctx.fillRect(x - 4, y - 24, 10, 6);
+        ctx.globalAlpha = pulse; ctx.fillRect(x - 2, y - 22, 6, 3);
+        ctx.globalAlpha = 1;
+        break;
+      }
+    }
   }
 
   _drawDirtBand(ctx, pal) {
