@@ -154,7 +154,6 @@ export function getFantasyBiome(type) {
       { x: 60, y: 260, w: 140, h: 120, text: 'Spirit creatures flicker in the mist — shadow tag helps', color: '#AADDFF' },
     ],
     bossAfterClear: true,
-    waterfallEvent: { triggerX: 900, duration: 5 }, // sample water event mid-level
   };
 }
 

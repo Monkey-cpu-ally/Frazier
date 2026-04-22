@@ -370,13 +370,19 @@ function App() {
 
   // Play the title "glimpse" theme on the title screen. Browsers block autoplay
   // until the user interacts, so we hook a one-shot pointerdown/keydown starter.
+  // Also fires two title SFX: a glass shatter (evokes "SHATTERED MIRRORS") and
+  // a warm ascending glimpse shimmer.
   React.useEffect(() => {
     if (screen !== 'title') return;
     let started = false;
     const start = () => {
       if (started) return;
       started = true;
-      try { music.playTitle(); } catch (e) {}
+      try {
+        sfx.shatter();
+        setTimeout(() => { try { sfx.glimpse(); } catch (e) {} }, 380);
+        setTimeout(() => { try { music.playTitle(); } catch (e) {} }, 900);
+      } catch (e) {}
     };
     // Try immediately — some browsers allow it after intro cinematic.
     start();

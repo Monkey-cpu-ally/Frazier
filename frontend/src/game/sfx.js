@@ -198,6 +198,47 @@ class SFXEngine {
     this._sweep(300, 800, 0.2, 'square', 0.3);
     setTimeout(() => this._tone(800, 0.1, 'square', 0.3), 150);
   }
+
+  // ── Title-screen atmosphere SFX ──────────────────────────────
+  // Glass-shatter for the "SHATTERED MIRRORS" subtitle. Noise burst + shards.
+  shatter() {
+    const ctx = this._ensure();
+    if (!ctx) return;
+    // Noise burst for the break
+    const bufLen = ctx.sampleRate * 0.35;
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) {
+      const t = i / bufLen;
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 1.6);
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 1200;
+    const g = ctx.createGain();
+    g.gain.value = 0.22;
+    src.connect(hp); hp.connect(g); g.connect(ctx.destination);
+    src.start();
+    // Sparkling tinkles — 6 quick decaying square pings at random high freqs
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        this._tone(2200 + Math.random() * 3800, 0.06 + Math.random() * 0.06,
+                   'triangle', 0.12 + Math.random() * 0.08);
+      }, 60 + i * 45 + Math.random() * 30);
+    }
+  }
+
+  // Glimpse — warm ascending shimmer (like a title card "reveal").
+  // 4-note arpeggio + soft chime tail.
+  glimpse() {
+    const notes = [523, 784, 1047, 1568];       // C5 G5 C6 G6
+    notes.forEach((n, i) => {
+      setTimeout(() => this._tone(n, 0.22, 'sine', 0.18), i * 90);
+    });
+    // Soft shimmer tail
+    setTimeout(() => this._sweep(1568, 3200, 0.6, 'sine', 0.08), 420);
+  }
 }
 
 // Singleton
