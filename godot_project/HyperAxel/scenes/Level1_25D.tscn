@@ -14,6 +14,8 @@
 [ext_resource type="Script" path="res://scripts/entities/flicker_enemy_3d.gd" id="12_fl"]
 [ext_resource type="Script" path="res://scripts/player/axel_sticker_health_3d.gd" id="13_hp"]
 [ext_resource type="Script" path="res://scripts/ui/hud_25d.gd" id="14_hud"]
+[ext_resource type="Script" path="res://scripts/world/pickup_25d.gd" id="15_pickup"]
+[ext_resource type="Texture2D" path="res://sprites/coin.png" id="16_coin"]
 
 [sub_resource type="CapsuleShape3D" id="cap_axel"]
 radius = 0.4
@@ -29,6 +31,9 @@ height = 1.2
 
 [sub_resource type="BoxShape3D" id="hitbox_shape"]
 size = Vector3(1.2, 0.9, 0.6)
+
+[sub_resource type="SphereShape3D" id="sph_pickup"]
+radius = 0.35
 
 [sub_resource type="BoxShape3D" id="box_ground"]
 size = Vector3(40, 1, 4)
@@ -205,3 +210,49 @@ shaded = false
 pixel_size = 0.007
 alpha_cut = 1
 alpha_scissor_threshold = 0.5
+
+; ────────────────────────────  Pickups (coins) ──────────────────────────────
+[node name="Coin1" type="Area3D" parent="." groups=["pickup"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1.0, 0)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("15_pickup")
+pickup_type = "coin"
+[node name="C" type="CollisionShape3D" parent="Coin1"]
+shape = SubResource("sph_pickup")
+[node name="Sprite3D" type="Sprite3D" parent="Coin1"]
+texture = ExtResource("16_coin")
+billboard = 1
+shaded = false
+pixel_size = 0.012
+alpha_cut = 1
+
+[node name="Coin2" type="Area3D" parent="." groups=["pickup"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.0, 0)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("15_pickup")
+pickup_type = "coin"
+[node name="C" type="CollisionShape3D" parent="Coin2"]
+shape = SubResource("sph_pickup")
+[node name="Sprite3D" type="Sprite3D" parent="Coin2"]
+texture = ExtResource("16_coin")
+billboard = 1
+shaded = false
+pixel_size = 0.012
+alpha_cut = 1
+
+[node name="Coin3" type="Area3D" parent="." groups=["pickup"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.0, 0)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("15_pickup")
+pickup_type = "coin"
+[node name="C" type="CollisionShape3D" parent="Coin3"]
+shape = SubResource("sph_pickup")
+[node name="Sprite3D" type="Sprite3D" parent="Coin3"]
+texture = ExtResource("16_coin")
+billboard = 1
+shaded = false
+pixel_size = 0.012
+alpha_cut = 1

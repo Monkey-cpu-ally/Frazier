@@ -21,6 +21,9 @@ scripts/entities/gear_bug_3d.gd          — hops every 0.65-1.0s
 scripts/entities/heavy_enemy_3d.gd       — telegraphed charge attack
 scripts/entities/flicker_enemy_3d.gd     — teleports after surviving a hit
 scripts/entities/root_crawler_3d.gd      — baseline patrol
+scripts/world/pickup_25d.gd             — coin / scrap / food / power pickup
+                                           (Area3D, billboard sprite, sparkle poof)
+sprites/coin.png, scrap_part.png         — Procedural pixel pickup icons
 sprites/*.png                            — Pixel-art textures (RGBA cleaned)
 ```
 

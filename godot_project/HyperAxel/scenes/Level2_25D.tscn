@@ -14,6 +14,9 @@
 [ext_resource type="Script" path="res://scripts/entities/flicker_enemy_3d.gd" id="12_fl"]
 [ext_resource type="Script" path="res://scripts/player/axel_sticker_health_3d.gd" id="13_hp"]
 [ext_resource type="Script" path="res://scripts/ui/hud_25d.gd" id="14_hud"]
+[ext_resource type="Script" path="res://scripts/world/pickup_25d.gd" id="15_pickup"]
+[ext_resource type="Texture2D" path="res://sprites/coin.png" id="16_coin"]
+[ext_resource type="Texture2D" path="res://sprites/scrap_part.png" id="17_scrap"]
 
 [sub_resource type="CapsuleShape3D" id="cap_axel"]
 radius = 0.4
@@ -26,6 +29,9 @@ height = 0.7
 [sub_resource type="CapsuleShape3D" id="cap_enemy_m"]
 radius = 0.4
 height = 1.2
+
+[sub_resource type="SphereShape3D" id="sph_pickup"]
+radius = 0.35
 
 [sub_resource type="BoxShape3D" id="hitbox_shape"]
 size = Vector3(1.2, 0.9, 0.6)
@@ -289,3 +295,111 @@ shaded = false
 pixel_size = 0.008
 alpha_cut = 1
 alpha_scissor_threshold = 0.5
+
+; ────────────────────────────  Pickups (coins + scrap) ──────────────────────
+[node name="Coin1" type="Area3D" parent="." groups=["pickup"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 1.0, 0)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("15_pickup")
+pickup_type = "coin"
+[node name="C" type="CollisionShape3D" parent="Coin1"]
+shape = SubResource("sph_pickup")
+[node name="Sprite3D" type="Sprite3D" parent="Coin1"]
+texture = ExtResource("16_coin")
+billboard = 1
+shaded = false
+pixel_size = 0.012
+alpha_cut = 1
+
+[node name="Coin2" type="Area3D" parent="." groups=["pickup"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 1.0, 0)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("15_pickup")
+pickup_type = "coin"
+[node name="C" type="CollisionShape3D" parent="Coin2"]
+shape = SubResource("sph_pickup")
+[node name="Sprite3D" type="Sprite3D" parent="Coin2"]
+texture = ExtResource("16_coin")
+billboard = 1
+shaded = false
+pixel_size = 0.012
+alpha_cut = 1
+
+[node name="Coin3" type="Area3D" parent="." groups=["pickup"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.7, 1.6, 0)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("15_pickup")
+pickup_type = "coin"
+[node name="C" type="CollisionShape3D" parent="Coin3"]
+shape = SubResource("sph_pickup")
+[node name="Sprite3D" type="Sprite3D" parent="Coin3"]
+texture = ExtResource("16_coin")
+billboard = 1
+shaded = false
+pixel_size = 0.012
+alpha_cut = 1
+
+[node name="Coin4" type="Area3D" parent="." groups=["pickup"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.2, 2.7, 0)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("15_pickup")
+pickup_type = "coin"
+[node name="C" type="CollisionShape3D" parent="Coin4"]
+shape = SubResource("sph_pickup")
+[node name="Sprite3D" type="Sprite3D" parent="Coin4"]
+texture = ExtResource("16_coin")
+billboard = 1
+shaded = false
+pixel_size = 0.012
+alpha_cut = 1
+
+[node name="Scrap1" type="Area3D" parent="." groups=["pickup"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.8, 2.2, 0)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("15_pickup")
+pickup_type = "scrap"
+amount = 2
+[node name="C" type="CollisionShape3D" parent="Scrap1"]
+shape = SubResource("sph_pickup")
+[node name="Sprite3D" type="Sprite3D" parent="Scrap1"]
+texture = ExtResource("17_scrap")
+billboard = 1
+shaded = false
+pixel_size = 0.012
+alpha_cut = 1
+
+[node name="Coin5" type="Area3D" parent="." groups=["pickup"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.2, 3.1, 0)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("15_pickup")
+pickup_type = "coin"
+[node name="C" type="CollisionShape3D" parent="Coin5"]
+shape = SubResource("sph_pickup")
+[node name="Sprite3D" type="Sprite3D" parent="Coin5"]
+texture = ExtResource("16_coin")
+billboard = 1
+shaded = false
+pixel_size = 0.012
+alpha_cut = 1
+
+[node name="Scrap2" type="Area3D" parent="." groups=["pickup"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.5, 2.5, 0)
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("15_pickup")
+pickup_type = "scrap"
+amount = 3
+[node name="C" type="CollisionShape3D" parent="Scrap2"]
+shape = SubResource("sph_pickup")
+[node name="Sprite3D" type="Sprite3D" parent="Scrap2"]
+texture = ExtResource("17_scrap")
+billboard = 1
+shaded = false
+pixel_size = 0.012
+alpha_cut = 1

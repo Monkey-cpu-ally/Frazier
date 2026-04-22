@@ -34,6 +34,7 @@ var _pickup_label : Label = null
 
 func _ready() -> void:
     layer = 10
+    add_to_group("hud")
     _build_hud()
     _wire_player()
 
