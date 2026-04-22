@@ -42,6 +42,9 @@ func _physics_process(delta: float) -> void:
     # Lock Z to keep it on the 2.5D plane
     global_position.z = 0.0
 
+    # Contact damage — any enemy in the body_shape_cast will chip a sticker.
+    _apply_contact_damage()
+
     var input_x : float = Input.get_axis("move_left", "move_right")
     if input_x != 0.0:
         _facing = int(sign(input_x))
@@ -121,3 +124,23 @@ func _update_sprite() -> void:
     if _sprite == null: return
     # Flip sprite by scaling X; billboard keeps it facing the camera.
     _sprite.scale.x = _facing
+
+# Contact damage — scan enemies near the player using move_and_slide's last collisions.
+# Also supports Mario stomp: falling onto an enemy's head takes them out + bounces.
+func _apply_contact_damage() -> void:
+    var health := get_node_or_null("Health")
+    if health == null: return
+    for i in range(get_slide_collision_count()):
+        var col := get_slide_collision(i)
+        var body := col.get_collider()
+        if body == null or not body.is_in_group("enemy"): continue
+        var n := col.get_normal()
+        # If we're coming down onto the top of the enemy, it's a stomp.
+        if n.y > 0.55 and velocity.y <= 0.0:
+            if body.has_method("take_damage"):
+                body.take_damage(99, global_position, Vector3(0, 0, 0))
+            velocity.y = 9.5 if Input.is_action_pressed("jump") else 6.5
+        else:
+            health.chip_sticker(false)
+            # Knockback
+            velocity = Vector3(sign(global_position.x - body.global_position.x) * 5.0, 4.0, 0.0)

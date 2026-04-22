@@ -7,10 +7,21 @@ Node3D scene that reuses the same pixel-art sprites as billboards.
 ## What's new
 
 ```
-scenes/Level1_25D.tscn          — 2.5D demo scene (press F5 then pick this)
-scripts/player/axel_movement_3d.gd — CharacterBody3D port of axel_movement.gd
-scripts/camera25d.gd             — Orthographic follow camera (tilt-ready)
-sprites/*.png                    — Pixel-art textures (Gemini-generated, RGBA)
+scenes/Level1_25D.tscn          — 2.5D starter scene (short, easy)
+scenes/Level2_25D.tscn          — Extended 2.5D stage (mirrors HTML5 Level 1,
+                                   ~45 world-units wide, 7 climbing platforms,
+                                   7 enemies showcasing all personalities)
+scripts/player/axel_movement_3d.gd       — CharacterBody3D port (Z-locked)
+scripts/player/axel_attack_hitbox_3d.gd  — weak/mid/heavy combo melee
+scripts/player/axel_sticker_health_3d.gd — 3-sticker health w/ chip chain
+scripts/ui/hud_25d.gd                    — pixel heart HUD + coin/score/pickup
+scripts/camera25d.gd                     — ortho follow camera w/ tilt
+scripts/entities/enemy_base_3d.gd        — CharacterBody3D base + smoke poof
+scripts/entities/gear_bug_3d.gd          — hops every 0.65-1.0s
+scripts/entities/heavy_enemy_3d.gd       — telegraphed charge attack
+scripts/entities/flicker_enemy_3d.gd     — teleports after surviving a hit
+scripts/entities/root_crawler_3d.gd      — baseline patrol
+sprites/*.png                            — Pixel-art textures (RGBA cleaned)
 ```
 
 ## How it works
@@ -31,13 +42,17 @@ sprites/*.png                    — Pixel-art textures (Gemini-generated, RGBA)
 1. Open the project in **Godot 4.2+** (Godot Hub → *Add project* → point at
    `HyperAxel/project.godot`).
 2. Wait for the importer to re-scan the new `sprites/*.png` files.
-3. In the FileSystem panel, open `scenes/Level1_25D.tscn`.
-4. Press **F6** (Run current scene). You'll spawn in the demo 2.5D level with
-   4 enemies and a ground slab. Controls:
+3. In the FileSystem panel, pick a scene:
+   - `scenes/Level1_25D.tscn` — small starter, 4 enemies.
+   - `scenes/Level2_25D.tscn` — extended stage (2× length, 7 platforms,
+     climbing traversal, all 4 enemy personalities).
+4. Press **F6** (Run current scene). Controls:
    - **A/D** or **←/→** — move
    - **Space** — jump (coyote + buffer preserved)
    - **Shift** — dash
-   - **J** — attack (not wired in 2.5D yet — see "next steps")
+   - **J** — attack (weak-mid-heavy combo chain)
+   - Contact with enemies → damage hearts shown top-left
+   - Fall onto an enemy's head → Mario-style stomp kill + bounce
 
 ## Tuning cheatsheet
 
