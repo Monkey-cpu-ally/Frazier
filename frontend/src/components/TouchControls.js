@@ -52,11 +52,11 @@ const TouchControls = ({ visible }) => {
 
       {/* Action Buttons (Right side) */}
       <div className="touch-actions">
-        <Btn code="Space" label="JUMP" className="touch-jump" />
-        <Btn code="KeyX" label="ATK" className="touch-attack" />
-        <Btn code="ShiftLeft" label="DASH" className="touch-dash" />
-        <Btn code="KeyK" label="PWR" className="touch-special" />
-        <Btn code="KeyQ" label="ASSIST" className="touch-assist" />
+        <Btn code="Space"     label="A"   className="touch-jump" />
+        <Btn code="KeyJ"      label="X"   className="touch-attack" />
+        <Btn code="ShiftLeft" label="⟫"   className="touch-dash" />
+        <Btn code="KeyK"      label="■"   className="touch-special" />
+        <Btn code="KeyQ"      label="Q"   className="touch-assist" />
       </div>
 
       {/* Top buttons */}

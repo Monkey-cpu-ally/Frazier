@@ -626,7 +626,8 @@ export class Engine {
       // Base dmg multiplier from active power.
       let dmgMul = this.powerManager.isGoldenGloves ? 2
                 : this.powerManager.isHyperMode ? 2
-                : this.powerManager.isSuperMode ? 1.5 : 1;
+                : this.powerManager.isSuperMode ? 1.5
+                : this.powerManager.isBurningBuffalo ? 1.75 : 1;
       // Combo tiering — weak / mid / heavy (combo 1 / 2 / 3).
       // Smash attack (down-air) is a dedicated heavy.
       const comboMul = pl.smashing ? 2.0
@@ -663,6 +664,30 @@ export class Engine {
             b.hit(3, true, this);
           }
         });
+      }
+    }
+
+    // ── Burning Buffalo: turn Axel's body into a flaming contact damage zone ──
+    // While active, running into any enemy deals 1 damage/0.2s and knocks them back
+    // (instead of damaging Axel). Also doubles attack-move damage.
+    if (this.powerManager.isBurningBuffalo) {
+      pl.invTimer = Math.max(pl.invTimer, 0.05);           // always mildly safe while charging
+      this._buffaloTick = (this._buffaloTick || 0) - dt;
+      if (this._buffaloTick <= 0) {
+        this.enemies.forEach(e => {
+          if (!e.alive) return;
+          const hb = e.getHitbox();
+          if (this._aabb(pl.left, pl.top, pl.w, pl.h, hb.x, hb.y, hb.w, hb.h)) {
+            e.takeDamage(1, pl.x, this, { bypassArmor: false });
+            e.vx = (e.cx - pl.x > 0 ? 1 : -1) * 180;
+            this.addParticles(e.cx, e.cy, 4, '#FD8C59');
+          }
+        });
+        this._buffaloTick = 0.18;
+      }
+      // Flame trail particles so you feel like you're burning
+      if (Math.random() < 0.6) {
+        this.addParticles(pl.x - pl.vx * 0.05, pl.y - 10, 1, '#FD8C59');
       }
     }
 

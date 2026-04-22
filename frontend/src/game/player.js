@@ -39,6 +39,8 @@ export class Player {
     this.shadowTimer = 0;
     this.dashGhosts = [];
     this.wasGrounded = false;
+    // Crouch
+    this.crouching = false;
   }
 
   get left() { return this.x - this.w / 2; }
@@ -147,13 +149,18 @@ export class Player {
     }
 
     // === Normal state ===
+    // Crouch — only on ground and only when not attacking/dashing.
+    this.crouching = this.grounded && inp.dn && !this.isAttacking && !this.isDashing;
+    this.h = this.crouching ? PL.h * 0.6 : PL.h;
+
     // Input direction
     let moveDir = 0;
     if (inp.left) moveDir = -1;
     if (inp.right) moveDir = 1;
 
-    // Horizontal movement (Godot-style move_toward)
-    const spdMul = pm.isHyperMode ? 1.5 : pm.isSuperMode ? 1.4 : 1;
+    // Horizontal movement (Godot-style move_toward).
+    // Crouch halves movement speed ("shuffle").
+    const spdMul = (pm.isHyperMode ? 1.5 : pm.isSuperMode ? 1.4 : 1) * (this.crouching ? 0.4 : 1);
     const targetSpeed = moveDir * PL.speed * spdMul;
     if (Math.abs(targetSpeed) > 0.01) {
       this.vx = this._moveToward(this.vx, targetSpeed, PL.accel * dt);
@@ -451,8 +458,8 @@ export class Player {
       ctx.globalAlpha = 1;
     });
 
-    const squashX = 1 + this.landSquash * 0.3;
-    const squashY = 1 - this.landSquash * 0.2;
+    const squashX = (1 + this.landSquash * 0.3) * (this.crouching ? 1.2 : 1);
+    const squashY = (1 - this.landSquash * 0.2) * (this.crouching ? 0.55 : 1);
 
     ctx.save();
     ctx.translate(Math.round(this.x), Math.round(this.y));

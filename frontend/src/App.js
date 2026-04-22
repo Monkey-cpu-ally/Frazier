@@ -531,7 +531,7 @@ function App() {
             )}
 
             {/* Touch Controls for mobile */}
-            <TouchControls visible={isMobile && !paused} />
+            <TouchControls visible={!paused} />
           </div>
         )}
 

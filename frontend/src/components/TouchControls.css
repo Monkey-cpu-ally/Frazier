@@ -1,3 +1,9 @@
+/* ======================================================================
+   On-Screen Touch Controls — PICO-8 pixel-art arcade style.
+   Always visible during gameplay (desktop + mobile). Buttons are round
+   with thick dark bevels and saturated accent colors + big glyphs.
+   ====================================================================== */
+
 .touch-controls {
   position: absolute;
   inset: 0;
@@ -5,6 +11,8 @@
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
+  image-rendering: pixelated;
+  font-family: 'Press Start 2P', monospace;
 }
 
 .touch-btn {
@@ -13,123 +21,121 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: rgba(255,255,255,0.7);
-  font-family: 'Fredoka', sans-serif;
+  color: #141014;
   font-weight: 700;
-  font-size: 0.85rem;
   letter-spacing: 1px;
-  transition: transform 0.05s, background 0.05s;
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+  transition: transform 0.06s steps(2), filter 0.06s steps(2);
   -webkit-tap-highlight-color: transparent;
   touch-action: none;
+  border: 3px solid #141014;
+  box-shadow:
+    inset 0 -6px 0 0 rgba(0,0,0,0.35),
+    inset 0 6px 0 0 rgba(255,255,255,0.25),
+    0 5px 0 0 #141014;
 }
 
 .touch-btn:active {
-  transform: scale(0.9);
-  background: rgba(255,255,255,0.15) !important;
+  transform: translate(0, 4px);
+  filter: brightness(0.9);
+  box-shadow:
+    inset 0 -2px 0 0 rgba(0,0,0,0.35),
+    inset 0 4px 0 0 rgba(255,255,255,0.25),
+    0 1px 0 0 #141014;
 }
 
-/* D-Pad */
+/* ── D-Pad (left side) — bigger, spread out cross layout ── */
 .touch-dpad {
   position: absolute;
-  bottom: 40px;
-  left: 24px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
+  bottom: 48px;
+  left: 36px;
+  width: 190px;
+  height: 190px;
+  pointer-events: none;
 }
 
 .touch-dpad-left,
 .touch-dpad-right,
-.touch-dpad-down,
-.touch-dpad-up {
-  width: 56px;
-  height: 56px;
-  background: rgba(0,0,0,0.45);
-  border: 2px solid rgba(255,255,255,0.12);
-  backdrop-filter: blur(4px);
-}
-
 .touch-dpad-up,
 .touch-dpad-down {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 50px;
-  height: 50px;
+  width: 64px;
+  height: 64px;
+  background: #2DA232;                 /* leafy green per reference */
+  font-size: 1rem;
 }
-.touch-dpad-up   { top: -50px; }
-.touch-dpad-down { bottom: -50px; }
 
-/* Action Buttons */
+.touch-dpad-left   { left: 0;     top: 63px; }
+.touch-dpad-right  { right: 0;    top: 63px; }
+.touch-dpad-up     { left: 63px;  top: 0;    }
+.touch-dpad-down   { left: 63px;  bottom: 0; }
+
+/* ── Action buttons (right side) — SNES-style cross with gaps ── */
 .touch-actions {
   position: absolute;
-  bottom: 40px;
-  right: 24px;
-  display: flex;
-  gap: 12px;
-  align-items: flex-end;
+  bottom: 48px;
+  right: 36px;
+  width: 210px;
+  height: 210px;
+  pointer-events: none;
 }
 
-.touch-dash {
-  width: 50px;
-  height: 50px;
-  background: rgba(139,92,246,0.25);
-  border: 2px solid rgba(139,92,246,0.45);
-  backdrop-filter: blur(4px);
-  font-size: 0.65rem;
-  margin-bottom: 8px;
+.touch-btn.touch-jump,
+.touch-btn.touch-attack,
+.touch-btn.touch-dash,
+.touch-btn.touch-special,
+.touch-btn.touch-assist {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  font-size: 0.7rem;
 }
 
-.touch-jump {
-  width: 68px;
-  height: 68px;
-  background: rgba(0,199,190,0.25);
-  border: 2px solid rgba(0,199,190,0.4);
-  backdrop-filter: blur(4px);
-  font-size: 0.75rem;
+.touch-btn.touch-jump    { right: 0;   top: 68px; background: #E23A2E; color: #F4ECD8; }  /* red A */
+.touch-btn.touch-attack  { right: 69px; top: 0;    background: #2E7BD6; color: #F4ECD8; }  /* blue X up */
+.touch-btn.touch-dash    { right: 138px; top: 68px; background: #F7B71D; }                 /* yellow dash */
+.touch-btn.touch-special { right: 69px; bottom: 0; background: #E83DB4; color: #F4ECD8; }  /* pink special */
+.touch-btn.touch-assist  {
+  position: absolute;
+  right: 0;   bottom: 0;
+  width: 56px; height: 56px;
+  background: #7D5BEA; color: #F4ECD8;
+  font-size: 0.55rem;
 }
 
-.touch-attack {
-  width: 68px;
-  height: 68px;
-  background: rgba(255,59,48,0.25);
-  border: 2px solid rgba(255,59,48,0.4);
-  backdrop-filter: blur(4px);
-  margin-bottom: 30px;
-  font-size: 0.75rem;
-}
-
-.touch-special {
-  width: 50px;
-  height: 50px;
-  background: rgba(255,214,10,0.2);
-  border: 2px solid rgba(255,214,10,0.35);
-  backdrop-filter: blur(4px);
-  font-size: 0.65rem;
-}
-
-/* Top buttons */
+/* ── Top-right utility buttons: pause, interact ── */
 .touch-top {
   position: absolute;
-  top: 12px;
+  top: 16px;
   right: 16px;
   display: flex;
   gap: 10px;
+  pointer-events: none;
 }
 
 .touch-pause,
 .touch-interact {
-  width: 40px;
-  height: 40px;
-  background: rgba(0,0,0,0.4);
-  border: 1.5px solid rgba(255,255,255,0.15);
-  backdrop-filter: blur(4px);
-  font-size: 0.7rem;
+  pointer-events: auto;
+  width: 52px;
+  height: 52px;
+  background: #F4ECD8;
+  color: #141014;
+  font-size: 0.6rem;
+  border: 3px solid #141014;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 -4px 0 0 rgba(0,0,0,0.3),
+    inset 0 4px 0 0 rgba(255,255,255,0.35),
+    0 4px 0 0 #141014;
 }
+.touch-interact { background: #F7B71D; }
 
-/* Hide on desktop, show on touch */
-@media (hover: hover) and (pointer: fine) {
-  .touch-controls {
-    display: none;
-  }
+/* Always-visible on all devices now — game wants the pixel pad on desktop too. */
+@media (max-width: 900px) {
+  .touch-dpad-left, .touch-dpad-right,
+  .touch-dpad-up, .touch-dpad-down { width: 56px; height: 56px; }
+  .touch-dpad-left   { top: 55px; }
+  .touch-dpad-right  { top: 55px; }
+  .touch-dpad-down   { left: 55px; }
+  .touch-dpad-up     { left: 55px; }
 }

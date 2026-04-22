@@ -20,15 +20,16 @@ class MusicEngine {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.value = this.volume;
-      this.masterGain.connect(this.ctx.destination);
+      // Slight low-pass so square waves don't sound harsh on laptop speakers.
+      this.masterLPF = this.ctx.createBiquadFilter();
+      this.masterLPF.type = 'lowpass';
+      this.masterLPF.frequency.value = 7200;
+      this.masterLPF.Q.value = 0.5;
+      this.masterGain.connect(this.masterLPF);
+      this.masterLPF.connect(this.ctx.destination);
 
-      // Reverb (simple delay-based)
-      this.delay = this.ctx.createDelay(0.5);
-      this.delay.delayTime.value = 0.3;
-      this.delayGain = this.ctx.createGain();
-      this.delayGain.gain.value = 0.15;
-      this.delay.connect(this.delayGain);
-      this.delayGain.connect(this.masterGain);
+      // Reverb intentionally omitted — the 0.3s feedback was muddying the
+      // chiptune lead/bass layering and reading as underwater static.
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
     return this.ctx;
@@ -74,7 +75,6 @@ class MusicEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
     osc.connect(gain);
     gain.connect(this.masterGain);
-    gain.connect(this.delay);
     osc.start(time);
     osc.stop(time + dur);
   }
