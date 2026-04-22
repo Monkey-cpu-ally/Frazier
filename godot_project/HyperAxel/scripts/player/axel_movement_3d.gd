@@ -46,6 +46,12 @@ func _physics_process(delta: float) -> void:
     if input_x != 0.0:
         _facing = int(sign(input_x))
 
+    # Attack input → trigger hitbox
+    if Input.is_action_just_pressed("attack"):
+        var hb := get_node_or_null("AttackHitbox")
+        if hb and hb.has_method("strike"):
+            hb.strike(_facing)
+
     # Coyote + buffer timers
     var grounded := is_on_floor()
     if grounded:

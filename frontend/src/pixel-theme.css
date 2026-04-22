@@ -329,6 +329,184 @@ body.pixel-theme [data-sonner-toast] {
   box-shadow: 4px 4px 0 var(--px-ink) !important;
 }
 
+/* ---- Centered title screen + pixel logo ---- */
+.title-content-centered {
+  justify-content: center !important;
+  text-align: center !important;
+}
+.title-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
+  z-index: 3;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.title-logo-pixel {
+  width: clamp(320px, 60vw, 640px);
+  height: auto;
+  filter: drop-shadow(0 6px 0 rgba(0,0,0,0.7));
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+}
+.title-buttons-centered {
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+/* ---- Controls overlay / Settings / Pause / Workshop / Achievements / Gallery ---- */
+body.pixel-theme .controls-overlay,
+body.pixel-theme .settings-overlay,
+body.pixel-theme .pause-overlay,
+body.pixel-theme .workshop-overlay,
+body.pixel-theme .achievements-overlay,
+body.pixel-theme .gallery-overlay,
+body.pixel-theme .world-picker-overlay,
+body.pixel-theme [class*='-modal-backdrop'] {
+  background: rgba(20,16,20,0.85) !important;
+  backdrop-filter: blur(0) !important;
+}
+
+body.pixel-theme .controls-panel,
+body.pixel-theme .settings-panel,
+body.pixel-theme .pause-panel,
+body.pixel-theme .workshop-panel,
+body.pixel-theme .achievements-panel,
+body.pixel-theme .gallery-panel,
+body.pixel-theme .world-picker-panel {
+  background: var(--px-panel) !important;
+  border: 4px solid var(--px-ink) !important;
+  border-radius: 0 !important;
+  box-shadow:
+    inset 0 4px 0 rgba(255,255,255,0.08),
+    inset 0 -4px 0 rgba(0,0,0,0.4),
+    6px 6px 0 rgba(0,0,0,0.5) !important;
+  font-family: 'VT323', monospace !important;
+  color: var(--px-cream) !important;
+}
+
+body.pixel-theme .controls-panel h2,
+body.pixel-theme .settings-panel h2,
+body.pixel-theme .pause-panel h2,
+body.pixel-theme .workshop-panel h2,
+body.pixel-theme .achievements-panel h2,
+body.pixel-theme .gallery-panel h2,
+body.pixel-theme .world-picker-panel h2 {
+  background: var(--px-yellow);
+  color: var(--px-ink) !important;
+  padding: 10px 14px;
+  border-bottom: 4px solid var(--px-ink);
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 1px !important;
+  text-shadow: 2px 2px 0 var(--px-yellow-sh);
+  margin: -4px -4px 16px -4px;
+}
+
+/* Pause/game buttons inside modals — apply the chunky pixel bevel */
+body.pixel-theme .pause-panel button,
+body.pixel-theme .controls-panel button,
+body.pixel-theme .settings-panel button,
+body.pixel-theme .workshop-panel button,
+body.pixel-theme .achievements-panel button,
+body.pixel-theme .gallery-panel button,
+body.pixel-theme .world-picker-panel button,
+body.pixel-theme .menu-button,
+body.pixel-theme .pause-btn {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 1px !important;
+  border: 4px solid var(--px-ink) !important;
+  border-radius: 0 !important;
+  background: var(--px-blue) !important;
+  color: var(--px-cream) !important;
+  text-shadow: 2px 2px 0 var(--px-blue-sh);
+  padding: 12px 18px !important;
+  box-shadow:
+    inset 0 -6px 0 0 var(--px-blue-sh),
+    inset 0 6px 0 0 rgba(255,255,255,0.22),
+    0 5px 0 0 var(--px-ink) !important;
+  text-transform: uppercase;
+  transition: transform 0.08s steps(2), filter 0.08s steps(2) !important;
+}
+
+body.pixel-theme .pause-panel button:hover,
+body.pixel-theme .workshop-panel button:hover,
+body.pixel-theme .controls-panel button:hover,
+body.pixel-theme .achievements-panel button:hover {
+  filter: brightness(1.1);
+  transform: translate(-1px, -1px);
+}
+body.pixel-theme .pause-panel button:active,
+body.pixel-theme .workshop-panel button:active {
+  transform: translate(0, 4px);
+  filter: brightness(0.96);
+}
+
+/* Specific accent recolors — resume/start buttons pop in red */
+body.pixel-theme .pause-panel button.pause-btn-resume,
+body.pixel-theme .pause-panel button[data-testid*='resume'],
+body.pixel-theme .pause-panel button:first-of-type {
+  background: var(--px-red) !important;
+  text-shadow: 2px 2px 0 var(--px-red-sh);
+  box-shadow:
+    inset 0 -6px 0 0 var(--px-red-sh),
+    inset 0 6px 0 0 rgba(255,255,255,0.22),
+    0 5px 0 0 var(--px-ink) !important;
+}
+
+/* Achievements / Mirror Gallery cards — chunky framed cards */
+body.pixel-theme .achievement-card,
+body.pixel-theme .gallery-card,
+body.pixel-theme .mirror-card,
+body.pixel-theme [class*='ach-card'] {
+  border: 3px solid var(--px-ink) !important;
+  border-radius: 0 !important;
+  background: var(--px-panel-hi) !important;
+  box-shadow: 4px 4px 0 var(--px-ink) !important;
+  padding: 12px !important;
+  font-family: 'VT323', monospace !important;
+  color: var(--px-cream) !important;
+}
+body.pixel-theme .achievement-card .title,
+body.pixel-theme .gallery-card .title,
+body.pixel-theme .mirror-card .title {
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.7rem !important;
+  color: var(--px-yellow) !important;
+  text-shadow: 1px 1px 0 var(--px-ink);
+}
+
+/* Workshop cost / price chips → pixel chip look */
+body.pixel-theme .workshop-cost,
+body.pixel-theme .upgrade-cost,
+body.pixel-theme .price-chip,
+body.pixel-theme [class*='-cost'] {
+  display: inline-block;
+  padding: 3px 8px !important;
+  background: var(--px-yellow) !important;
+  color: var(--px-ink) !important;
+  border: 2px solid var(--px-ink) !important;
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 0.55rem !important;
+  box-shadow: 2px 2px 0 var(--px-ink);
+}
+
+/* Close (×) buttons in panels */
+body.pixel-theme .close-btn,
+body.pixel-theme [class*='-close'] {
+  font-family: 'Press Start 2P', monospace !important;
+  background: var(--px-red) !important;
+  color: var(--px-cream) !important;
+  border: 3px solid var(--px-ink) !important;
+  width: 36px; height: 36px;
+  box-shadow: 0 3px 0 var(--px-ink);
+  padding: 0 !important;
+}
+
 /* ---- Big headings throughout ---- */
 body.pixel-theme h1,
 body.pixel-theme h2,

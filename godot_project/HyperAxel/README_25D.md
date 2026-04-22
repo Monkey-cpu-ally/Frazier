@@ -53,21 +53,21 @@ sprites/*.png                    — Pixel-art textures (Gemini-generated, RGBA)
 
 ## Next steps (hand-done work you'll do in the editor)
 
-1. **Attack hitbox** — drop an `Area3D` child on the Player with a box shape
-   in front; wire a `j` input to enable it for 0.15s (mirror
-   `axel_attack_hitbox.gd`).
-2. **Enemy bodies** — the demo enemies are `Node3D + Sprite3D` only; promote
-   them to `CharacterBody3D` + collision capsule + assign the corresponding
-   2D AI scripts after translating them (copy `root_crawler.gd` →
-   `root_crawler_3d.gd`, swap `KinematicBody2D` types for 3D equivalents).
+1. ~~**Attack hitbox**~~ ✅ DONE — `AttackHitbox` Area3D child on Player,
+   `scripts/player/axel_attack_hitbox_3d.gd` handles weak/mid/heavy combo
+   (1.0× / 1.25× / 1.75× damage) with a 0.45s chain window.
+2. ~~**Enemy AI scripts**~~ ✅ DONE — `enemy_base_3d.gd` plus personalities:
+   `gear_bug_3d.gd` (hops), `heavy_enemy_3d.gd` (charges), `flicker_enemy_3d.gd`
+   (teleports after surviving a hit with smoke poof), `root_crawler_3d.gd`
+   (baseline patrol). All registered in `Level1_25D.tscn`.
 3. **Level layout** — the demo has one flat ground slab. Build real levels by
    adding more `StaticBody3D + CSGBox3D` platforms or, better, a MultiMesh
    grid for chunked terrain.
 4. **Parallax backdrop** — add 2–3 more Sprite3D quads at different Z depths
    (z = -4, -8, -14) with distant scenery textures — the camera tilt will
    give free parallax.
-5. **Smoke poof death** — port the HTML5 `_spawnSmokePoof()` into a
-   `GPUParticles3D` preset. Emit on enemy death.
+5. **Player health + UI** — port `axel_sticker_health.gd` and `hud.gd` to
+   display 3 hearts in a CanvasLayer above the 3D scene.
 
 ## Why Sprite3D + billboard instead of real 3D meshes?
 

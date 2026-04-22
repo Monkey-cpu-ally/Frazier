@@ -378,9 +378,33 @@ function App() {
           <div className="title-screen" data-testid="title-screen">
             <div className="title-bg" style={{ backgroundImage: `url(${BG_URL})` }}>
               <div className="title-overlay" />
-              <div className="title-content">
-                <div className="title-left">
-                  <div className="title-buttons">
+              <div className="title-content title-content-centered">
+                <div className="title-center">
+                  {/* Pixel-art logo — inline SVG so it's crisp at any size. */}
+                  <svg
+                    className="title-logo-pixel"
+                    data-testid="title-logo-pixel"
+                    viewBox="0 0 560 260"
+                    xmlns="http://www.w3.org/2000/svg"
+                    shapeRendering="crispEdges"
+                  >
+                    {/* HYPER — top row, red/yellow layered bevel */}
+                    <text x="88" y="88"  fontFamily="'Press Start 2P', monospace" fontSize="64" fill="#141014">HYPER</text>
+                    <text x="80" y="80"  fontFamily="'Press Start 2P', monospace" fontSize="64" fill="#E23A2E">HYPER</text>
+                    <text x="78" y="76"  fontFamily="'Press Start 2P', monospace" fontSize="64" fill="#FFD34D">HYPER</text>
+                    {/* AXEL — second row, larger yellow bevel */}
+                    <text x="108" y="188" fontFamily="'Press Start 2P', monospace" fontSize="84" fill="#141014">AXEL</text>
+                    <text x="100" y="180" fontFamily="'Press Start 2P', monospace" fontSize="84" fill="#A36F00">AXEL</text>
+                    <text x="98"  y="176" fontFamily="'Press Start 2P', monospace" fontSize="84" fill="#FFD34D">AXEL</text>
+                    {/* Subtitle chip */}
+                    <rect x="140" y="210" width="280" height="30" fill="#141014" />
+                    <rect x="144" y="214" width="272" height="22" fill="#2DA232" />
+                    <text x="164" y="232" fontFamily="'Press Start 2P', monospace" fontSize="14" fill="#141014">
+                      SHATTERED MIRRORS
+                    </text>
+                  </svg>
+
+                  <div className="title-buttons title-buttons-centered">
                     <button
                       className="start-btn"
                       data-testid="start-game-button"

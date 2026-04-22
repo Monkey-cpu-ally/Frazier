@@ -72,12 +72,15 @@ export function getLevels(newGamePlus = false) {
         { x: 970, y: 180, w: 80, h: 20, color: '#856A4E' },
         { x: 1120, y: 140, w: 80, h: 20, color: '#856A4E' },
         // Extended middle-late section (2× stage length)
-        { x: 1400, y: 200, w: 100, h: 20, color: '#856A4E' },
-        { x: 1600, y: 160, w: 100, h: 20, color: '#856A4E' },
-        { x: 1800, y: 200, w: 100, h: 20, color: '#856A4E' },
-        { x: 2000, y: 160, w: 110, h: 20, color: '#856A4E' },
-        { x: 2200, y: 120, w: 80,  h: 20, color: '#856A4E' },
-        { x: 2420, y: 180, w: 140, h: 20, color: '#856A4E' },
+        { x: 1300, y: 240, w: 110, h: 20, color: '#856A4E' },
+        { x: 1470, y: 200, w: 110, h: 20, color: '#856A4E' },
+        { x: 1630, y: 170, w: 110, h: 20, color: '#856A4E' },
+        { x: 1790, y: 200, w: 110, h: 20, color: '#856A4E' },
+        { x: 1950, y: 170, w: 110, h: 20, color: '#856A4E' },
+        { x: 2110, y: 150, w: 100, h: 20, color: '#856A4E' },
+        { x: 2270, y: 130, w:  90, h: 20, color: '#856A4E' },
+        // Landing platform after the gap
+        { x: 2430, y: 180, w: 160, h: 20, color: '#856A4E' },
       ],
       enemies: [
         { type: 'root_crawler', x: -170, y: 148 },
