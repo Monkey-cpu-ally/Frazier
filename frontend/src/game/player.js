@@ -342,8 +342,23 @@ export class Player {
     this.wallDir = 0;
 
     for (const p of engine.platforms) {
+      // Locked door — only solid until the player has the matching key.
+      if (p.kind === 'door' && p.locked === false) continue;
       if (this.right <= p.x || this.left >= p.x + p.w) continue;
       if (this.bottom <= p.y || this.top >= p.y + p.h) continue;
+
+      // One-way platforms: only collide with the TOP face when falling onto it.
+      // S/Down lets the player drop through.
+      if (p.kind === 'oneway') {
+        const wasAbove = (this.y - this.vy * 0.016) <= p.y + 1;
+        const dropping = engine.input && engine.input.dn;
+        if (!wasAbove || this.vy < 0 || dropping) continue;
+        this.y = p.y;
+        this.vy = 0;
+        this.grounded = true;
+        if (!prevGrounded) { this.landSquash = 0.5; sfx.land(); }
+        continue;
+      }
 
       const overlapL = this.right - p.x;
       const overlapR = (p.x + p.w) - this.left;
@@ -355,6 +370,15 @@ export class Player {
         this.y = p.y;
         this.vy = 0;
         this.grounded = true;
+        // Falling tile — first stand triggers a delayed crumble.
+        if (p.kind === 'falling' && p.crumbleT === undefined) {
+          p.crumbleT = 0.6;          // half-second warning before it drops
+          p.shakeT = p.crumbleT;
+        }
+        // Moving platform — carry the player horizontally with it.
+        if (p.kind === 'moving' && p._lastDelta) {
+          this.x += p._lastDelta.x;
+        }
         if (!prevGrounded && this.smashing) {
           this.smashing = false;
           this.isAttacking = false;

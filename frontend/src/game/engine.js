@@ -448,9 +448,12 @@ export class Engine {
     this.gameState.update(dt);
     this.powerManager.update(dt);
 
+    // ── Special platform updates (moving / falling / door) ──
+    this._updateSpecialPlatforms(dt);
+
     // Rebuild full platform list including non-broken breakables
     this._allPlatforms = [
-      ...this.platforms,
+      ...this.platforms.filter(p => !p._destroyed),
       ...this.breakables.filter(b => !b.broken).map(b => b.platform).filter(Boolean),
     ];
     // Temporarily swap so player/enemy collision uses full list
@@ -2303,6 +2306,37 @@ export class Engine {
     if (key === 'dream')  return { kind: 'wisp',  count: 45, color: '#FFB0F0', accent: '#FFE8FF' };
     if (key === 'city')   return { kind: 'rain',  count: 60, color: 'rgba(150,170,200,0.45)', accent: '#88A0C0' };
     return null;
+  }
+
+  // ── Special-platform tick (moving / falling) ─────────────────
+  _updateSpecialPlatforms(dt) {
+    for (const p of this.platforms) {
+      if (p._destroyed) continue;
+      if (p.kind === 'moving') {
+        // Oscillate between pathA (origin x,y) and pathB along sine curve.
+        if (!p._init) {
+          p._origX = p.x; p._origY = p.y;
+          p._t = 0;
+          p._init = true;
+        }
+        p._t += dt * (p.speed || 1.0);
+        const pa = Math.sin(p._t) * 0.5 + 0.5;            // 0..1
+        const tx = p._origX + (p.pathB.x - p._origX) * pa;
+        const ty = p._origY + (p.pathB.y - p._origY) * pa;
+        p._lastDelta = { x: tx - p.x, y: ty - p.y };
+        p.x = tx; p.y = ty;
+      } else if (p.kind === 'falling') {
+        if (p.crumbleT !== undefined) {
+          p.crumbleT -= dt;
+          if (p.shakeT !== undefined) p.shakeT -= dt;
+          if (p.crumbleT <= 0 && !p._destroyed) {
+            p._destroyed = true;
+            this.addParticles(p.x + p.w / 2, p.y + p.h / 2, 18, '#7A5C3A');
+            this.camera.shake(3, 0.15);
+          }
+        }
+      }
+    }
   }
 
   _spawnWeatherParticle(cfg, initial) {
