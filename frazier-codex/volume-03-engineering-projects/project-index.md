@@ -16,6 +16,7 @@ This index tracks Frazier's active and developing engineering ideas.
 | FC-ENG-0008 | NIR / Industrial Scanner | Hermes | Concept research | Scanner and blueprint extraction pipeline for physical objects and digital twins. |
 | FC-ENG-0009 | Hydrogen Engine Codex | Hermes | Research direction | Hydrogen, soundwave, light, and power-cell engine exploration with risk tracking. |
 | FC-ENG-0010 | Donut Battery | Hermes | Concept research | Ring-shaped battery/power concept. |
+| FC-ENG-0011 | Adaptive Biomimetic Neural Mesh (ABNM) | Minerva + Hermes + Ajani | Concept research | Personal ATLAS-linked adaptive bioelectronic/neural-interface research platform using slime-mold-inspired routing, neuron-like signaling, Master Mode, Motor Learning, external Knowledge Bank access, and strict Safety Kernel controls. |
 
 ## Entry Rule
 
