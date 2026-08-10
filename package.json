@@ -1,0 +1,24 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Monkey-cpu-ally/Frazier.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Monkey-cpu-ally/Frazier/issues"
+  },
+  "homepage": "https://github.com/Monkey-cpu-ally/Frazier#readme",
+  "type": "module",
+  "dependencies": {
+    "three": "^0.182.0"
+  }
+}
